@@ -13,14 +13,24 @@ from typing import Any, Dict, List, Union
 
 logger = logging.getLogger(__name__)
 
-# Patterns that indicate sensitive fields
+# Whitelist: Fields that are NOT secrets (business/telemetry)
+SAFE_FIELD_NAMES = {
+    "tokens",           # usage stats dict
+    "token_stats",
+    "usage",
+    "usage_tokens",
+    "token_usage",
+    "model_tokens",
+}
+
+# Patterns that indicate sensitive fields (be strict and precise)
 SENSITIVE_FIELD_PATTERNS = [
-    r'.*api[_-]?key.*',
-    r'.*token.*',
-    r'.*secret.*',
-    r'.*password.*',
-    r'.*credential.*',
-    r'.*auth.*key.*',
+    r"(^|[_-])(api[_-]?key|apikey)($|[_-])",
+    r"(^|[_-])(access[_-]?token|refresh[_-]?token|id[_-]?token|auth[_-]?token)($|[_-])",
+    r"(^|[_-])token($|[_-])",          # token as credential, not "tokens"
+    r"(^|[_-])secret($|[_-])",
+    r"(^|[_-])password($|[_-])",
+    r"(^|[_-])(credential|private[_-]?key)($|[_-])",
 ]
 
 # Patterns for detecting API key-like strings in values
@@ -44,7 +54,7 @@ def is_sensitive_field(field_name: str) -> bool:
     field_lower = field_name.lower()
 
     for pattern in SENSITIVE_FIELD_PATTERNS:
-        if re.match(pattern, field_lower):
+        if re.search(pattern, field_lower):
             return True
 
     return False
@@ -113,15 +123,22 @@ def mask_sensitive_fields(data: Any, depth: int = 0, max_depth: int = 10) -> Any
     if isinstance(data, dict):
         result = {}
         for key, value in data.items():
+            # Whitelist: Skip known safe business/telemetry fields
+            if key in SAFE_FIELD_NAMES:
+                result[key] = value
+                continue
+
             # Check if field name is sensitive
             if is_sensitive_field(key):
+                # Only mask string values to avoid type mismatches
                 if isinstance(value, str):
                     result[key] = mask_value(value)
                 elif isinstance(value, (dict, list)):
                     # Recurse into nested structures even for sensitive field names
                     result[key] = mask_sensitive_fields(value, depth + 1, max_depth)
                 else:
-                    result[key] = "****"
+                    # Don't mask non-string primitives (numbers, booleans, None)
+                    result[key] = value
             # Check if value looks like an API key
             elif isinstance(value, str) and looks_like_api_key(value):
                 result[key] = mask_value(value)
