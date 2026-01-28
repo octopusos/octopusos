@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Check - AgentOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">AgentOS WebUI Health Check</h1>
+
+        <div class="bg-white rounded-lg shadow p-6 mb-4">
+            <h2 class="text-xl font-semibold mb-4">System Status</h2>
+            <div id="health-status" class="text-gray-600">
+                Loading...
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">API Endpoints</h2>
+            <ul class="space-y-2 text-sm">
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/health</code> - System health</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/sessions</code> - List sessions</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/tasks</code> - List tasks</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/events</code> - Query events</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/skills</code> - List skills</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/memory/search</code> - Search memory</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/config</code> - View config</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">GET /api/logs</code> - Query logs</li>
+                <li><code class="bg-gray-100 px-2 py-1 rounded">WS /ws/chat/{session_id}</code> - Chat WebSocket</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Fetch health status
+        fetch('/api/health')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('health-status').innerHTML = `
+                    <pre class="bg-gray-50 p-4 rounded overflow-x-auto">${JSON.stringify(data, null, 2)}</pre>
+                `;
+            })
+            .catch(err => {
+                document.getElementById('health-status').innerHTML = `
+                    <div class="text-red-600">Error: ${err.message}</div>
+                `;
+            });
+    </script>
+</body>
+</html>

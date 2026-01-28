@@ -1,0 +1,76 @@
+# Review Pack - {{ task_id }}
+
+**Run ID**: {{ run_id }}  
+**Execution Mode**: {{ execution_mode }}  
+**Started**: {{ started_at }}  
+**Completed**: {{ completed_at }}
+
+## Plan Summary
+
+**Objective**: {{ plan_summary.objective }}
+
+**Approach**: {{ plan_summary.approach }}
+
+{% if plan_summary.risks %}
+**Identified Risks**:
+{% for risk in plan_summary.risks %}
+- {{ risk }}
+{% endfor %}
+{% endif %}
+
+## Changed Files ({{ changed_files|length }} files)
+
+{% for module, files in files_by_module.items() %}
+### {{ module }}
+{% for file in files %}
+- `{{ file.path }}` ({{ file.lines_changed }} lines, {{ file.status }})
+{% endfor %}
+{% endfor %}
+
+## Patches
+
+{% for patch in patches %}
+### Patch {{ patch.patch_id }}
+
+**Intent**: {{ patch.intent }}
+
+**Files**:
+{% for file in patch.files %}
+- {{ file }}
+{% endfor %}
+
+**Diff Hash**: `{{ patch.diff_hash }}`
+
+---
+{% endfor %}
+
+## Verification Results
+
+- **Gates**: {{ verification_results.gates }}
+- **Build**: {{ verification_results.build }}
+- **Tests**: {{ verification_results.tests }}
+
+{% if verification_results.details %}
+**Details**:
+{% for detail in verification_results.details %}
+- {{ detail }}
+{% endfor %}
+{% endif %}
+
+## Commits
+
+{% if commits %}
+{% for commit in commits %}
+- `{{ commit.hash }}` - {{ commit.message }} ({{ commit.timestamp }})
+{% endfor %}
+{% else %}
+No commits recorded.
+{% endif %}
+
+## Rollback Guide
+
+{{ rollback_guide }}
+
+---
+
+*Generated at: {{ generated_at }}*

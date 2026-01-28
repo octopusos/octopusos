@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/coordinator/question_pack.schema.json",
+  "title": "Question Pack (v0.9.2)",
+  "description": "Collection of questions emitted by Coordinator during planning",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pack_id",
+    "schema_version",
+    "coordinator_run_id",
+    "intent_id",
+    "questions",
+    "policy_constraints",
+    "created_at"
+  ],
+  "properties": {
+    "pack_id": {
+      "type": "string",
+      "pattern": "^qpack_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this question pack"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.9.2",
+      "description": "Schema version"
+    },
+    "coordinator_run_id": {
+      "type": "string",
+      "description": "Reference to the coordinator run that generated these questions"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$",
+      "description": "Reference to the source intent"
+    },
+    "questions": {
+      "type": "array",
+      "description": "Array of questions requiring answers",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question_id",
+          "type",
+          "blocking_level",
+          "question_text",
+          "context",
+          "evidence_refs",
+          "impact"
+        ],
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "pattern": "^q_[a-z0-9_]{4,32}$",
+            "description": "Unique question identifier within this pack"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["clarification", "blocker", "optimization", "risk_mitigation"],
+            "description": "Type of question"
+          },
+          "blocking_level": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"],
+            "description": "How critical is this question (critical = must answer)"
+          },
+          "question_text": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000,
+            "description": "The actual question text"
+          },
+          "context": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 4000,
+            "description": "Why this question is being asked"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "minItems": 1,
+            "description": "Evidence/context that triggered this question"
+          },
+          "default_strategy": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "What happens if this question is not answered (fallback strategy)"
+          },
+          "impact": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scope", "description"],
+            "properties": {
+              "scope": {
+                "type": "string",
+                "enum": ["entire_plan", "single_phase", "single_action", "optimization_only"],
+                "description": "Scope of impact if answered differently"
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 1000,
+                "description": "Detailed impact description"
+              },
+              "affected_nodes": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^node_[a-z0-9_]{4,32}$"
+                },
+                "description": "Graph nodes affected by this question"
+              }
+            }
+          },
+          "suggested_answers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["answer_text", "rationale"],
+              "properties": {
+                "answer_text": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "rationale": {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                "risk_change": {
+                  "type": "string",
+                  "enum": ["increase", "decrease", "no_change"]
+                }
+              }
+            },
+            "description": "Suggested answer options (for multiple choice)"
+          }
+        }
+      }
+    },
+    "policy_constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_mode", "question_budget", "question_policy"],
+      "properties": {
+        "execution_mode": {
+          "type": "string",
+          "enum": ["interactive", "semi_auto", "full_auto"],
+          "description": "Execution mode from policy"
+        },
+        "question_budget": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum allowed questions from policy"
+        },
+        "question_policy": {
+          "type": "string",
+          "enum": ["all", "blockers_only", "never"],
+          "description": "Question policy from execution policy"
+        },
+        "budget_consumed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many questions in this pack"
+        },
+        "budget_remaining": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Remaining question budget after this pack"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Pack creation timestamp"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Optional expiration timestamp for answers"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional pack metadata",
+      "properties": {
+        "emitted_from_state": {
+          "type": "string",
+          "description": "Coordinator state that emitted these questions"
+        },
+        "total_questions": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "policy_constraints": {
+            "properties": {
+              "execution_mode": {
+                "const": "full_auto"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "questions": {
+            "maxItems": 0
+          }
+        }
+      },
+      "description": "RED LINE: full_auto mode must have zero questions"
+    }
+  ]
+}

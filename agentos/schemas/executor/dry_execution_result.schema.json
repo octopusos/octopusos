@@ -1,0 +1,339 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/executor/dry_execution_result.schema.json",
+  "title": "Dry Execution Result (v0.10)",
+  "description": "Complete output from dry executor: planning artifacts without actual execution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result_id",
+    "schema_version",
+    "intent_ref",
+    "created_at",
+    "graph",
+    "patch_plan",
+    "commit_plan",
+    "review_pack_stub",
+    "audit_log",
+    "metadata",
+    "lineage",
+    "checksum"
+  ],
+  "properties": {
+    "result_id": {
+      "type": "string",
+      "pattern": "^dryexec_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this dry execution result"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.10.0",
+      "description": "Schema version"
+    },
+    "intent_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intent_id", "checksum"],
+      "properties": {
+        "intent_id": {
+          "type": "string",
+          "pattern": "^intent_[a-z0-9_]{6,64}$",
+          "description": "Reference to source ExecutionIntent (v0.9.1)"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 checksum of the intent"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Intent schema version"
+        }
+      }
+    },
+    "coordinator_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id"],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "pattern": "^run_[a-z0-9_]{6,64}$",
+          "description": "Optional coordinator run ID (v0.9.2) if used"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Checksum of coordinator outputs"
+        },
+        "outputs_used": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["execution_graph", "question_pack", "answer_pack"]
+          },
+          "description": "Which coordinator outputs were used"
+        }
+      },
+      "description": "Optional reference to coordinator outputs (v0.9.2)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Result creation timestamp"
+    },
+    "graph": {
+      "type": "object",
+      "description": "Execution graph (embedded or reference)",
+      "$comment": "Should validate against execution_graph.schema.json"
+    },
+    "patch_plan": {
+      "type": "object",
+      "description": "Patch plan (embedded or reference)",
+      "$comment": "Should validate against patch_plan.schema.json"
+    },
+    "commit_plan": {
+      "type": "object",
+      "description": "Commit plan (embedded or reference)",
+      "$comment": "Should validate against commit_plan.schema.json"
+    },
+    "review_pack_stub": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk_summary", "requires_review", "evidence_coverage"],
+      "properties": {
+        "risk_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["dominant_risk", "risk_factors", "mitigation_notes"],
+          "properties": {
+            "dominant_risk": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"],
+              "description": "Highest risk level across all planned changes"
+            },
+            "risk_factors": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 300
+              },
+              "minItems": 1,
+              "description": "Factors contributing to risk"
+            },
+            "mitigation_notes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 500
+              },
+              "description": "Suggested mitigations"
+            }
+          }
+        },
+        "requires_review": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["security", "data", "release", "architecture", "cost", "compliance"]
+          },
+          "minItems": 1,
+          "description": "Types of review required (merged from intent + inferred)"
+        },
+        "evidence_coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["total_nodes", "nodes_with_evidence", "coverage_percentage"],
+          "properties": {
+            "total_nodes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total decision/action nodes"
+            },
+            "nodes_with_evidence": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Nodes with evidence_refs"
+            },
+            "coverage_percentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Percentage of nodes with evidence"
+            },
+            "gaps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "node_id": {"type": "string"},
+                  "reason": {"type": "string"}
+                }
+              },
+              "description": "Nodes missing evidence"
+            }
+          }
+        },
+        "estimated_review_time": {
+          "type": "string",
+          "enum": ["quick", "moderate", "thorough", "extended"],
+          "description": "Estimated time needed for review"
+        }
+      }
+    },
+    "audit_log": {
+      "type": "array",
+      "description": "Decision log from dry execution planning",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["timestamp", "decision_type", "decision", "rationale"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this decision was made"
+          },
+          "decision_type": {
+            "type": "string",
+            "enum": ["graph_structure", "file_inclusion", "commit_grouping", "risk_assessment", "review_requirement"],
+            "description": "Type of decision"
+          },
+          "decision": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "What was decided"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000,
+            "description": "Why this decision was made"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Evidence supporting this decision"
+          },
+          "alternatives_considered": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Alternative decisions that were considered"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dry_executor_version", "execution_mode", "constraints_enforced"],
+      "properties": {
+        "dry_executor_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Version of dry executor used"
+        },
+        "execution_mode": {
+          "type": "string",
+          "const": "dry_run",
+          "description": "Always dry_run (no actual execution)"
+        },
+        "constraints_enforced": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["DE1_no_exec", "DE2_no_fs_write", "DE3_no_fabrication", "DE4_evidence_required", "DE5_high_risk_review", "DE6_freezable"]
+          },
+          "minItems": 6,
+          "description": "All 6 red lines must be enforced"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Warnings generated during planning"
+        },
+        "processing_time_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time taken to generate this result"
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["derived_from", "generation_context"],
+      "properties": {
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {"type": "string", "enum": ["intent", "coordinator_output", "registry_content"]},
+              "id": {"type": "string"},
+              "checksum": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+            }
+          },
+          "minItems": 1,
+          "description": "Sources this result was derived from"
+        },
+        "generation_context": {
+          "type": "object",
+          "properties": {
+            "hostname": {"type": "string"},
+            "user": {"type": "string"},
+            "environment": {"type": "string"}
+          },
+          "description": "Context in which this result was generated"
+        }
+      }
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of entire result (for freezing per DE6)"
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "High/critical risk must include requires_review per DE5",
+      "if": {
+        "properties": {
+          "review_pack_stub": {
+            "properties": {
+              "risk_summary": {
+                "properties": {
+                  "dominant_risk": {
+                    "enum": ["high", "critical"]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "review_pack_stub": {
+            "properties": {
+              "requires_review": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

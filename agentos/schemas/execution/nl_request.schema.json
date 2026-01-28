@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/execution/nl_request.schema.json",
+  "title": "Natural Language Request (v0.9.4)",
+  "description": "Natural language input for Intent Builder",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "schema_version",
+    "project_id",
+    "input_text",
+    "created_at",
+    "checksum",
+    "lineage"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^nl_req_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this NL request"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.9.4",
+      "description": "Schema version"
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Project identifier"
+    },
+    "input_text": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 10000,
+      "description": "Natural language input text"
+    },
+    "context_hints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional context hints to guide intent building",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "maxItems": 200,
+          "description": "Specific files to focus on"
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "maxItems": 100,
+          "description": "Modules or components to focus on"
+        },
+        "areas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["frontend", "backend", "infra", "docs", "tests", "ops", "security", "data"]
+          },
+          "maxItems": 8,
+          "description": "Technical areas to focus on"
+        }
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Request creation timestamp"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of the request content"
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["introduced_in", "derived_from", "supersedes"],
+      "properties": {
+        "introduced_in": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Version this request was introduced in"
+        },
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^nl_req_[a-z0-9_]{6,64}$"
+          },
+          "maxItems": 16,
+          "description": "Previous NL requests this was derived from"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^nl_req_[a-z0-9_]{6,64}$"
+          },
+          "maxItems": 16,
+          "description": "Previous NL requests this supersedes"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "User who created this request"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["cli", "api", "web", "imported"],
+          "description": "Request source"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "maxItems": 20,
+          "description": "Tags for categorization"
+        }
+      }
+    }
+  }
+}

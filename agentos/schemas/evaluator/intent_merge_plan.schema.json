@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/evaluator/intent_merge_plan.schema.json",
+  "title": "Intent Merge Plan (v0.9.3)",
+  "description": "Detailed plan for merging multiple intents with operations and resulting intent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "schema_version",
+    "created_at",
+    "strategy",
+    "source_intent_ids",
+    "operations",
+    "result_intent",
+    "lineage",
+    "checksum"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^merge_plan_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this merge plan"
+    },
+    "type": {
+      "const": "intent_merge_plan",
+      "description": "Type marker for merge plan"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.9.3",
+      "description": "Schema version"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Merge plan creation timestamp"
+    },
+    "strategy": {
+      "type": "string",
+      "enum": ["merge_union", "override_by_priority", "reject"],
+      "description": "Overall merge strategy"
+    },
+    "source_intent_ids": {
+      "type": "array",
+      "description": "Intents being merged",
+      "minItems": 2,
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "pattern": "^intent_[a-z0-9_]{6,64}$"
+      },
+      "uniqueItems": true
+    },
+    "operations": {
+      "type": "array",
+      "description": "Ordered sequence of merge operations",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["op_id", "operation", "source_intent_id", "evidence"],
+        "properties": {
+          "op_id": {
+            "type": "string",
+            "pattern": "^op_[a-z0-9_]{4,32}$",
+            "description": "Unique operation identifier"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "union_commands",
+              "union_workflows",
+              "union_agents",
+              "union_evidence",
+              "override_field",
+              "keep_field",
+              "merge_budgets",
+              "aggregate_risk"
+            ],
+            "description": "Type of operation"
+          },
+          "source_intent_id": {
+            "type": "string",
+            "pattern": "^intent_[a-z0-9_]{6,64}$",
+            "description": "Intent this operation reads from"
+          },
+          "target_field": {
+            "type": "string",
+            "maxLength": 256,
+            "description": "Field path being modified (e.g., 'planned_commands')"
+          },
+          "value": {
+            "description": "Value to apply (varies by operation)"
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Evidence justifying this operation"
+          },
+          "conflict_resolution": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "How conflict was resolved (if applicable)"
+          }
+        }
+      }
+    },
+    "result_intent": {
+      "type": "object",
+      "description": "Resulting merged intent (must conform to intent.schema.json)",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "title",
+        "version",
+        "status",
+        "created_at",
+        "lineage",
+        "scope",
+        "objective",
+        "selected_workflows",
+        "selected_agents",
+        "planned_commands",
+        "interaction",
+        "risk",
+        "budgets",
+        "evidence_refs",
+        "constraints",
+        "audit"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^intent_[a-z0-9_]{6,64}$"
+        },
+        "type": {
+          "const": "execution_intent"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 160
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "proposed", "approved", "rejected", "superseded"]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "lineage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["introduced_in", "derived_from", "supersedes"],
+          "properties": {
+            "introduced_in": {
+              "type": "string",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$"
+            },
+            "derived_from": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^intent_[a-z0-9_]{6,64}$"
+              },
+              "minItems": 1,
+              "maxItems": 16,
+              "description": "RL-E2: Must include source intents"
+            },
+            "supersedes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^intent_[a-z0-9_]{6,64}$"
+              },
+              "maxItems": 16,
+              "description": "RL-E2: Must list superseded intents if override strategy"
+            }
+          }
+        },
+        "scope": {
+          "type": "object"
+        },
+        "objective": {
+          "type": "object"
+        },
+        "selected_workflows": {
+          "type": "array"
+        },
+        "selected_agents": {
+          "type": "array"
+        },
+        "planned_commands": {
+          "type": "array"
+        },
+        "interaction": {
+          "type": "object"
+        },
+        "risk": {
+          "type": "object"
+        },
+        "budgets": {
+          "type": "object"
+        },
+        "evidence_refs": {
+          "type": "array"
+        },
+        "constraints": {
+          "type": "object"
+        },
+        "audit": {
+          "type": "object"
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["derived_from", "supersedes"],
+      "properties": {
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^intent_[a-z0-9_]{6,64}$"
+          },
+          "minItems": 2,
+          "maxItems": 20,
+          "description": "RL-E2: Source intents (required for merge)"
+        },
+        "supersedes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^intent_[a-z0-9_]{6,64}$"
+          },
+          "maxItems": 20,
+          "description": "RL-E2: Intents superseded by this merge (if override strategy)"
+        },
+        "merge_plan_id": {
+          "type": "string",
+          "pattern": "^merge_plan_[a-z0-9_]{6,64}$"
+        }
+      }
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of merge plan"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata",
+      "properties": {
+        "conflicts_resolved": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "merge_complexity": {
+          "type": "string",
+          "enum": ["simple", "moderate", "complex"]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "RL-E2: Merge strategy override_by_priority requires supersedes lineage",
+      "if": {
+        "properties": {
+          "strategy": {
+            "const": "override_by_priority"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "lineage": {
+            "properties": {
+              "supersedes": {
+                "minItems": 1
+              }
+            }
+          },
+          "result_intent": {
+            "properties": {
+              "lineage": {
+                "properties": {
+                  "supersedes": {
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

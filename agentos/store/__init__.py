@@ -1,0 +1,136 @@
+"""Store module - SQLite database management"""
+
+import logging
+import sqlite3
+from pathlib import Path
+
+from .migrator import auto_migrate, get_migration_status
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["get_db", "init_db", "ensure_migrations", "get_migration_status"]
+
+
+def get_db_path() -> Path:
+    """Get the database path"""
+    return Path("store/registry.sqlite")
+
+
+def get_db():
+    """
+    Get database connection
+
+    自动执行未应用的迁移，确保数据库 schema 是最新的。
+    """
+    import sqlite3
+
+    db_path = get_db_path()
+    if not db_path.exists():
+        raise FileNotFoundError(
+            f"Database not initialized. Run 'agentos init' first. Expected: {db_path}"
+        )
+
+    # 自动迁移
+    try:
+        ensure_migrations(db_path)
+    except Exception as e:
+        logger.warning(f"Auto-migration failed: {e}")
+        # 不阻断连接，允许降级使用
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    # Enable foreign keys for CASCADE support
+    conn.execute("PRAGMA foreign_keys = ON")
+
+    return conn
+
+
+def init_db(auto_migrate_after_init: bool = True):
+    """
+    Initialize database with base schema
+
+    工作流程：
+    1. 创建空数据库文件
+    2. 创建 schema_version 表
+    3. 自动执行所有迁移（v01 ~ v23）
+
+    Args:
+        auto_migrate_after_init: 是否在初始化后自动执行迁移（默认: True）
+
+    User contract:
+    - After running `agentos init`, all CLI commands must work immediately.
+    - Database schema is always up-to-date.
+    """
+    import sqlite3
+
+    db_path = get_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # 如果数据库已存在，只执行迁移
+    if db_path.exists():
+        logger.info(f"Database already exists: {db_path}")
+        if auto_migrate_after_init:
+            migrated = ensure_migrations(db_path)
+            if migrated > 0:
+                logger.info(f"Applied {migrated} pending migrations")
+        return db_path
+
+    # 创建新数据库
+    logger.info(f"Creating new database: {db_path}")
+    conn = sqlite3.connect(str(db_path))
+
+    try:
+        # 只创建 schema_version 表，其他表由迁移创建
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema_version (
+                version TEXT PRIMARY KEY,
+                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        logger.info("Database file created with schema_version table")
+
+    finally:
+        conn.close()
+
+    # 自动执行所有迁移
+    if auto_migrate_after_init:
+        logger.info("Running auto-migration...")
+        migrated = ensure_migrations(db_path)
+        logger.info(f"Applied {migrated} migrations, database is ready")
+
+    return db_path
+
+
+def ensure_migrations(db_path: Path = None) -> int:
+    """
+    确保数据库迁移已应用
+
+    自动检测并执行所有未应用的迁移文件。
+    程序启动时调用此函数，确保数据库 schema 始终是最新的。
+
+    Args:
+        db_path: 数据库路径（可选，默认使用 get_db_path()）
+
+    Returns:
+        应用的迁移数量
+
+    Raises:
+        MigrationError: 迁移失败
+    """
+    if db_path is None:
+        db_path = get_db_path()
+
+    if not db_path.exists():
+        logger.warning(f"Database not found: {db_path}, skipping migrations")
+        return 0
+
+    try:
+        migrated = auto_migrate(db_path)
+        if migrated > 0:
+            logger.info(f"Applied {migrated} database migrations")
+        return migrated
+    except Exception as e:
+        logger.error(f"Migration failed: {e}", exc_info=True)
+        raise

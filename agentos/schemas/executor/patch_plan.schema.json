@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/executor/patch_plan.schema.json",
+  "title": "Patch Plan (v0.10)",
+  "description": "File-level planning showing what files will be changed and why (no actual patches)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_id",
+    "schema_version",
+    "intent_id",
+    "created_at",
+    "files",
+    "estimated_diffs",
+    "constraints",
+    "unknowns",
+    "checksum"
+  ],
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "pattern": "^patchplan_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this patch plan"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.10.0",
+      "description": "Schema version"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$",
+      "description": "Reference to the source Execution Intent"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Plan creation timestamp"
+    },
+    "files": {
+      "type": "array",
+      "description": "List of files that will be affected",
+      "minItems": 0,
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "action", "rationale", "risk", "evidence_refs", "lock_intent"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "File path (must come from intent.scope.targets.files or evidence_refs per DE3)"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["add", "modify", "delete"],
+            "description": "Type of change planned for this file"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 1000,
+            "description": "Why this file needs to be changed"
+          },
+          "risk": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "Risk level for this file change"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "minItems": 1,
+            "description": "Evidence supporting this file change (REQUIRED per DE4)"
+          },
+          "lock_intent": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "scope"],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": ["exclusive", "shared", "none"],
+                "description": "Intended lock mode (intent only, not actual lock)"
+              },
+              "scope": {
+                "type": "string",
+                "enum": ["file", "directory", "module"],
+                "description": "Scope of the lock intent"
+              },
+              "reason": {
+                "type": "string",
+                "maxLength": 300,
+                "description": "Why this lock is needed"
+              }
+            }
+          },
+          "estimated_impact": {
+            "type": "string",
+            "enum": ["minimal", "moderate", "significant", "critical"],
+            "description": "Estimated impact of this change"
+          }
+        }
+      }
+    },
+    "estimated_diffs": {
+      "type": "array",
+      "description": "Estimated diffs (placeholders, not actual diffs)",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["file_path", "diff_hash_placeholder", "intent_summary"],
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "File path matching entry in files array"
+          },
+          "diff_hash_placeholder": {
+            "type": "string",
+            "pattern": "^placeholder_[a-f0-9]{16}$",
+            "description": "Placeholder hash for future diff (not actual diff)"
+          },
+          "intent_summary": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "Summary of intended changes"
+          },
+          "estimated_lines_changed": {
+            "type": "object",
+            "properties": {
+              "added": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "removed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "modified": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["no_exec", "no_fs_write"],
+      "properties": {
+        "no_exec": {
+          "type": "boolean",
+          "const": true,
+          "description": "Execution is forbidden (DE1)"
+        },
+        "no_fs_write": {
+          "type": "boolean",
+          "const": true,
+          "description": "No file system writes except output artifacts (DE2)"
+        },
+        "no_fabrication": {
+          "type": "boolean",
+          "const": true,
+          "description": "All paths must be from intent or evidence (DE3)"
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "description": "Paths or decisions that could not be determined from intent/evidence",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "description", "reason"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["missing_path", "ambiguous_target", "insufficient_evidence"],
+            "description": "Type of unknown"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "Description of what is unknown"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "Why this could not be determined"
+          },
+          "needed_evidence": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "What evidence would resolve this unknown"
+          }
+        }
+      }
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of the patch plan"
+    }
+  }
+}

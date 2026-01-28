@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$version": "1.0.0",
+  "title": "PolicyLineage",
+  "type": "object",
+  "required": [
+    "policy_id",
+    "parent_policy_id",
+    "diff",
+    "status"
+  ],
+  "properties": {
+    "policy_id": {
+      "type": "string"
+    },
+    "parent_policy_id": {
+      "type": "string"
+    },
+    "source_learning_pack_id": {
+      "type": "string"
+    },
+    "diff": {
+      "type": "object"
+    },
+    "effective_from": {
+      "type": "string"
+    },
+    "effective_until": {
+      "type": "string"
+    },
+    "rollback_conditions": {
+      "type": "object"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "canary",
+        "active",
+        "frozen",
+        "rolled_back"
+      ]
+    }
+  }
+}
