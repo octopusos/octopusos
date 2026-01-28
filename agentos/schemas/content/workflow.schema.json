@@ -1,0 +1,240 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/content/workflow.schema.json",
+  "$version": "0.6.0",
+  "title": "Workflow",
+  "description": "Workflow definition for multi-step orchestration (v0.6 minimal schema)",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "category",
+    "description",
+    "phases",
+    "interaction",
+    "constraints",
+    "lineage"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Workflow identifier (lowercase, underscore separated)",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version number",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "category": {
+      "type": "string",
+      "description": "Workflow category",
+      "enum": [
+        "discovery",
+        "design",
+        "implementation",
+        "testing",
+        "governance",
+        "deployment",
+        "operations",
+        "learning"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the workflow",
+      "minLength": 10,
+      "maxLength": 5000
+    },
+    "phases": {
+      "type": "array",
+      "description": "Workflow phases",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "allows_questions"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Phase identifier",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "description": {
+            "type": "string",
+            "description": "Phase description"
+          },
+          "requires": {
+            "type": "array",
+            "description": "Required inputs for this phase",
+            "items": {
+              "type": "string"
+            }
+          },
+          "produces": {
+            "type": "array",
+            "description": "Outputs produced by this phase",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allows_questions": {
+            "type": "boolean",
+            "description": "Whether questions are allowed in this phase"
+          },
+          "risk_level": {
+            "type": "string",
+            "description": "Risk level of this phase",
+            "enum": ["low", "medium", "high"]
+          }
+        }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "description": "Interaction strategy",
+      "required": ["default_mode", "question_policy"],
+      "properties": {
+        "default_mode": {
+          "type": "string",
+          "description": "Default interaction mode",
+          "enum": ["question_only"]
+        },
+        "question_policy": {
+          "type": "object",
+          "description": "Policy for when questions are triggered",
+          "required": ["trigger_when"],
+          "properties": {
+            "trigger_when": {
+              "type": "array",
+              "description": "Conditions that trigger questions",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "allowed_phases": {
+          "type": "array",
+          "description": "Phases where questions are allowed",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Workflow constraints",
+      "required": ["execution", "side_effects"],
+      "properties": {
+        "execution": {
+          "type": "string",
+          "description": "Execution constraint (must be forbidden for v0.6)",
+          "enum": ["forbidden"]
+        },
+        "side_effects": {
+          "type": "string",
+          "description": "Side effects constraint (must be forbidden for v0.6)",
+          "enum": ["forbidden"]
+        },
+        "requires_approval": {
+          "type": "boolean",
+          "description": "Whether workflow requires human approval"
+        },
+        "max_duration_minutes": {
+          "type": "integer",
+          "description": "Maximum expected duration in minutes",
+          "minimum": 1
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "description": "Workflow lineage information",
+      "required": ["introduced_in"],
+      "properties": {
+        "introduced_in": {
+          "type": "string",
+          "description": "Version when workflow was introduced (e.g., v0.6)",
+          "pattern": "^v\\d+\\.\\d+$"
+        },
+        "derived_from": {
+          "type": ["string", "null"],
+          "description": "Parent workflow ID if evolved (null for root workflows)"
+        },
+        "change_reason": {
+          "type": ["string", "null"],
+          "description": "Reason for evolution (required if derived_from is not null)"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "derived_from": {
+              "type": "null"
+            },
+            "change_reason": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "derived_from": {
+              "type": "string",
+              "minLength": 1
+            },
+            "change_reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["derived_from", "change_reason"]
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "description": "Workflow tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_workflows": {
+          "type": "array",
+          "description": "IDs of related workflows",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documentation_url": {
+          "type": "string",
+          "description": "URL to additional documentation",
+          "format": "uri"
+        },
+        "author": {
+          "type": "string",
+          "description": "Workflow author"
+        },
+        "use_cases": {
+          "type": "array",
+          "description": "Example use cases",
+          "items": {
+            "type": "string"
+          }
+        },
+        "anti_use_cases": {
+          "type": "array",
+          "description": "Scenarios where this workflow should NOT be used",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

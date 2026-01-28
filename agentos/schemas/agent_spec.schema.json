@@ -1,0 +1,197 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/agent_spec.schema.json",
+  "$version": "1.0.0",
+  "title": "AgentSpec",
+  "description": "Agent specification with verified commands and paths",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "name",
+    "role",
+    "mission",
+    "allowed_paths",
+    "forbidden_paths",
+    "workflows",
+    "commands",
+    "verification",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "AgentSpec schema version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "name": {
+      "type": "string",
+      "description": "Agent name (e.g., frontend-engineer)",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "role": {
+      "type": "string",
+      "description": "Agent role description"
+    },
+    "mission": {
+      "type": "string",
+      "description": "Agent mission statement"
+    },
+    "allowed_paths": {
+      "type": "array",
+      "description": "Paths the agent is allowed to access",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "forbidden_paths": {
+      "type": "array",
+      "description": "Paths the agent must not access",
+      "items": {
+        "type": "string"
+      }
+    },
+    "workflows": {
+      "type": "array",
+      "description": "Agent workflows",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "steps", "verification"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Workflow name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Workflow description"
+          },
+          "steps": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "Workflow steps"
+          },
+          "verification": {
+            "type": "string",
+            "description": "How to verify this workflow completed successfully"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Risk level of this workflow"
+          }
+        }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "description": "Commands the agent can execute (key=command name, value=shell command)",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "verification": {
+      "type": "object",
+      "description": "Verification requirements",
+      "required": ["schema_check", "command_existence_check"],
+      "properties": {
+        "schema_check": {
+          "type": "boolean",
+          "description": "Whether this spec passed schema validation",
+          "const": true
+        },
+        "command_existence_check": {
+          "type": "boolean",
+          "description": "Whether all commands exist in FactPack",
+          "const": true
+        },
+        "path_existence_check": {
+          "type": "boolean",
+          "description": "Whether all allowed_paths exist in FactPack"
+        },
+        "additional_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional verification checks passed"
+        }
+      }
+    },
+    "escalation_rules": {
+      "type": "array",
+      "description": "When and how to escalate",
+      "items": {
+        "type": "object",
+        "required": ["condition", "action"],
+        "properties": {
+          "condition": {
+            "type": "string",
+            "description": "Condition triggering escalation"
+          },
+          "action": {
+            "type": "string",
+            "description": "Escalation action"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "warning", "error", "critical"],
+            "description": "Escalation severity"
+          }
+        }
+      }
+    },
+    "provenance": {
+      "type": "array",
+      "description": "Evidence IDs from FactPack supporting this spec",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^ev[0-9]+$"
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Additional constraints",
+      "properties": {
+        "max_file_size": {
+          "type": "integer",
+          "description": "Maximum file size in bytes"
+        },
+        "max_execution_time": {
+          "type": "integer",
+          "description": "Maximum command execution time in seconds"
+        },
+        "require_approval": {
+          "type": "boolean",
+          "description": "Whether agent actions require human approval"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Metadata",
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "agent_type": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        },
+        "factpack_version": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

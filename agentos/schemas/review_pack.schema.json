@@ -1,0 +1,215 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/review_pack.schema.json",
+  "$version": "1.0.0",
+  "title": "ReviewPack",
+  "description": "Review package for task execution audit trail",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "run_id",
+    "execution_mode",
+    "plan_summary",
+    "changed_files",
+    "patches",
+    "generated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "ReviewPack schema version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Task identifier"
+    },
+    "run_id": {
+      "type": "integer",
+      "description": "Run identifier"
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["interactive", "semi_auto", "full_auto"],
+      "description": "Execution mode used"
+    },
+    "plan_summary": {
+      "type": "object",
+      "description": "Plan summary",
+      "properties": {
+        "objective": {
+          "type": "string",
+          "description": "Plan objective"
+        },
+        "approach": {
+          "type": "string",
+          "description": "Implementation approach"
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Identified risks"
+        }
+      }
+    },
+    "changed_files": {
+      "type": "array",
+      "description": "List of changed files",
+      "items": {
+        "type": "object",
+        "required": ["path", "status"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path (relative to repo root)"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["added", "modified", "deleted", "renamed"],
+            "description": "Change status"
+          },
+          "lines_changed": {
+            "type": "integer",
+            "description": "Number of lines changed"
+          },
+          "module": {
+            "type": "string",
+            "description": "Module/component this file belongs to"
+          }
+        }
+      }
+    },
+    "patches": {
+      "type": "array",
+      "description": "Change patches",
+      "items": {
+        "type": "object",
+        "required": ["patch_id", "intent", "files"],
+        "properties": {
+          "patch_id": {
+            "type": "string",
+            "description": "Unique patch identifier (e.g., p001)"
+          },
+          "intent": {
+            "type": "string",
+            "description": "Why this change was made"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files affected by this patch"
+          },
+          "diff_hash": {
+            "type": "string",
+            "description": "SHA256 hash of the diff content"
+          }
+        }
+      }
+    },
+    "verification_results": {
+      "type": "object",
+      "description": "Verification results",
+      "properties": {
+        "gates": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"],
+          "description": "Gates check status"
+        },
+        "build": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"],
+          "description": "Build check status"
+        },
+        "tests": {
+          "type": "string",
+          "enum": ["passed", "failed", "skipped"],
+          "description": "Tests check status"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Detailed verification messages"
+        }
+      }
+    },
+    "risk_assessment": {
+      "type": "object",
+      "description": "Risk assessment",
+      "properties": {
+        "overall_risk": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Overall risk level"
+        },
+        "factors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Risk factors identified"
+        }
+      }
+    },
+    "commits": {
+      "type": "array",
+      "description": "Git commits created",
+      "items": {
+        "type": "object",
+        "required": ["hash", "message"],
+        "properties": {
+          "hash": {
+            "type": "string",
+            "description": "Commit hash"
+          },
+          "message": {
+            "type": "string",
+            "description": "Commit message"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Commit timestamp"
+          }
+        }
+      }
+    },
+    "rollback_guide": {
+      "type": "string",
+      "description": "Instructions for rolling back changes"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Review pack generation timestamp"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Execution start timestamp"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Execution completion timestamp"
+        },
+        "duration_seconds": {
+          "type": "number",
+          "description": "Execution duration in seconds"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

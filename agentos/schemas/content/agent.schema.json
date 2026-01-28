@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/content/agent.schema.json",
+  "$version": "0.7.0",
+  "title": "Agent",
+  "description": "Agent definition for organizational role modeling (v0.7 organizational schema)",
+  "type": "object",
+  "required": [
+    "id",
+    "version",
+    "category",
+    "description",
+    "responsibilities",
+    "allowed_interactions",
+    "constraints",
+    "lineage"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Agent identifier (lowercase, underscore separated)",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version number",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "category": {
+      "type": "string",
+      "description": "Agent organizational category",
+      "enum": [
+        "product",
+        "delivery",
+        "design",
+        "engineering",
+        "data",
+        "architecture",
+        "quality",
+        "security",
+        "operations",
+        "documentation",
+        "leadership"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the agent role (must correspond to real organizational position)",
+      "minLength": 10,
+      "maxLength": 5000
+    },
+    "responsibilities": {
+      "type": "array",
+      "description": "Core responsibilities of this agent role",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 200
+      }
+    },
+    "allowed_interactions": {
+      "type": "array",
+      "description": "Allowed interaction types",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Agent constraints",
+      "required": ["execution", "command_ownership"],
+      "properties": {
+        "execution": {
+          "type": "string",
+          "description": "Execution constraint"
+        },
+        "command_ownership": {
+          "type": "string",
+          "description": "Command ownership constraint"
+        },
+        "technical_decision": {
+          "type": "string",
+          "description": "Whether agent can make technical decisions (role-specific)",
+          "enum": ["allowed", "forbidden"]
+        },
+        "product_decision": {
+          "type": "string",
+          "description": "Whether agent can make product decisions (role-specific)",
+          "enum": ["allowed", "forbidden"]
+        },
+        "architecture_decision": {
+          "type": "string",
+          "description": "Whether agent can make architecture decisions (role-specific)",
+          "enum": ["allowed", "forbidden"]
+        },
+        "feature_implementation": {
+          "type": "string",
+          "description": "Whether agent can implement features (role-specific)",
+          "enum": ["allowed", "forbidden"]
+        },
+        "deployment_operation": {
+          "type": "string",
+          "description": "Whether agent can perform deployment operations (role-specific)",
+          "enum": ["allowed", "forbidden"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "lineage": {
+      "type": "object",
+      "description": "Agent lineage information",
+      "required": ["introduced_in"],
+      "properties": {
+        "introduced_in": {
+          "type": "string",
+          "description": "Version when agent was introduced (e.g., v0.7)",
+          "pattern": "^v\\d+\\.\\d+$"
+        },
+        "derived_from": {
+          "type": ["string", "null"],
+          "description": "Parent agent ID if evolved (null for root agents)"
+        },
+        "change_reason": {
+          "type": ["string", "null"],
+          "description": "Reason for evolution (required if derived_from is not null)"
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "derived_from": {
+              "type": "null"
+            },
+            "change_reason": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "properties": {
+            "derived_from": {
+              "type": "string",
+              "minLength": 1
+            },
+            "change_reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": ["derived_from", "change_reason"]
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata",
+      "properties": {
+        "real_world_roles": {
+          "type": "array",
+          "description": "Real-world job titles this agent corresponds to",
+          "items": {
+            "type": "string"
+          }
+        },
+        "typical_workflows": {
+          "type": "array",
+          "description": "Workflows this agent typically participates in (informational only)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "Agent tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        },
+        "documentation_url": {
+          "type": "string",
+          "description": "URL to additional documentation",
+          "format": "uri"
+        },
+        "author": {
+          "type": "string",
+          "description": "Agent definition author"
+        }
+      }
+    }
+  }
+}

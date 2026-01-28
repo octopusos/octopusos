@@ -1,0 +1,101 @@
+[project]
+name = "agentos"
+version = "0.3.0"
+description = "System-level, project-agnostic AI Agent orchestration system"
+requires-python = ">=3.13"
+readme = "README.md"
+license = { text = "MIT" }
+dependencies = [
+    "click>=8.1.7",
+    "openai>=1.58.1",
+    "jinja2>=3.1.5",
+    "jsonschema>=4.23.0",
+    "rich>=13.9.4",
+    "croniter>=1.4.1",
+    "networkx>=3.1",
+    "pyyaml>=6.0",
+    "anthropic>=0.18.0",
+    "docker>=6.1.0",
+    "gitpython>=3.1.46",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "websockets>=12.0",
+    "psutil>=5.9.0",
+    "requests>=2.31.0",
+    "httpx>=0.27.0",
+    "sentry-sdk[fastapi]>=2.50.0",
+    "cryptography>=42.0.0",
+    "python-ulid>=2.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.8.5",
+]
+vector = [
+    "sentence-transformers>=2.2.0",
+    "torch>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.scripts]
+agentos = "agentos.cli.main:cli"
+memoryos = "memoryos.cli.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--tb=short",
+    "-v",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests (> 1s)",
+    "network: Tests requiring network access",
+]
+
+[tool.coverage.run]
+source = ["agentos"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/site-packages/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]

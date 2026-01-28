@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/task_definition.schema.json",
+  "$version": "1.0.0",
+  "title": "TaskDefinition",
+  "description": "Task definition with execution strategy",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "project_id",
+    "agent_type",
+    "execution_mode",
+    "description"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "TaskDefinition schema version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Unique task identifier (e.g., task-001)",
+      "pattern": "^task-[a-z0-9-]+$"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Target project ID"
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Agent type to execute this task (e.g., frontend-engineer)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Task description"
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["interactive", "semi_auto", "full_auto"],
+      "description": "Execution mode: interactive (can ask freely), semi_auto (only blocker questions), full_auto (no questions)"
+    },
+    "execution_policy": {
+      "type": "object",
+      "description": "Execution policy configuration",
+      "properties": {
+        "question_budget": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum number of questions allowed (0 for full_auto)"
+        },
+        "risk_profile": {
+          "type": "string",
+          "enum": ["safe", "aggressive_safe", "aggressive"],
+          "description": "Risk tolerance profile"
+        },
+        "auto_fallback": {
+          "type": "boolean",
+          "description": "Whether to use fallback when questions are rejected"
+        },
+        "require_verification": {
+          "type": "boolean",
+          "description": "Whether verification step is required"
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum retry attempts on failure"
+        }
+      }
+    },
+    "depends_on": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Task IDs this task depends on (must complete first)"
+    },
+    "conflicts_with": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Task IDs that conflict with this task (cannot run concurrently)"
+    },
+    "schedule": {
+      "type": "string",
+      "description": "Cron expression for scheduled execution (optional)"
+    },
+    "parallelism_group": {
+      "type": "string",
+      "description": "Group identifier for parallel execution (tasks in same group can run concurrently)"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Task priority (higher = more urgent)"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum execution time in seconds"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "created_by": {
+          "type": "string",
+          "description": "Task creator"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Task creation timestamp"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Task tags"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

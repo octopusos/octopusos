@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - AgentOS</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/main.css?v=12">
+    <link rel="stylesheet" href="/static/css/components.css?v=1">
+</head>
+<body class="h-screen bg-gray-50 overflow-hidden">
+    <div class="flex h-full">
+        <!-- Left Sidebar -->
+        <aside class="bg-white border-r border-gray-200 flex flex-col" style="width: 288px; min-width: 288px; max-width: 288px; flex-shrink: 0;">
+            <div class="p-4 border-b border-gray-200">
+                <h1 class="text-xl font-bold text-gray-800">AgentOS</h1>
+                <p class="text-xs text-gray-500">v0.3.0 Control Surface</p>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto p-4 space-y-6">
+                <!-- Chat Section -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Chat</h2>
+                    <a href="#" class="nav-item active" data-view="chat">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>Chat</span>
+                    </a>
+                </div>
+
+                <!-- Control Section -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Control</h2>
+                    <a href="#" class="nav-item" data-view="overview">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                        <span>Overview</span>
+                    </a>
+                </div>
+
+                <!-- Sessions Section (PR-3: First-class citizen) -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sessions</h2>
+                    <a href="#" class="nav-item" data-view="sessions">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                        </svg>
+                        <span>Sessions</span>
+                    </a>
+                </div>
+
+                <!-- Observability Section (PR-2) -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Observability</h2>
+                    <a href="#" class="nav-item" data-view="tasks">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                        <span>Tasks</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="events">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                        </svg>
+                        <span>Events</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="logs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Logs</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="history">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>History</span>
+                    </a>
+                </div>
+
+                <!-- Agent Section -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Agent</h2>
+                    <a href="#" class="nav-item" data-view="skills">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                        <span>Skills</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="memory">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                        <span>Memory</span>
+                    </a>
+                </div>
+
+                <!-- Knowledge Section -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Knowledge</h2>
+                    <a href="#" class="nav-item" data-view="knowledge-playground">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span>Query Playground</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="knowledge-sources">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                        <span>Sources</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="knowledge-jobs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Index Jobs</span>
+                    </a>
+                </div>
+
+                <!-- Settings Section -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Settings</h2>
+                    <a href="#" class="nav-item" data-view="providers">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+                        </svg>
+                        <span>Providers</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="config">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Config</span>
+                    </a>
+                </div>
+
+                <!-- System Section (PR-5) -->
+                <div>
+                    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">System</h2>
+                    <a href="#" class="nav-item" data-view="context">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <span>Context</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="runtime">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                        </svg>
+                        <span>Runtime</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="support">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span>Support</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col">
+            <!-- Top Bar -->
+            <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h2 id="view-title" class="text-lg font-semibold text-gray-800">Chat</h2>
+                    <select id="session-selector" class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="main">main</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Health Badge -->
+                    <div id="health-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-100">
+                        <div class="w-2 h-2 rounded-full bg-gray-400"></div>
+                        <span class="text-sm font-medium text-gray-600">Loading...</span>
+                    </div>
+
+                    <!-- Refresh Button -->
+                    <button id="refresh-btn" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- View Container -->
+            <div id="view-container" class="flex-1 overflow-y-auto">
+                <!-- Views will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Component Libraries (v0.3.2 Coverage Sprint) -->
+    <script src="/static/js/components/ApiClient.js?v=1"></script>
+    <script src="/static/js/components/JsonViewer.js?v=1"></script>
+    <script src="/static/js/components/DataTable.js?v=1"></script>
+    <script src="/static/js/components/FilterBar.js?v=1"></script>
+    <script src="/static/js/components/Toast.js?v=1"></script>
+    <script src="/static/js/components/LiveIndicator.js?v=1"></script>
+    <script src="/static/js/components/AdminTokenGate.js?v=1"></script>
+    <script src="/static/js/components/RouteDecisionCard.js?v=1"></script>
+
+    <!-- View Controllers (PR-2: Observability Module) -->
+    <script src="/static/js/views/TasksView.js?v=1"></script>
+    <script src="/static/js/views/EventsView.js?v=1"></script>
+    <script src="/static/js/views/LogsView.js?v=1"></script>
+
+    <!-- View Controllers (PR-3: Sessions Module) -->
+    <script src="/static/js/views/SessionsView.js?v=1"></script>
+
+    <!-- View Controllers (Settings Module) -->
+    <script src="/static/js/views/ProvidersView.js?v=1"></script>
+
+    <!-- View Controllers (PR-4: Skills/Memory/Config Module) -->
+    <script src="/static/js/views/SkillsView.js?v=1"></script>
+    <script src="/static/js/views/MemoryView.js?v=1"></script>
+    <script src="/static/js/views/ConfigView.js?v=1"></script>
+
+    <!-- View Controllers (PR-5: Context/Runtime/Support Module) -->
+    <script src="/static/js/views/ContextView.js?v=1"></script>
+    <script src="/static/js/views/RuntimeView.js?v=1"></script>
+    <script src="/static/js/views/SupportView.js?v=1"></script>
+
+    <!-- View Controllers (Knowledge Module - Phase 1) -->
+    <script src="/static/js/views/KnowledgePlaygroundView.js?v=1"></script>
+
+    <!-- View Controllers (Knowledge Module - Phase 2) -->
+    <script src="/static/js/views/KnowledgeSourcesView.js?v=1"></script>
+
+    <!-- View Controllers (Knowledge Module - Phase 3) -->
+    <script src="/static/js/views/KnowledgeJobsView.js?v=1"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="/static/js/main.js?v=12"></script>
+</body>
+</html>

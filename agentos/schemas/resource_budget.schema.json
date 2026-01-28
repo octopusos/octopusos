@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$version": "1.0.0",
+  "title": "ResourceBudget",
+  "type": "object",
+  "properties": {
+    "token_budget": {
+      "type": "integer",
+      "description": "OpenAI token budget"
+    },
+    "cost_budget_usd": {
+      "type": "number",
+      "description": "Cost budget in USD"
+    },
+    "parallelism_budget": {
+      "type": "integer",
+      "description": "Max concurrent tasks"
+    },
+    "file_lock_scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowed file patterns for locking"
+    }
+  }
+}

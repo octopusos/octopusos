@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/memory_pack.schema.json",
+  "$version": "1.0.0",
+  "title": "MemoryPack",
+  "description": "Memory context package for agent execution",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project_id",
+    "agent_type",
+    "memories",
+    "generated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "MemoryPack schema version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Target project ID"
+    },
+    "agent_type": {
+      "type": "string",
+      "description": "Target agent type (e.g., frontend-engineer)"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "Target task ID (if specific to a task)"
+    },
+    "memories": {
+      "type": "array",
+      "description": "Relevant memories for this context",
+      "items": {
+        "type": "object",
+        "description": "Memory item reference or inline content"
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Summary statistics",
+      "properties": {
+        "total_memories": {
+          "type": "integer",
+          "description": "Total number of memories"
+        },
+        "by_type": {
+          "type": "object",
+          "description": "Count by memory type",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "by_scope": {
+          "type": "object",
+          "description": "Count by scope",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Pack generation timestamp"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata",
+      "properties": {
+        "filters_applied": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Filters used to build this pack"
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "description": "Minimum confidence threshold applied"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

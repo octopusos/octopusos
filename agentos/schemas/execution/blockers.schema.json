@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/execution/blockers.schema.json",
+  "title": "Blockers (v0.11.0)",
+  "description": "Standardized format for pipeline BLOCKED state documentation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "blocker_id",
+    "schema_version",
+    "pipeline_run_id",
+    "intent_id",
+    "reason",
+    "question_pack_ref",
+    "blocked_at",
+    "resolution_steps"
+  ],
+  "properties": {
+    "blocker_id": {
+      "type": "string",
+      "pattern": "^blocker_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this blocker"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.11.0",
+      "description": "Schema version"
+    },
+    "pipeline_run_id": {
+      "type": "string",
+      "description": "Pipeline run that was blocked"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$",
+      "description": "Intent being executed"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "question_pack_non_empty",
+        "high_risk_requires_approval",
+        "missing_prerequisites",
+        "policy_violation",
+        "resource_unavailable"
+      ],
+      "description": "Why the pipeline was blocked"
+    },
+    "question_pack_ref": {
+      "type": "object",
+      "description": "Reference to the question pack that caused blocking",
+      "required": ["pack_id", "path"],
+      "properties": {
+        "pack_id": {
+          "type": "string",
+          "pattern": "^qpack_[a-z0-9_]{6,64}$"
+        },
+        "path": {
+          "type": "string",
+          "description": "Relative path to question_pack.json file"
+        },
+        "question_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of questions in the pack"
+        },
+        "blocking_questions": {
+          "type": "array",
+          "description": "List of blocking question IDs",
+          "items": {
+            "type": "string",
+            "pattern": "^q_[a-z0-9_]{4,32}$"
+          }
+        }
+      }
+    },
+    "blocked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the pipeline was blocked"
+    },
+    "blocked_step": {
+      "type": "string",
+      "enum": ["step1_intent", "step2_coordinator", "step3_dry_executor", "step4_pr_artifacts"],
+      "description": "Which pipeline step was blocked"
+    },
+    "resolution_steps": {
+      "type": "array",
+      "description": "Steps to resolve this blocker",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["step_number", "action", "command"],
+        "properties": {
+          "step_number": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "action": {
+            "type": "string",
+            "description": "Human-readable description of the action"
+          },
+          "command": {
+            "type": "string",
+            "description": "CLI command to execute"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether this step is required or optional"
+          }
+        }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "description": "Impact of this blocker",
+      "properties": {
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        "affected_phases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Which phases are affected"
+        },
+        "can_proceed_with_defaults": {
+          "type": "boolean",
+          "description": "Whether pipeline can proceed with default answers"
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "description": "Lineage tracking",
+      "required": ["nl_request_id"],
+      "properties": {
+        "nl_request_id": {
+          "type": "string",
+          "pattern": "^nl_req_[a-z0-9_]{6,64}$"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "Pipeline component that created this blocker"
+        }
+      }
+    }
+  }
+}
