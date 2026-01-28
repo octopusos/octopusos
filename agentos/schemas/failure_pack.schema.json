@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$version": "1.0.0",
+  "title": "FailurePack",
+  "type": "object",
+  "required": [
+    "failure_type",
+    "root_cause_summary",
+    "evidence_refs"
+  ],
+  "properties": {
+    "failure_type": {
+      "type": "string",
+      "enum": [
+        "schema_validation_failure",
+        "lock_conflict",
+        "git_conflict",
+        "command_not_found",
+        "test_failure",
+        "gate_failure",
+        "timeout",
+        "policy_violation"
+      ]
+    },
+    "root_cause_summary": {
+      "type": "string"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "suggested_actions": {
+      "type": "array"
+    },
+    "retriable": {
+      "type": "boolean"
+    },
+    "risk_delta": {
+      "type": "string"
+    }
+  }
+}

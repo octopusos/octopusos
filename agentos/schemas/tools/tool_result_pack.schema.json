@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agentos://schemas/tools/tool_result_pack.schema.json",
+  "title": "Tool Result Pack (v0.11.2)",
+  "description": "Results collected from external tool execution",
+  "type": "object",
+  "required": [
+    "tool_result_pack_id",
+    "schema_version",
+    "tool_task_pack_id",
+    "tool_type",
+    "status",
+    "diffs",
+    "artifacts",
+    "started_at",
+    "completed_at"
+  ],
+  "properties": {
+    "tool_result_pack_id": {
+      "type": "string",
+      "pattern": "^trpack_[a-z0-9_]{6,64}$",
+      "description": "Unique tool result pack ID"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "0.11.2"
+    },
+    "tool_task_pack_id": {
+      "type": "string",
+      "description": "Source task pack ID"
+    },
+    "tool_type": {
+      "type": "string",
+      "enum": ["claude_cli", "opencode", "codex", "custom"]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "partial_success", "failed", "cancelled"],
+      "description": "Overall execution status"
+    },
+    "diffs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file_path", "diff_type"],
+        "properties": {
+          "file_path": {"type": "string"},
+          "diff_type": {"type": "string", "enum": ["created", "modified", "deleted"]},
+          "patch": {
+            "type": "string",
+            "description": "Unified diff patch"
+          },
+          "checksum_before": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "checksum_after": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      },
+      "description": "File changes made by the tool"
+    },
+    "artifacts": {
+      "type": "object",
+      "required": ["files_created", "files_modified", "files_deleted"],
+      "properties": {
+        "files_created": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "string"},
+              "checksum": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "size_bytes": {"type": "number"}
+            }
+          }
+        },
+        "files_modified": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {"type": "string"},
+              "checksum": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+            }
+          }
+        },
+        "files_deleted": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "commits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "commit_hash": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+              "message": {"type": "string"},
+              "files_changed": {"type": "number"}
+            }
+          }
+        }
+      },
+      "description": "Summary of all artifacts produced"
+    },
+    "test_logs": {
+      "type": "object",
+      "properties": {
+        "build_output": {"type": "string"},
+        "test_output": {"type": "string"},
+        "lint_output": {"type": "string"}
+      },
+      "description": "Verification command outputs"
+    },
+    "run_metadata": {
+      "type": "object",
+      "properties": {
+        "tool_version": {"type": "string"},
+        "model_name": {"type": "string"},
+        "execution_time_seconds": {"type": "number"},
+        "cost_usd": {"type": "number"},
+        "tokens_used": {"type": "number"}
+      },
+      "description": "Tool execution metadata"
+    },
+    "policy_attestation": {
+      "type": "object",
+      "required": ["scope_compliant", "red_lines_respected"],
+      "properties": {
+        "scope_compliant": {
+          "type": "boolean",
+          "description": "Tool stayed within work_scope"
+        },
+        "red_lines_respected": {
+          "type": "boolean",
+          "description": "No red lines were violated"
+        },
+        "violations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {"type": "string"},
+              "description": {"type": "string"},
+              "severity": {"type": "string", "enum": ["warning", "error", "critical"]}
+            }
+          }
+        }
+      },
+      "description": "Policy compliance attestation"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "message": {"type": "string"},
+        "type": {"type": "string"},
+        "traceback": {"type": "string"}
+      },
+      "description": "Error information if status is failed"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentos.dev/schemas/content/content_type_descriptor.schema.json",
+  "$version": "1.0.0",
+  "title": "ContentTypeDescriptor",
+  "description": "Descriptor for registering a new content type in ContentTypeRegistry",
+  "type": "object",
+  "required": ["type_id", "schema_ref", "description"],
+  "properties": {
+    "type_id": {
+      "type": "string",
+      "description": "Unique type identifier (lowercase, underscore separated)",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "examples": ["agent", "workflow", "command", "rule"]
+    },
+    "schema_ref": {
+      "type": "string",
+      "description": "Path to type-specific JSON Schema file (relative to schemas/ or absolute URL)",
+      "examples": ["agent_spec.schema.json", "https://agentos.dev/schemas/workflow.schema.json"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of this content type",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "lifecycle_hooks": {
+      "type": "object",
+      "description": "Optional lifecycle hooks (callbacks for content events)",
+      "properties": {
+        "on_register": {
+          "type": "string",
+          "description": "Python module path for on_register hook (e.g., 'agentos.hooks.agent:on_register')"
+        },
+        "on_activate": {
+          "type": "string",
+          "description": "Python module path for on_activate hook"
+        },
+        "on_deprecate": {
+          "type": "string",
+          "description": "Python module path for on_deprecate hook"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata for this content type",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "Content category (e.g., 'execution', 'governance', 'knowledge')"
+        },
+        "is_builtin": {
+          "type": "boolean",
+          "description": "Whether this is a built-in type (true) or user-registered (false)",
+          "default": false
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
