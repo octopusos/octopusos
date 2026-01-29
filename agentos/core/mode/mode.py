@@ -9,6 +9,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Any
+from .mode_policy import get_global_policy
 
 
 class ModeViolationError(Exception):
@@ -38,18 +39,20 @@ class Mode:
     def allows_commit(self) -> bool:
         """
         是否允许 commit/diff 操作
-        
-        🔩 M1/M3 绑定点：只有 implementation 允许
+
+        🔩 M1/M3 绑定点：现在由 ModePolicy 决定
         """
-        return self.mode_id == "implementation"
+        policy = get_global_policy()
+        return policy.check_permission(self.mode_id, "commit")
     
     def allows_diff(self) -> bool:
         """
         是否允许产生 diff (output_kind == "diff")
-        
-        🔩 M2 绑定点：只有 implementation 允许
+
+        🔩 M2 绑定点：现在由 ModePolicy 决定
         """
-        return self.mode_id == "implementation"
+        policy = get_global_policy()
+        return policy.check_permission(self.mode_id, "diff")
     
     def get_required_output_kind(self) -> str:
         """

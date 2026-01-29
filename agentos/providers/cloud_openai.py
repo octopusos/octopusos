@@ -86,7 +86,7 @@ class OpenAIProvider(Provider):
             status = ProviderStatus(
                 id=self.id,
                 type=self.type,
-                state=ProviderState.DISCONNECTED,
+                state=ProviderState.STOPPED,
                 endpoint=endpoint,
                 latency_ms=None,
                 last_ok_at=None,
@@ -119,7 +119,7 @@ class OpenAIProvider(Provider):
                         error = "No models available"
                         reason = ReasonCode.EMPTY_RESPONSE
                     else:
-                        state = ProviderState.READY
+                        state = ProviderState.RUNNING
                         error = None
                         reason = ReasonCode.OK
 
@@ -129,7 +129,7 @@ class OpenAIProvider(Provider):
                         state=state,
                         endpoint=endpoint,
                         latency_ms=round(latency_ms, 2),
-                        last_ok_at=self.now_iso() if state == ProviderState.READY else None,
+                        last_ok_at=self.now_iso() if state == ProviderState.RUNNING else None,
                         last_error=error,
                         reason_code=reason,
                         hint=get_hint(reason) if reason != ReasonCode.OK else None,

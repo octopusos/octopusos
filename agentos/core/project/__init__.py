@@ -15,6 +15,21 @@ from .repository import (
     RepoContext,
     RepoRegistry,
 )
+# v0.31 Services
+from .service import ProjectService
+from .repo_service import RepoService
+from .errors import (
+    ProjectError,
+    RepoError,
+    ProjectNotFoundError,
+    ProjectNameConflictError,
+    ProjectHasTasksError,
+    RepoNotFoundError,
+    RepoNameConflictError,
+    RepoNotInProjectError,
+    InvalidPathError,
+    PathNotFoundError,
+)
 
 __all__ = [
     "ProjectRepository",
@@ -26,4 +41,18 @@ __all__ = [
     "ensure_default_repo",
     "check_compatibility_warnings",
     "migrate_project_to_multi_repo",
+    # v0.31 Services
+    "ProjectService",
+    "RepoService",
+    # Errors
+    "ProjectError",
+    "RepoError",
+    "ProjectNotFoundError",
+    "ProjectNameConflictError",
+    "ProjectHasTasksError",
+    "RepoNotFoundError",
+    "RepoNameConflictError",
+    "RepoNotInProjectError",
+    "InvalidPathError",
+    "PathNotFoundError",
 ]

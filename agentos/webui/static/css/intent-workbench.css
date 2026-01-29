@@ -56,6 +56,7 @@
 .header-actions {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
 }
 
 /* ===== Intent Selector ===== */
@@ -80,6 +81,7 @@
 .input-group {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
 }
 
 .input-group .form-control {
@@ -112,7 +114,7 @@
 /* ===== Tabs ===== */
 .intent-tabs {
     display: flex;
-    gap: 0.25rem;
+    gap: 0.5rem;
     padding: 0.5rem 1.5rem;
     background: white;
     border-bottom: 1px solid #e5e7eb;
@@ -124,10 +126,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.625rem 1rem;
-    background: transparent;
+    background: #2c3e50;
     border: none;
-    border-bottom: 2px solid transparent;
-    color: #374151;
+    border-radius: 6px;
+    color: white;
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -136,13 +138,18 @@
 }
 
 .tab-btn:hover {
-    color: #111827;
-    background: #f9fafb;
+    background: #34495e;
+    color: #3b82f6;
 }
 
 .tab-btn.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
+    background: #3b82f6;
+    color: #ffffff !important;
+}
+
+.tab-btn.active:hover {
+    background: #2563eb;
+    color: #ffffff !important;
 }
 
 /* ===== Tab Content ===== */
@@ -194,6 +201,7 @@
 .section-actions {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
 }
 
 .nl-request-box {
@@ -898,7 +906,6 @@
 .history-marker {
     width: 12px;
     height: 12px;
-    margin-top: 4px;
     background: #3b82f6;
     border: 2px solid white;
     border-radius: 50%;
@@ -1163,3 +1170,4 @@
         grid-template-columns: 1fr;
     }
 }
+

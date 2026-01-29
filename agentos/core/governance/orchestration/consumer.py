@@ -42,12 +42,17 @@ class VerdictConsumer:
         self.db_path = db_path
         logger.info("VerdictConsumer initialized")
 
-    def apply_verdict(self, verdict: GuardianVerdictSnapshot) -> None:
+    def apply_verdict(self, verdict: GuardianVerdictSnapshot, complete_flow: bool = True) -> None:
         """
         Apply a Guardian verdict and update task state
 
+        For PASS verdicts, this performs a two-step transition:
+        1. VERIFYING -> GUARD_REVIEW
+        2. GUARD_REVIEW -> VERIFIED (if complete_flow=True)
+
         Args:
             verdict: GuardianVerdictSnapshot to process
+            complete_flow: If True, complete the full flow to VERIFIED for PASS verdicts
 
         Raises:
             Exception: If state transition fails or database error occurs
@@ -83,10 +88,46 @@ class VerdictConsumer:
             # Write audit record
             self._write_audit(cursor, verdict, current_state, target_state)
 
+            # For PASS verdict and complete_flow, apply second transition
+            if verdict.status == "PASS" and complete_flow and target_state == "GUARD_REVIEW":
+                logger.info(f"Completing flow: {target_state} -> VERIFIED")
+
+                # Second transition: GUARD_REVIEW -> VERIFIED
+                if can_transition(target_state, "VERIFIED"):
+                    self._update_task_state(cursor, verdict.task_id, "VERIFIED")
+
+                    # Write second audit record
+                    import json
+                    audit_data = {
+                        "event_type": "GUARDIAN_FLOW_COMPLETED",
+                        "task_id": verdict.task_id,
+                        "verdict_id": verdict.verdict_id,
+                        "state_transition": f"{target_state} -> VERIFIED",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                    cursor.execute(
+                        """
+                        INSERT INTO task_audits (
+                            task_id, event_type, created_at, payload, verdict_id
+                        )
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (
+                            verdict.task_id,
+                            "GUARDIAN_FLOW_COMPLETED",
+                            datetime.now(timezone.utc).isoformat(),
+                            json.dumps(audit_data),
+                            verdict.verdict_id,
+                        ),
+                    )
+
+                    logger.info(f"Task {verdict.task_id} completed flow: {current_state} -> VERIFIED")
+
             conn.commit()
+            final_state = self._get_task_state(cursor, verdict.task_id)
             logger.info(
                 f"Verdict applied: task {verdict.task_id} "
-                f"{current_state} -> {target_state}"
+                f"{current_state} -> {final_state}"
             )
 
         except Exception as e:
@@ -125,6 +166,12 @@ class VerdictConsumer:
         """
         Determine target state based on verdict status
 
+        State machine flow:
+        - VERIFYING -> GUARD_REVIEW (Guardian starts review)
+        - GUARD_REVIEW -> VERIFIED (PASS verdict)
+        - GUARD_REVIEW -> BLOCKED (FAIL verdict)
+        - GUARD_REVIEW -> RUNNING (NEEDS_CHANGES verdict)
+
         Args:
             verdict_status: Verdict status (PASS/FAIL/NEEDS_CHANGES)
             current_state: Current task state
@@ -133,10 +180,19 @@ class VerdictConsumer:
             Target state
         """
         if verdict_status == "PASS":
-            return "VERIFIED"
+            # PASS verdict moves to GUARD_REVIEW first, then VERIFIED
+            if current_state == "VERIFYING":
+                # First transition: VERIFYING -> GUARD_REVIEW
+                return "GUARD_REVIEW"
+            elif current_state == "GUARD_REVIEW":
+                # Second transition: GUARD_REVIEW -> VERIFIED
+                return "VERIFIED"
+            else:
+                # If already in a later state, stay there or move to VERIFIED
+                logger.warning(f"Unexpected state {current_state} for PASS verdict")
+                return "GUARD_REVIEW"
         elif verdict_status == "FAIL":
-            # For MVP, FAIL means BLOCKED
-            # In production, might have more nuanced handling
+            # FAIL verdict blocks the task
             return "BLOCKED"
         elif verdict_status == "NEEDS_CHANGES":
             # NEEDS_CHANGES means go back to RUNNING

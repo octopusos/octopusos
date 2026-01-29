@@ -8,12 +8,15 @@ Manages provider instances configuration (CRUD):
 - Update launch configurations
 
 Sprint B+ WebUI Integration
+Phase 3.3: Unified Error Handling
 """
 
 import logging
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+
+from agentos.webui.api import providers_errors
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +184,19 @@ async def list_all_instances():
 
 @router.get("/{provider_id}/{instance_id}", response_model=InstanceConfigResponse)
 async def get_instance_config(provider_id: str, instance_id: str):
-    """Get configuration for a specific instance"""
+    """
+    Get configuration for a specific instance.
+
+    Args:
+        provider_id: Provider identifier
+        instance_id: Instance identifier
+
+    Returns:
+        InstanceConfigResponse with instance configuration
+
+    Raises:
+        HTTPException: With standardized error format if not found
+    """
     from agentos.providers.providers_config import ProvidersConfigManager
 
     try:
@@ -189,7 +204,13 @@ async def get_instance_config(provider_id: str, instance_id: str):
         provider_config = config_mgr.get_provider_config(provider_id)
 
         if not provider_config:
-            raise HTTPException(status_code=404, detail=f"Provider {provider_id} not found")
+            providers_errors.raise_provider_error(
+                code=providers_errors.CONFIG_ERROR,
+                message=f"Provider '{provider_id}' not found in configuration",
+                details={"provider_id": provider_id},
+                suggestion="Check provider ID or configure the provider first",
+                status_code=404
+            )
 
         # Find instance
         for inst in provider_config.instances:
@@ -213,13 +234,34 @@ async def get_instance_config(provider_id: str, instance_id: str):
                     config=config_dict,
                 )
 
-        raise HTTPException(status_code=404, detail=f"Instance {instance_id} not found")
+        # Instance not found
+        providers_errors.raise_provider_error(
+            code=providers_errors.CONFIG_ERROR,
+            message=f"Instance '{instance_id}' not found for provider '{provider_id}'",
+            details={
+                "provider_id": provider_id,
+                "instance_id": instance_id,
+                "available_instances": [inst.id for inst in provider_config.instances]
+            },
+            suggestion="Check instance ID or create the instance first",
+            status_code=404
+        )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get instance config: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get config: {e}")
+        providers_errors.log_provider_error(
+            error_code=providers_errors.INTERNAL_ERROR,
+            message=f"Unexpected error getting config for {provider_id}:{instance_id}",
+            exc=e
+        )
+        providers_errors.raise_provider_error(
+            code=providers_errors.INTERNAL_ERROR,
+            message=f"Failed to get instance configuration: {str(e)}",
+            details={"provider_id": provider_id, "instance_id": instance_id},
+            suggestion="Check server logs for more details",
+            status_code=500
+        )
 
 
 @router.post("/{provider_id}", response_model=InstanceConfigResponse)

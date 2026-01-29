@@ -606,7 +606,7 @@ class SnippetsView {
                             </select>
                         </div>
                     </div>
-                    <div class="preview-dialog-footer" style="padding: 1rem 1.5rem; display: flex; gap: 0.5rem; justify-content: flex-end; border-top: 1px solid #e5e7eb;">
+                    <div class="preview-dialog-footer">
                         <button class="btn-secondary" id="explain-cancel" style="padding: 0.5rem 1rem;">Cancel</button>
                         <button class="btn-primary" id="explain-confirm" style="padding: 0.5rem 1rem;">Create & Explain</button>
                     </div>

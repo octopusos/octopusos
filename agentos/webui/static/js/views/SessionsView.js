@@ -25,10 +25,10 @@ class SessionsView {
                     <h2>Session Management</h2>
                     <div class="header-actions">
                         <button class="btn-refresh" id="sessions-refresh">
-                            <span class="icon"><span class="material-icons md-18">refresh</span></span> Refresh
+                            <span class="material-icons md-18">refresh</span> Refresh
                         </button>
                         <button class="btn-primary" id="sessions-create">
-                            <span class="icon"><span class="material-icons md-18">add</span></span> New Session
+                            <span class="material-icons md-18">add</span> New Session
                         </button>
                     </div>
                 </div>
@@ -297,14 +297,14 @@ class SessionsView {
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <label style="font-size: 12px; color: #6c757d; font-weight: 600; text-transform: uppercase;">Session ID</label>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
                                 <code style="font-size: 16px; font-weight: 600;">${session.session_id || session.id}</code>
                                 <button class="btn-copy" data-copy="${session.session_id || session.id}" title="Copy Session ID">
                                     <span class="material-icons md-18">content_copy</span>
                                 </button>
                             </div>
                         </div>
-                        <button class="btn-primary" id="session-open-chat" style="padding: 10px 20px;">
+                        <button class="btn-primary" id="session-open-chat">
                             <span class="material-icons md-18">chat</span> Open Chat
                         </button>
                     </div>
@@ -365,7 +365,7 @@ class SessionsView {
                 <!-- Lifecycle (Rename / Delete) -->
                 <div class="detail-section" style="border-top: 2px solid #dee2e6; padding-top: 16px;">
                     <h4>Lifecycle Management</h4>
-                    <div style="display: flex; gap: 12px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
                         <button class="btn-danger" id="session-delete">
                             <span class="material-icons md-18">delete</span> Delete Session
                         </button>

@@ -1,25 +1,45 @@
 """Projects & Repositories API - Multi-repository project management
 
 GET /api/projects - List projects
+POST /api/projects - Create project
 GET /api/projects/{project_id} - Get project details
+PATCH /api/projects/{project_id} - Update project
+POST /api/projects/{project_id}/archive - Archive project
+DELETE /api/projects/{project_id} - Delete project
 GET /api/projects/{project_id}/repos - List repositories in a project
 GET /api/projects/{project_id}/repos/{repo_id} - Get repository details
 GET /api/projects/{project_id}/repos/{repo_id}/tasks - Get tasks affecting a repo
 POST /api/projects/{project_id}/repos - Add repository to project
 PUT /api/projects/{project_id}/repos/{repo_id} - Update repository
 DELETE /api/projects/{project_id}/repos/{repo_id} - Remove repository
+POST /api/projects/{project_id}/snapshot - Create project snapshot
+GET /api/projects/{project_id}/snapshots - List project snapshots
+GET /api/projects/{project_id}/snapshots/{snapshot_id} - Get snapshot details
 """
 
 from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
+import json
+import uuid
+import hashlib
+
+# Try to import ulid, fallback to uuid if not available
+try:
+    import ulid
+    def generate_id():
+        return str(ulid.ULID())
+except ImportError:
+    def generate_id():
+        return str(uuid.uuid4())
 
 from agentos.core.project.repository import ProjectRepository, RepoRegistry
 from agentos.core.task.task_repo_service import TaskRepoService
-from agentos.schemas.project import RepoSpec, RepoRole
-from agentos.store import get_db
+from agentos.schemas.project import RepoSpec, RepoRole, Project, ProjectSettings
+from agentos.schemas.snapshot import ProjectSnapshot, SnapshotRepo, SnapshotTasksSummary
+from agentos.store import get_db, get_db_path
 
 router = APIRouter()
 
@@ -105,6 +125,26 @@ class UpdateRepoRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+class CreateProjectRequest(BaseModel):
+    """Request to create a project"""
+
+    name: str
+    description: Optional[str] = None
+    tags: List[str] = []
+    default_workdir: Optional[str] = None
+    settings: Optional[Dict[str, Any]] = None
+
+
+class UpdateProjectRequest(BaseModel):
+    """Request to update a project"""
+
+    name: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+    default_workdir: Optional[str] = None
+    settings: Optional[Dict[str, Any]] = None
+
+
 # ============================================
 # Project Endpoints
 # ============================================
@@ -112,100 +152,556 @@ class UpdateRepoRequest(BaseModel):
 
 @router.get("/api/projects")
 async def list_projects(
+    search: Optional[str] = Query(None, description="Search in name or description"),
+    status: Optional[str] = Query(None, description="Filter by status (active/archived/deleted)"),
     limit: int = Query(50, ge=1, le=200, description="Max results"),
-) -> List[ProjectSummary]:
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+) -> Dict[str, Any]:
     """
-    List all projects
+    List all projects with search and filtering
+
+    Args:
+        search: Search term to filter by name or description
+        status: Filter by project status (active/archived/deleted)
+        limit: Maximum number of results
+        offset: Offset for pagination
 
     Returns:
-        List of project summaries
+        Dictionary with projects list and metadata
     """
     try:
-        db_path = get_db()
-        project_repo = ProjectRepository(db_path)
+        conn = get_db()
+        cursor = conn.cursor()
 
-        # Get unique projects from repos
-        # Note: This is a simplified implementation
-        # In production, you'd have a dedicated projects table
-        registry = RepoRegistry(db_path)
-        all_repos = registry.list_repos()
+        # Build query with filters
+        query = """
+            SELECT
+                project_id,
+                name,
+                description,
+                status,
+                tags,
+                default_repo_id,
+                default_workdir,
+                settings,
+                created_at,
+                updated_at,
+                created_by,
+                path,
+                metadata
+            FROM projects
+            WHERE 1=1
+        """
+        params = []
 
-        # Group by project_id
-        projects: Dict[str, ProjectSummary] = {}
-        for repo in all_repos:
-            if repo.project_id not in projects:
-                projects[repo.project_id] = ProjectSummary(
-                    project_id=repo.project_id,
-                    name=repo.project_id.replace("-", " ").title(),
-                    description=None,
-                    repo_count=0,
-                    created_at=repo.created_at.isoformat() if repo.created_at else datetime.now().isoformat(),
-                )
-            projects[repo.project_id].repo_count += 1
+        # Apply status filter
+        if status:
+            if status not in ("active", "archived", "deleted"):
+                raise HTTPException(status_code=400, detail=f"Invalid status: {status}")
+            query += " AND status = ?"
+            params.append(status)
 
-        return list(projects.values())[:limit]
+        # Apply search filter
+        if search:
+            query += " AND (name LIKE ? OR description LIKE ?)"
+            search_term = f"%{search}%"
+            params.append(search_term)
+            params.append(search_term)
 
+        # Order by updated_at DESC
+        query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?"
+        params.append(limit)
+        params.append(offset)
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        # Convert to Project objects
+        projects = []
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(get_db_path(), workspace_root)
+
+        for row in rows:
+            # Get repos for this project
+            repos = registry.list_repos(row["project_id"])
+
+            # Create Project object
+            project = Project.from_db_row(dict(row), repos)
+
+            # Convert to summary format
+            projects.append({
+                "project_id": project.id,
+                "name": project.name,
+                "description": project.description,
+                "status": project.status,
+                "tags": project.tags,
+                "repo_count": len(repos),
+                "created_at": project.created_at.isoformat() if project.created_at else None,
+                "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            })
+
+        # Get total count for pagination
+        count_query = "SELECT COUNT(*) FROM projects WHERE 1=1"
+        count_params = []
+        if status:
+            count_query += " AND status = ?"
+            count_params.append(status)
+        if search:
+            count_query += " AND (name LIKE ? OR description LIKE ?)"
+            count_params.append(search_term)
+            count_params.append(search_term)
+
+        cursor.execute(count_query, count_params)
+        total = cursor.fetchone()[0]
+
+        return {
+            "projects": projects,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
-        # Return empty list on error
-        return []
+        raise HTTPException(status_code=500, detail=f"Failed to list projects: {str(e)}")
 
 
 @router.get("/api/projects/{project_id}")
-async def get_project(project_id: str) -> ProjectDetail:
+async def get_project(project_id: str) -> Dict[str, Any]:
     """
-    Get project details with repositories
+    Get project details with full metadata
 
     Args:
         project_id: Project ID
 
     Returns:
-        Project details
+        Project details with repos and statistics
     """
     try:
-        db_path = get_db()
-        registry = RepoRegistry(db_path)
+        conn = get_db()
+        cursor = conn.cursor()
 
-        repos = registry.get_project_repos(project_id)
+        # Query project from projects table
+        cursor.execute("""
+            SELECT
+                project_id,
+                name,
+                description,
+                status,
+                tags,
+                default_repo_id,
+                default_workdir,
+                settings,
+                created_at,
+                updated_at,
+                created_by,
+                path,
+                metadata
+            FROM projects
+            WHERE project_id = ?
+        """, (project_id,))
 
-        if not repos:
+        row = cursor.fetchone()
+        if not row:
             raise HTTPException(status_code=404, detail="Project not found")
 
+        # Get repos for this project
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(get_db_path(), workspace_root)
+        repos = registry.list_repos(project_id)
+
+        # Create Project object
+        project = Project.from_db_row(dict(row), repos)
+
+        # Get statistics
+        # 1. Count recent tasks (last 7 days)
+        seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
+        cursor.execute("""
+            SELECT COUNT(DISTINCT trs.task_id)
+            FROM task_repo_scope trs
+            INNER JOIN project_repos pr ON trs.repo_id = pr.repo_id
+            INNER JOIN tasks t ON trs.task_id = t.task_id
+            WHERE pr.project_id = ?
+            AND t.created_at >= ?
+        """, (project_id, seven_days_ago))
+        recent_tasks_count = cursor.fetchone()[0]
+
+        # Convert repos to summaries
         repo_summaries = [
-            RepoSummary(
-                repo_id=repo.repo_id,
-                name=repo.name,
-                remote_url=repo.remote_url,
-                role=repo.role.value if isinstance(repo.role, RepoRole) else repo.role,
-                is_writable=repo.is_writable,
-                workspace_relpath=repo.workspace_relpath,
-                default_branch=repo.default_branch,
-                created_at=repo.created_at.isoformat() if repo.created_at else datetime.now().isoformat(),
-                updated_at=repo.updated_at.isoformat() if repo.updated_at else datetime.now().isoformat(),
-            )
+            {
+                "repo_id": repo.repo_id,
+                "name": repo.name,
+                "remote_url": repo.remote_url,
+                "role": repo.role.value if isinstance(repo.role, RepoRole) else repo.role,
+                "is_writable": repo.is_writable,
+                "workspace_relpath": repo.workspace_relpath,
+                "default_branch": repo.default_branch,
+                "created_at": repo.created_at.isoformat() if repo.created_at else None,
+                "updated_at": repo.updated_at.isoformat() if repo.updated_at else None,
+            }
             for repo in repos
         ]
 
-        # Windows 兼容: 使用 Path 获取根目录
-        from pathlib import Path
-        workspace_root = "."
-        if repos:
-            parts = Path(repos[0].workspace_relpath).parts
-            workspace_root = parts[0] if parts else "."
-
-        return ProjectDetail(
-            project_id=project_id,
-            name=project_id.replace("-", " ").title(),
-            description=None,
-            repo_count=len(repos),
-            workspace_root=workspace_root,
-            repos=repo_summaries,
-            created_at=repos[0].created_at.isoformat() if repos and repos[0].created_at else datetime.now().isoformat(),
-        )
+        # Return full project details
+        return {
+            "project_id": project.id,
+            "name": project.name,
+            "description": project.description,
+            "status": project.status,
+            "tags": project.tags,
+            "default_repo_id": project.default_repo_id,
+            "default_workdir": project.default_workdir,
+            "settings": project.settings.model_dump() if project.settings else None,
+            "created_at": project.created_at.isoformat() if project.created_at else None,
+            "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            "created_by": project.created_by,
+            "repos": repo_summaries,
+            "repos_count": len(repos),
+            "recent_tasks_count": recent_tasks_count,
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get project: {str(e)}")
+
+
+@router.post("/api/projects")
+async def create_project(request: CreateProjectRequest) -> Dict[str, Any]:
+    """
+    Create a new project
+
+    Args:
+        request: Project creation details
+
+    Returns:
+        Created project information
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Generate unique project ID
+        project_id = generate_id()
+
+        # Check if name already exists
+        cursor.execute("SELECT COUNT(*) FROM projects WHERE name = ?", (request.name,))
+        if cursor.fetchone()[0] > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Project with name '{request.name}' already exists"
+            )
+
+        # Validate settings if provided
+        settings_json = None
+        if request.settings:
+            try:
+                # Validate settings structure
+                project_settings = ProjectSettings(**request.settings)
+                settings_json = json.dumps(project_settings.model_dump())
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid settings: {str(e)}"
+                )
+
+        # Insert project
+        now = datetime.utcnow().isoformat()
+        # Use default_workdir as path for backward compatibility, or default to "."
+        path = request.default_workdir or "."
+
+        cursor.execute("""
+            INSERT INTO projects (
+                project_id,
+                path,
+                name,
+                description,
+                status,
+                tags,
+                default_workdir,
+                settings,
+                created_at,
+                updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            project_id,
+            path,
+            request.name,
+            request.description,
+            "active",
+            json.dumps(request.tags) if request.tags else "[]",
+            request.default_workdir,
+            settings_json or "{}",
+            now,
+            now,
+        ))
+        conn.commit()
+
+        # Return created project
+        cursor.execute("""
+            SELECT
+                project_id,
+                name,
+                description,
+                status,
+                tags,
+                default_repo_id,
+                default_workdir,
+                settings,
+                created_at,
+                updated_at,
+                created_by,
+                path,
+                metadata
+            FROM projects
+            WHERE project_id = ?
+        """, (project_id,))
+
+        row = cursor.fetchone()
+        project = Project.from_db_row(dict(row), [])
+
+        return {
+            "project_id": project.id,
+            "name": project.name,
+            "description": project.description,
+            "status": project.status,
+            "tags": project.tags,
+            "default_workdir": project.default_workdir,
+            "settings": project.settings.model_dump() if project.settings else None,
+            "created_at": project.created_at.isoformat() if project.created_at else None,
+            "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            "repos": [],
+            "repos_count": 0,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
+
+
+@router.patch("/api/projects/{project_id}")
+async def update_project(project_id: str, request: UpdateProjectRequest) -> Dict[str, Any]:
+    """
+    Update an existing project
+
+    Args:
+        project_id: Project ID
+        request: Project update details (partial update supported)
+
+    Returns:
+        Updated project information
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Check if project exists
+        cursor.execute("SELECT COUNT(*) FROM projects WHERE project_id = ?", (project_id,))
+        if cursor.fetchone()[0] == 0:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Build update query dynamically
+        update_fields = []
+        params = []
+
+        if request.name is not None:
+            # Check if new name conflicts with another project
+            cursor.execute(
+                "SELECT COUNT(*) FROM projects WHERE name = ? AND project_id != ?",
+                (request.name, project_id)
+            )
+            if cursor.fetchone()[0] > 0:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Project with name '{request.name}' already exists"
+                )
+            update_fields.append("name = ?")
+            params.append(request.name)
+
+        if request.description is not None:
+            update_fields.append("description = ?")
+            params.append(request.description)
+
+        if request.tags is not None:
+            update_fields.append("tags = ?")
+            params.append(json.dumps(request.tags))
+
+        if request.default_workdir is not None:
+            update_fields.append("default_workdir = ?")
+            params.append(request.default_workdir)
+
+        if request.settings is not None:
+            try:
+                # Validate settings structure
+                project_settings = ProjectSettings(**request.settings)
+                update_fields.append("settings = ?")
+                params.append(json.dumps(project_settings.model_dump()))
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid settings: {str(e)}"
+                )
+
+        # Always update updated_at
+        update_fields.append("updated_at = ?")
+        params.append(datetime.utcnow().isoformat())
+
+        if not update_fields:
+            raise HTTPException(status_code=400, detail="No fields to update")
+
+        # Execute update
+        params.append(project_id)
+        query = f"UPDATE projects SET {', '.join(update_fields)} WHERE project_id = ?"
+        cursor.execute(query, params)
+        conn.commit()
+
+        # Return updated project
+        cursor.execute("""
+            SELECT
+                project_id,
+                name,
+                description,
+                status,
+                tags,
+                default_repo_id,
+                default_workdir,
+                settings,
+                created_at,
+                updated_at,
+                created_by,
+                path,
+                metadata
+            FROM projects
+            WHERE project_id = ?
+        """, (project_id,))
+
+        row = cursor.fetchone()
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(get_db_path(), workspace_root)
+        repos = registry.list_repos(project_id)
+
+        project = Project.from_db_row(dict(row), repos)
+
+        return {
+            "project_id": project.id,
+            "name": project.name,
+            "description": project.description,
+            "status": project.status,
+            "tags": project.tags,
+            "default_repo_id": project.default_repo_id,
+            "default_workdir": project.default_workdir,
+            "settings": project.settings.model_dump() if project.settings else None,
+            "created_at": project.created_at.isoformat() if project.created_at else None,
+            "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            "repos_count": len(repos),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update project: {str(e)}")
+
+
+@router.post("/api/projects/{project_id}/archive")
+async def archive_project(project_id: str) -> Dict[str, str]:
+    """
+    Archive a project
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Success message
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Check if project exists
+        cursor.execute("SELECT status FROM projects WHERE project_id = ?", (project_id,))
+        row = cursor.fetchone()
+
+        if not row:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        if row[0] == "archived":
+            raise HTTPException(status_code=400, detail="Project is already archived")
+
+        # Update status to archived
+        cursor.execute("""
+            UPDATE projects
+            SET status = ?, updated_at = ?
+            WHERE project_id = ?
+        """, ("archived", datetime.utcnow().isoformat(), project_id))
+        conn.commit()
+
+        return {
+            "message": f"Project '{project_id}' archived successfully",
+            "project_id": project_id,
+            "status": "archived"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to archive project: {str(e)}")
+
+
+@router.delete("/api/projects/{project_id}")
+async def delete_project(project_id: str) -> Dict[str, str]:
+    """
+    Delete a project
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Success message
+
+    Note:
+        - Cannot delete project with existing tasks (returns 400 error)
+        - If no tasks exist, deletes the project and cascades to project_repos
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Check if project exists
+        cursor.execute("SELECT COUNT(*) FROM projects WHERE project_id = ?", (project_id,))
+        if cursor.fetchone()[0] == 0:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Check if project has any tasks
+        cursor.execute("""
+            SELECT COUNT(DISTINCT trs.task_id)
+            FROM task_repo_scope trs
+            INNER JOIN project_repos pr ON trs.repo_id = pr.repo_id
+            WHERE pr.project_id = ?
+        """, (project_id,))
+
+        task_count = cursor.fetchone()[0]
+
+        if task_count > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot delete project with existing tasks ({task_count} tasks found). Archive instead."
+            )
+
+        # Delete project (CASCADE will delete project_repos automatically)
+        cursor.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+        conn.commit()
+
+        return {
+            "message": f"Project '{project_id}' deleted successfully",
+            "project_id": project_id
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete project: {str(e)}")
 
 
 # ============================================
@@ -229,10 +725,11 @@ async def list_repos(
         List of repository summaries
     """
     try:
-        db_path = get_db()
-        registry = RepoRegistry(db_path)
+        db_path = get_db_path()
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(db_path, workspace_root)
 
-        repos = registry.get_project_repos(project_id)
+        repos = registry.list_repos(project_id)
 
         # Filter by role if specified
         if role:
@@ -272,10 +769,11 @@ async def get_repo(project_id: str, repo_id: str) -> RepoDetail:
         Repository details
     """
     try:
-        db_path = get_db()
-        registry = RepoRegistry(db_path)
+        db_path = get_db_path()
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(db_path, workspace_root)
 
-        repo = registry.get_repo(repo_id)
+        repo = registry.get_repo(project_id, repo_id)
 
         if not repo or repo.project_id != project_id:
             raise HTTPException(status_code=404, detail="Repository not found")
@@ -332,11 +830,12 @@ async def get_repo_tasks(
         List of tasks that modified this repository
     """
     try:
-        db_path = get_db()
+        db_path = get_db_path()
 
         # Verify repo exists
-        registry = RepoRegistry(db_path)
-        repo = registry.get_repo(repo_id)
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(db_path, workspace_root)
+        repo = registry.get_repo(project_id, repo_id)
 
         if not repo or repo.project_id != project_id:
             raise HTTPException(status_code=404, detail="Repository not found")
@@ -393,7 +892,7 @@ async def add_repo(project_id: str, request: AddRepoRequest) -> RepoDetail:
         Created repository details
     """
     try:
-        db_path = get_db()
+        db_path = get_db_path()
         project_repo = ProjectRepository(db_path)
 
         # Create repo spec
@@ -451,12 +950,13 @@ async def update_repo(
         Updated repository details
     """
     try:
-        db_path = get_db()
+        db_path = get_db_path()
         project_repo = ProjectRepository(db_path)
 
         # Get existing repo
-        registry = RepoRegistry(db_path)
-        repo = registry.get_repo(repo_id)
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(db_path, workspace_root)
+        repo = registry.get_repo(project_id, repo_id)
 
         if not repo or repo.project_id != project_id:
             raise HTTPException(status_code=404, detail="Repository not found")
@@ -513,18 +1013,19 @@ async def delete_repo(project_id: str, repo_id: str) -> Dict[str, str]:
         Success message
     """
     try:
-        db_path = get_db()
+        db_path = get_db_path()
         project_repo = ProjectRepository(db_path)
 
         # Verify repo exists and belongs to project
-        registry = RepoRegistry(db_path)
-        repo = registry.get_repo(repo_id)
+        workspace_root = Path.cwd()
+        registry = RepoRegistry(db_path, workspace_root)
+        repo = registry.get_repo(project_id, repo_id)
 
         if not repo or repo.project_id != project_id:
             raise HTTPException(status_code=404, detail="Repository not found")
 
         # Delete
-        project_repo.remove_repo(repo_id)
+        project_repo.remove_repo(project_id, repo_id)
 
         return {"message": f"Repository {repo_id} removed successfully"}
 
@@ -532,3 +1033,377 @@ async def delete_repo(project_id: str, repo_id: str) -> Dict[str, str]:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete repo: {str(e)}")
+
+
+# ============================================
+# Task Graph Endpoint
+# ============================================
+
+
+class TaskGraphNode(BaseModel):
+    """Task node in the graph"""
+    task_id: str
+    title: str
+    status: str
+    repos: List[str]
+    created_at: str
+
+
+class TaskGraphEdge(BaseModel):
+    """Dependency edge in the graph"""
+    from_task: str = Field(alias="from")
+    to_task: str = Field(alias="to")
+    type: str
+    reason: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class RepoInfo(BaseModel):
+    """Repository information for the graph"""
+    repo_id: str
+    name: str
+    role: str
+    color: str
+
+
+class TaskGraphResponse(BaseModel):
+    """Task graph response"""
+    project_id: str
+    nodes: List[TaskGraphNode]
+    edges: List[TaskGraphEdge]
+    repos: List[RepoInfo]
+
+
+def get_repo_color(role: str) -> str:
+    """Get color for repository role"""
+    colors = {
+        "code": "#007bff",
+        "docs": "#7b1fa2",
+        "infra": "#f57c00",
+        "mono-subdir": "#388e3c"
+    }
+    return colors.get(role, "#666")
+
+
+@router.get("/api/projects/{project_id}/task-graph")
+async def get_project_task_graph(project_id: str) -> TaskGraphResponse:
+    """
+    Get project task dependency graph for visualization
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Task graph with nodes, edges, and repo information
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # 1. Check if project exists
+        cursor.execute("SELECT COUNT(*) FROM projects WHERE project_id = ?", (project_id,))
+        if cursor.fetchone()[0] == 0:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # 2. Get all tasks for this project (via task_repo_scope -> project_repos)
+        cursor.execute("""
+            SELECT DISTINCT t.task_id, t.title, t.status, t.created_at
+            FROM tasks t
+            INNER JOIN task_repo_scope trs ON t.task_id = trs.task_id
+            INNER JOIN project_repos pr ON trs.repo_id = pr.repo_id
+            WHERE pr.project_id = ?
+            ORDER BY t.created_at DESC
+        """, (project_id,))
+        tasks = cursor.fetchall()
+
+        # 3. Build nodes with repo associations
+        nodes = []
+        task_ids = []
+        for task in tasks:
+            task_id = task[0]
+            task_ids.append(task_id)
+
+            # Get repos for this task
+            cursor.execute("""
+                SELECT DISTINCT pr.repo_id
+                FROM task_repo_scope trs
+                INNER JOIN project_repos pr ON trs.repo_id = pr.repo_id
+                WHERE trs.task_id = ? AND pr.project_id = ?
+            """, (task_id, project_id))
+            task_repos = [row[0] for row in cursor.fetchall()]
+
+            nodes.append(TaskGraphNode(
+                task_id=task_id,
+                title=task[1] or task_id[:12],
+                status=task[2] or "created",
+                repos=task_repos,
+                created_at=task[3] or datetime.now().isoformat()
+            ))
+
+        # 4. Get task dependencies (only for tasks in this project)
+        edges = []
+        if task_ids:
+            placeholders = ','.join(['?'] * len(task_ids))
+            cursor.execute(f"""
+                SELECT task_id, depends_on_task_id, dependency_type, reason
+                FROM task_dependency
+                WHERE task_id IN ({placeholders})
+                  AND depends_on_task_id IN ({placeholders})
+            """, task_ids + task_ids)
+
+            dependencies = cursor.fetchall()
+            for dep in dependencies:
+                edges.append(TaskGraphEdge(
+                    from_task=dep[0],
+                    to_task=dep[1],
+                    type=dep[2] or "blocks",
+                    reason=dep[3]
+                ))
+
+        # 5. Get all repos for this project
+        cursor.execute("""
+            SELECT repo_id, name, role
+            FROM project_repos
+            WHERE project_id = ?
+            ORDER BY created_at
+        """, (project_id,))
+
+        repos = [
+            RepoInfo(
+                repo_id=row[0],
+                name=row[1],
+                role=row[2],
+                color=get_repo_color(row[2])
+            )
+            for row in cursor.fetchall()
+        ]
+
+        return TaskGraphResponse(
+            project_id=project_id,
+            nodes=nodes,
+            edges=edges,
+            repos=repos
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get task graph: {str(e)}")
+
+
+# ============================================
+# Snapshot Endpoints
+# ============================================
+
+
+@router.post("/api/projects/{project_id}/snapshot")
+async def create_project_snapshot(project_id: str) -> Dict[str, Any]:
+    """
+    Create a project snapshot
+
+    Captures complete project state including:
+    - Project metadata and settings
+    - Repository bindings
+    - Task statistics
+    - Settings integrity hash
+
+    Args:
+        project_id: Project ID
+
+    Returns:
+        Complete snapshot data (ProjectSnapshot schema)
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # 1. Query project data
+        cursor.execute("""
+            SELECT
+                project_id,
+                name,
+                description,
+                status,
+                tags,
+                default_repo_id,
+                default_workdir,
+                settings,
+                created_at,
+                updated_at,
+                created_by,
+                path,
+                metadata
+            FROM projects
+            WHERE project_id = ?
+        """, (project_id,))
+
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Convert to dict
+        project_data = dict(zip([col[0] for col in cursor.description], row))
+
+        # 2. Get repositories
+        cursor.execute("""
+            SELECT
+                repo_id,
+                name,
+                remote_url,
+                workspace_relpath,
+                role
+            FROM project_repos
+            WHERE project_id = ?
+        """, (project_id,))
+
+        repos = []
+        for repo_row in cursor.fetchall():
+            repo_dict = dict(zip([col[0] for col in cursor.description], repo_row))
+            repos.append(SnapshotRepo(
+                repo_id=repo_dict['repo_id'],
+                name=repo_dict['name'],
+                remote_url=repo_dict.get('remote_url'),
+                workspace_relpath=repo_dict['workspace_relpath'],
+                role=repo_dict['role'],
+                commit_hash=None  # Future: add git commit tracking
+            ))
+
+        # 3. Get task statistics
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'completed' OR status = 'succeeded' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'failed' OR status = 'error' THEN 1 ELSE 0 END) as failed,
+                SUM(CASE WHEN status = 'running' OR status = 'pending' THEN 1 ELSE 0 END) as running
+            FROM tasks
+            WHERE project_id = ?
+        """, (project_id,))
+
+        stats = cursor.fetchone()
+        tasks_summary = SnapshotTasksSummary(
+            total=stats[0] or 0,
+            completed=stats[1] or 0,
+            failed=stats[2] or 0,
+            running=stats[3] or 0
+        )
+
+        # 4. Calculate settings hash
+        settings_json = project_data.get('settings') or '{}'
+        settings_hash = hashlib.sha256(settings_json.encode()).hexdigest()
+
+        # 5. Generate snapshot ID
+        timestamp = datetime.now()
+        snapshot_id = f"snap-{project_id}-{int(timestamp.timestamp())}"
+
+        # 6. Create snapshot
+        snapshot = ProjectSnapshot(
+            snapshot_id=snapshot_id,
+            timestamp=timestamp,
+            project=project_data,
+            repos=[repo.model_dump() for repo in repos],
+            tasks_summary=tasks_summary,
+            settings_hash=settings_hash,
+            metadata={
+                "created_by": "system",
+                "format_version": "1.0",
+                "export_tool": "AgentOS WebUI"
+            }
+        )
+
+        # 7. Save to database (for history)
+        cursor.execute("""
+            INSERT INTO project_snapshots (snapshot_id, project_id, data, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (snapshot_id, project_id, snapshot.model_dump_json(), timestamp.isoformat()))
+        conn.commit()
+
+        return snapshot.model_dump()
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create snapshot: {str(e)}")
+
+
+@router.get("/api/projects/{project_id}/snapshots")
+async def list_project_snapshots(
+    project_id: str,
+    limit: int = Query(10, ge=1, le=100, description="Max results")
+) -> Dict[str, Any]:
+    """
+    List project snapshot history
+
+    Args:
+        project_id: Project ID
+        limit: Maximum number of snapshots to return
+
+    Returns:
+        Dictionary with snapshots list
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Verify project exists
+        cursor.execute("SELECT COUNT(*) FROM projects WHERE project_id = ?", (project_id,))
+        if cursor.fetchone()[0] == 0:
+            raise HTTPException(status_code=404, detail="Project not found")
+
+        # Query snapshots
+        cursor.execute("""
+            SELECT snapshot_id, created_at
+            FROM project_snapshots
+            WHERE project_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (project_id, limit))
+
+        snapshots = []
+        for row in cursor.fetchall():
+            snapshots.append({
+                "snapshot_id": row[0],
+                "created_at": row[1]
+            })
+
+        return {"snapshots": snapshots, "total": len(snapshots)}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list snapshots: {str(e)}")
+
+
+@router.get("/api/projects/{project_id}/snapshots/{snapshot_id}")
+async def get_project_snapshot(project_id: str, snapshot_id: str) -> Dict[str, Any]:
+    """
+    Get snapshot details (for download)
+
+    Args:
+        project_id: Project ID
+        snapshot_id: Snapshot ID
+
+    Returns:
+        Complete snapshot data
+    """
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT data
+            FROM project_snapshots
+            WHERE project_id = ? AND snapshot_id = ?
+        """, (project_id, snapshot_id))
+
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Snapshot not found")
+
+        return json.loads(row[0])
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get snapshot: {str(e)}")

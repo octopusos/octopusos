@@ -5,11 +5,14 @@ Endpoints:
 - GET /api/providers - List all providers
 - GET /api/providers/status - Get status for all providers
 - GET /api/providers/{provider_id}/models - Get models for a provider
+
+Phase 3.3: Unified Error Handling
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
+import logging
 
 from agentos.providers.registry import ProviderRegistry
 from agentos.providers.base import ProviderType, ProviderState
@@ -18,6 +21,9 @@ from agentos.providers.runtime import OllamaRuntimeManager
 from agentos.providers.cloud_config import CloudAuthConfig
 from agentos.core.status_store import StatusStore
 from agentos.webui.middleware import sanitize_response
+from agentos.webui.api import providers_errors
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -33,7 +39,11 @@ class ProviderInfo(BaseModel):
 
 
 class ProviderStatusResponse(BaseModel):
-    """Provider status response"""
+    """
+    Provider status response
+
+    Task #17: P0.4 - Enhanced with health check details
+    """
     id: str
     type: str
     state: str
@@ -41,8 +51,11 @@ class ProviderStatusResponse(BaseModel):
     latency_ms: float | None = None
     last_ok_at: str | None = None
     last_error: str | None = None
-    reason_code: str | None = None
-    hint: str | None = None
+    # Task #17: Health check details
+    pid: int | None = None
+    pid_exists: bool | None = None
+    port_listening: bool | None = None
+    api_responding: bool | None = None
 
 
 class ModelInfoResponse(BaseModel):
@@ -80,7 +93,6 @@ class LocalDetectResultResponse(BaseModel):
     models_count: int
     details: Dict[str, Any]
     state: str
-    hint: str | None = None
 
 
 class LocalDetectResponse(BaseModel):
@@ -214,8 +226,11 @@ async def get_providers_status() -> ProvidersStatusResponse:
             latency_ms=status.latency_ms,
             last_ok_at=status.last_ok_at,
             last_error=status.last_error,
-            reason_code=status.reason_code,
-            hint=status.hint,
+            # Task #17: Include health check details
+            pid=status.pid,
+            pid_exists=status.pid_exists,
+            port_listening=status.port_listening,
+            api_responding=status.api_responding,
         )
         for status in status_list
     ]
@@ -228,6 +243,39 @@ async def get_providers_status() -> ProvidersStatusResponse:
 
     # Apply sanitization as safety net
     return sanitize_response(response.model_dump())
+
+
+@router.post("/refresh")
+async def refresh_providers_status(
+    provider_id: str | None = None
+):
+    """
+    触发一次 providers 状态刷新（异步执行）
+
+    如果提供 provider_id，只刷新该 provider
+    否则刷新所有 providers
+
+    返回：202 Accepted，实际刷新通过清除缓存触发
+    下次 GET /status 会重新探测
+    """
+    store = StatusStore.get_instance()
+
+    if provider_id:
+        store.invalidate_provider(provider_id)
+        logger.info(f"Triggered refresh for provider: {provider_id}")
+        return {
+            "status": "refresh_triggered",
+            "provider_id": provider_id,
+            "message": "Cache cleared, next status request will refresh"
+        }
+    else:
+        store.invalidate_all_providers()
+        logger.info("Triggered refresh for all providers")
+        return {
+            "status": "refresh_triggered",
+            "scope": "all",
+            "message": "All caches cleared, next status request will refresh"
+        }
 
 
 @router.get("/{provider_id}/models")
@@ -338,7 +386,6 @@ async def detect_local_providers() -> LocalDetectResponse:
                 models_count=result.models_count,
                 details=result.details,
                 state=result.state,
-                hint=result.hint,
             )
             for result in results
         ],

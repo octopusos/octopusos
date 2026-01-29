@@ -136,7 +136,7 @@ class GuardianReviewPanel {
                             </div>
                         ` : ''}
                         <button class="btn-expand-evidence" data-evidence-id="${evidenceId}">
-                            View Evidence <span class="material-icons" style="font-size: 16px; vertical-align: middle;">expand_more</span>
+                            View Evidence <span class="material-icons" style="font-size: 16px;">expand_more</span>
                         </button>
                         <div class="evidence-detail" id="${evidenceId}" style="display: none;">
                             <pre>${this.escapeHtml(JSON.stringify(review.evidence, null, 2))}</pre>
@@ -194,7 +194,7 @@ class GuardianReviewPanel {
 
                 evidenceDiv.style.display = isVisible ? 'none' : 'block';
                 const icon = isVisible ? 'expand_more' : 'expand_less';
-                btn.innerHTML = `${isVisible ? 'View' : 'Hide'} Evidence <span class="material-icons" style="font-size: 16px; vertical-align: middle;">${icon}</span>`;
+                btn.innerHTML = `${isVisible ? 'View' : 'Hide'} Evidence <span class="material-icons" style="font-size: 16px;">${icon}</span>`;
             });
         });
     }

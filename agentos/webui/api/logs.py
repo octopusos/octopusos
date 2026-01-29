@@ -5,27 +5,35 @@ GET /api/logs - Query logs with filters
 """
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, timezone
+
+# Import LogEntry from shared models
+from agentos.core.logging.models import LogEntry
 
 router = APIRouter()
 
-
-class LogEntry(BaseModel):
-    """Log entry model"""
-    id: str
-    level: str  # "debug" | "info" | "warn" | "error"
-    timestamp: str
-    task_id: Optional[str] = None
-    session_id: Optional[str] = None
-    span_id: Optional[str] = None
-    message: str
-    metadata: Dict[str, Any] = {}
+# Forward declaration for type checking
+if TYPE_CHECKING:
+    from agentos.core.logging.store import LogStore
 
 
-# In-memory log store (TODO: integrate with actual logging system)
-_logs: List[LogEntry] = []
+# Global log store instance (injected at startup)
+_log_store: Optional["LogStore"] = None
+
+
+def set_log_store(store: "LogStore") -> None:
+    """
+    Set the global log store instance.
+
+    This should be called during application startup to inject
+    the LogStore dependency.
+
+    Args:
+        store: The LogStore instance to use
+    """
+    global _log_store
+    _log_store = store
 
 
 @router.get("")
@@ -34,6 +42,7 @@ async def query_logs(
     session_id: Optional[str] = Query(None, description="Filter by session ID"),
     level: Optional[str] = Query(None, description="Filter by log level"),
     since: Optional[str] = Query(None, description="Logs since timestamp (ISO 8601)"),
+    logger: Optional[str] = Query(None, description="Filter by logger name"),
     limit: int = Query(100, ge=1, le=500, description="Max results"),
 ) -> List[LogEntry]:
     """
@@ -44,33 +53,38 @@ async def query_logs(
         session_id: Filter by session ID
         level: Filter by log level
         since: Filter logs since timestamp
+        logger: Filter by logger name
         limit: Maximum results
 
     Returns:
         List of log entries
     """
-    logs = _logs.copy()
+    # Use LogStore if available, otherwise return empty list
+    if _log_store is None:
+        return []
 
-    # Apply filters
-    if task_id:
-        logs = [l for l in logs if l.task_id == task_id]
-    if session_id:
-        logs = [l for l in logs if l.session_id == session_id]
-    if level:
-        logs = [l for l in logs if l.level == level]
-    if since:
-        logs = [l for l in logs if l.timestamp >= since]
-
-    # Sort by timestamp (newest first) and limit
-    logs = sorted(logs, key=lambda l: l.timestamp, reverse=True)[:limit]
+    # Query from LogStore (handles all filtering)
+    logs = _log_store.query(
+        task_id=task_id,
+        session_id=session_id,
+        level=level,
+        since=since,
+        logger_name=logger,
+        limit=limit,
+    )
 
     return logs
 
 
 def add_log(log: LogEntry):
-    """Add log entry (internal helper)"""
-    _logs.append(log)
+    """
+    Add log entry (internal helper for backward compatibility).
 
-    # Keep only last 5000 logs in memory
-    if len(_logs) > 5000:
-        _logs.pop(0)
+    This function is kept for backward compatibility but now uses
+    LogStore if available.
+
+    Args:
+        log: The log entry to add
+    """
+    if _log_store is not None:
+        _log_store.add(log)

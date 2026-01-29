@@ -11,11 +11,14 @@ v0.3.2 Closeout #1: Centralized status management with TTL
 
 import asyncio
 import time
+import logging
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timezone
 
 from agentos.providers.base import ProviderStatus
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -166,12 +169,16 @@ class StatusStore:
         return status_list, ttl
 
     def invalidate_provider(self, provider_id: str):
-        """Invalidate cached status for a provider"""
-        self._provider_cache.pop(provider_id, None)
+        """清除单个 provider 的缓存"""
+        if provider_id in self._provider_cache:
+            del self._provider_cache[provider_id]
+            logger.debug(f"Invalidated cache for provider: {provider_id}")
 
     def invalidate_all_providers(self):
-        """Invalidate all provider status cache"""
+        """清除所有 provider 缓存"""
+        count = len(self._provider_cache)
         self._provider_cache.clear()
+        logger.debug(f"Invalidated all provider caches ({count} entries)")
 
     # Context Status Methods
 

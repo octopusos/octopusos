@@ -24,6 +24,26 @@ class GuardianRegistry:
         self._guardians: Dict[str, Guardian] = {}
         logger.info("GuardianRegistry initialized")
 
+        # Auto-register built-in guardians
+        self._register_builtin_guardians()
+
+    def _register_builtin_guardians(self):
+        """Register built-in Guardian implementations"""
+        from .smoke_test_guardian import SmokeTestGuardian
+        from .mode_guardian import ModeGuardian
+
+        try:
+            self.register(SmokeTestGuardian())
+            logger.info("Registered built-in guardian: smoke_test")
+        except Exception as e:
+            logger.error(f"Failed to register SmokeTestGuardian: {e}")
+
+        try:
+            self.register(ModeGuardian())
+            logger.info("Registered built-in guardian: mode_guardian")
+        except Exception as e:
+            logger.error(f"Failed to register ModeGuardian: {e}")
+
     def register(self, guardian: Guardian) -> None:
         """
         Register a Guardian

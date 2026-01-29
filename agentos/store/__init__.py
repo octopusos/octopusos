@@ -3,12 +3,40 @@
 import logging
 import sqlite3
 from pathlib import Path
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from agentos.core.db import SQLiteWriter
 
 from .migrator import auto_migrate, get_migration_status
+from .connection_factory import (
+    ConnectionFactory,
+    init_factory,
+    get_thread_connection,
+    close_thread_connection,
+    get_factory,
+    shutdown_factory,
+)
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["get_db", "init_db", "ensure_migrations", "get_migration_status"]
+__all__ = [
+    "get_db",
+    "init_db",
+    "ensure_migrations",
+    "get_migration_status",
+    "get_writer",
+    # Connection factory exports
+    "ConnectionFactory",
+    "init_factory",
+    "get_thread_connection",
+    "close_thread_connection",
+    "get_factory",
+    "shutdown_factory",
+]
+
+# Global writer instance (singleton per process)
+_writer_instance: Optional["SQLiteWriter"] = None
 
 
 def get_db_path() -> Path:
@@ -21,6 +49,8 @@ def get_db():
     Get database connection
 
     自动执行未应用的迁移，确保数据库 schema 是最新的。
+
+    ⚠️ 注意：此连接用于读操作。所有写操作应使用 get_writer().submit()
     """
     import sqlite3
 
@@ -143,3 +173,31 @@ def ensure_migrations(db_path: Path = None) -> int:
     except Exception as e:
         logger.error(f"Migration failed: {e}", exc_info=True)
         raise
+
+
+def get_writer() -> "SQLiteWriter":
+    """
+    Get global SQLiteWriter instance (singleton per process)
+
+    SQLiteWriter 串行化所有数据库写入操作，解决 SQLite 并发锁问题。
+
+    使用场景：
+    - 所有数据库写入（INSERT/UPDATE/DELETE）都应该通过 writer.submit()
+    - 读操作仍使用 get_db()（支持并发读）
+
+    Returns:
+        SQLiteWriter: 全局单例 writer 实例
+
+    Example:
+        >>> writer = get_writer()
+        >>> def insert_task(conn):
+        ...     conn.execute("INSERT INTO tasks ...")
+        >>> writer.submit(insert_task, timeout=10.0)
+    """
+    # Import here to avoid circular dependency
+    from agentos.core.db import SQLiteWriter
+
+    global _writer_instance
+    if _writer_instance is None:
+        _writer_instance = SQLiteWriter(str(get_db_path()))
+    return _writer_instance

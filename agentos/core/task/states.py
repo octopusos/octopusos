@@ -36,6 +36,7 @@ class TaskState(str, Enum):
     DONE = "done"             # Task completed successfully
     FAILED = "failed"         # Task execution failed
     CANCELED = "canceled"     # Task was canceled by user or system
+    BLOCKED = "blocked"       # Task execution blocked (e.g., AUTONOMOUS mode hit approval checkpoint)
 
     def __str__(self) -> str:
         """String representation returns the value"""
@@ -73,6 +74,7 @@ TERMINAL_STATES: Set[TaskState] = {
     TaskState.DONE,
     TaskState.FAILED,
     TaskState.CANCELED,
+    TaskState.BLOCKED,
 }
 
 ACTIVE_STATES: Set[TaskState] = {

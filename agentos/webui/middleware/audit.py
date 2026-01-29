@@ -11,7 +11,7 @@ Key Features:
 2. Captures user_id, action, target, timestamp, result
 3. Extracts task_id and repo_id from request path
 4. Records to task_audits table
-5. Handles errors gracefully (logs but doesn't block requests)
+5. Best-effort: Audit failures never block business requests ⚠️
 """
 
 import json
@@ -79,8 +79,19 @@ class AuditMiddleware(BaseHTTPMiddleware):
         start_time = time.time()
         request_metadata = self._extract_request_metadata(request)
 
-        # Execute request
-        response = await call_next(request)
+        # Set log context for this request
+        from agentos.core.logging.context import set_log_context, clear_log_context
+        set_log_context(
+            task_id=request_metadata.get("task_id"),
+            session_id=request.headers.get("X-Session-ID")  # Extract session from header
+        )
+
+        try:
+            # Execute request
+            response = await call_next(request)
+        finally:
+            # Clear log context after request completes
+            clear_log_context()
 
         # Record audit (async, best-effort)
         try:
@@ -235,7 +246,10 @@ class AuditMiddleware(BaseHTTPMiddleware):
         metadata: dict,
         duration_ms: int,
     ) -> None:
-        """Record audit event to database
+        """Record audit event to database (best-effort)
+
+        审计失败不应该影响业务请求的返回。
+        所有异常都被捕获并记录为 WARNING，不会抛出。
 
         Args:
             request: FastAPI request
@@ -272,6 +286,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             task_id = metadata.get("task_id") or "system"
             repo_id = metadata.get("repo_id")
 
+            # Best-effort: 使用较短超时，不阻塞业务
             audit_service.record_operation(
                 task_id=task_id,
                 operation=metadata["method"].lower(),
@@ -287,8 +302,25 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 f"status={status}, duration={duration_ms}ms"
             )
 
+        except TimeoutError as e:
+            # 超时：审计系统繁忙，记录 warning
+            logger.warning(
+                f"Audit timeout (system busy, audit dropped): "
+                f"task={metadata.get('task_id', 'unknown')}, "
+                f"path={metadata.get('path')}, "
+                f"error={str(e)}"
+            )
         except Exception as e:
-            logger.error(f"Failed to record audit: {e}", exc_info=True)
+            # 其他异常：记录详细错误，但不影响业务
+            logger.warning(
+                f"Audit failed (best-effort, dropped): "
+                f"task={metadata.get('task_id', 'unknown')}, "
+                f"path={metadata.get('path')}, "
+                f"error={str(e)}"
+            )
+            # 开发环境下输出完整堆栈
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Audit failure details:", exc_info=True)
 
     def _determine_event_type(self, request: Request, metadata: dict) -> str:
         """Determine event type from request

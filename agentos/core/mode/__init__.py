@@ -7,6 +7,15 @@ from .mode import Mode, ModeViolationError, get_mode
 from .mode_selector import ModeSelector, ModeSelection
 from .mode_proposer import ModeProposer, propose_mode
 from .pipeline_runner import ModePipelineRunner, PipelineResult, StageResult
+from .mode_policy import (
+    ModePolicy,
+    ModePermissions,
+    get_global_policy,
+    set_global_policy,
+    load_policy_from_file,
+    check_mode_permission,
+    get_mode_permissions,
+)
 
 __all__ = [
     "Mode",
@@ -19,4 +28,11 @@ __all__ = [
     "ModePipelineRunner",
     "PipelineResult",
     "StageResult",
+    "ModePolicy",
+    "ModePermissions",
+    "get_global_policy",
+    "set_global_policy",
+    "load_policy_from_file",
+    "check_mode_permission",
+    "get_mode_permissions",
 ]

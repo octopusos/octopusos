@@ -49,6 +49,9 @@ class EventType(str, Enum):
     SELFCHECK_COMPLETED = "selfcheck.completed"
     SELFCHECK_FAILED = "selfcheck.failed"
 
+    # Mode events
+    MODE_VIOLATION = "mode.violation"
+
 
 @dataclass
 class EventEntity:

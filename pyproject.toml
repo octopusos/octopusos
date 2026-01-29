@@ -26,6 +26,7 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.50.0",
     "cryptography>=42.0.0",
     "python-ulid>=2.2.0",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]
@@ -38,6 +39,10 @@ vector = [
     "sentence-transformers>=2.2.0",
     "torch>=2.0.0",
     "numpy>=1.24.0",
+]
+postgres = [
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.0",
 ]
 
 [project.scripts]
@@ -80,22 +85,44 @@ markers = [
 [tool.coverage.run]
 source = ["agentos"]
 omit = [
+    "tests/*",
     "*/tests/*",
-    "*/test_*.py",
+    "**/test_*.py",
+    "*/migrations/*",
+    "**/migrations/*",
+    "*/conftest.py",
     "*/__pycache__/*",
     "*/site-packages/*",
+    "*/.venv/*",
+    "*/venv/*",
+    "agentos/webui/static/*",
+    "agentos/webui/templates/*",
 ]
+branch = true
+parallel = true
 
 [tool.coverage.report]
 precision = 2
 show_missing = true
 skip_covered = false
+skip_empty = true
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
+    "def __str__",
     "raise AssertionError",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
     "@abstractmethod",
+    "@abc.abstractmethod",
+    "pass",
+    "\\.\\.\\.",
 ]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"

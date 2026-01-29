@@ -119,3 +119,89 @@ class TaskAlreadyInStateError(TaskStateError):
             task_id=task_id,
             state=state
         )
+
+
+class RetryNotAllowedError(TaskStateError):
+    """
+    Exception raised when retry is not allowed
+
+    This error is raised when attempting to retry a task but retry is not
+    allowed due to max retries exceeded or retry loop detection.
+    """
+
+    def __init__(
+        self,
+        task_id: str,
+        current_state: str,
+        reason: str
+    ):
+        """
+        Initialize RetryNotAllowedError
+
+        Args:
+            task_id: Task ID
+            current_state: Current state
+            reason: Reason why retry is not allowed
+        """
+        self.current_state = current_state
+
+        message = f"Retry not allowed: {reason}"
+
+        super().__init__(
+            message=message,
+            task_id=task_id,
+            current_state=current_state,
+            reason=reason
+        )
+
+
+class ModeViolationError(TaskStateError):
+    """
+    Exception raised when a mode constraint is violated during transition
+
+    This error is raised when a mode gateway rejects a task state transition
+    due to mode policy violations or approval requirements.
+
+    Note:
+        This is a task-level mode violation for state transitions.
+        For operation-level violations, see agentos.core.mode.mode.ModeViolationError
+    """
+
+    def __init__(
+        self,
+        task_id: str,
+        mode_id: str,
+        from_state: str,
+        to_state: str,
+        reason: str,
+        metadata: dict = None
+    ):
+        """
+        Initialize ModeViolationError
+
+        Args:
+            task_id: Task ID
+            mode_id: Mode that rejected the transition
+            from_state: Current state
+            to_state: Target state (rejected)
+            reason: Reason for rejection
+            metadata: Optional additional context
+        """
+        self.mode_id = mode_id
+        self.from_state = from_state
+        self.to_state = to_state
+        self.reason = reason
+
+        message = (
+            f"Mode '{mode_id}' rejected transition from '{from_state}' to '{to_state}': "
+            f"{reason}"
+        )
+
+        super().__init__(
+            message=message,
+            task_id=task_id,
+            mode_id=mode_id,
+            from_state=from_state,
+            to_state=to_state,
+            metadata=metadata or {}
+        )
