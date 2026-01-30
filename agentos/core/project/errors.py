@@ -212,14 +212,10 @@ class SpecNotFoundError(SpecError):
     reason_code = "SPEC_NOT_FOUND"
 
     def __init__(self, task_id: str, version: int = None):
+        kwargs = {"task_id": task_id}
         if version is not None:
-            super().__init__(
-                f"Task spec not found",
-                task_id=task_id,
-                version=version,
-            )
-        else:
-            super().__init__(f"Task spec not found", task_id=task_id)
+            kwargs["version"] = version
+        super().__init__(f"Task spec not found", **kwargs)
 
 
 class SpecAlreadyFrozenError(SpecError):
