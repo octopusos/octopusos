@@ -267,8 +267,37 @@ async def mark_task_ready(task_id: str) -> Dict[str, Any]:
         binding_service = BindingService()
         task_service = TaskService()
 
+        # Get binding to retrieve project_id and repo_id
+        binding = binding_service.get_binding(task_id)
+        if not binding:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "success": False,
+                    "reason_code": "BINDING_NOT_FOUND",
+                    "message": f"No binding found for task {task_id}",
+                    "hint": "Bind the task to a project first"
+                }
+            )
+
         # Validate binding
-        binding_service.validate_binding(task_id)
+        is_valid, errors = binding_service.validate_binding(
+            task_id,
+            binding.project_id,
+            binding.repo_id
+        )
+        
+        if not is_valid:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "success": False,
+                    "reason_code": "BINDING_INCOMPLETE",
+                    "message": "Binding validation failed",
+                    "errors": errors,
+                    "hint": "Ensure project exists, repo belongs to project, and spec is frozen"
+                }
+            )
 
         # Transition to READY state
         from agentos.core.task.state_machine import TaskStateMachine
