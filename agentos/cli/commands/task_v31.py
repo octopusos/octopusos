@@ -282,8 +282,26 @@ def mark_task_ready(task_id: str, output_json: bool):
         binding_service = BindingService()
         task_service = TaskService()
 
+        # Get binding to retrieve project_id and repo_id
+        binding = binding_service.get_binding(task_id)
+        if not binding:
+            console.print(f"[red]✗ Error: No binding found for task {task_id}[/red]")
+            console.print("[yellow]Hint: Bind the task to a project first[/yellow]")
+            raise click.Abort()
+
         # Validate binding
-        binding_service.validate_binding(task_id)
+        is_valid, errors = binding_service.validate_binding(
+            task_id,
+            binding.project_id,
+            binding.repo_id
+        )
+        
+        if not is_valid:
+            console.print("[red]✗ Binding validation failed:[/red]")
+            for error in errors:
+                console.print(f"  - {error}")
+            console.print("[yellow]Hint: Ensure project exists, repo belongs to project, and spec is frozen[/yellow]")
+            raise click.Abort()
 
         # Transition to READY state
         state_machine = TaskStateMachine()
