@@ -174,7 +174,7 @@ class ProjectRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                DELETE FROM project_repos
+                DELETE FROM repos
                 WHERE project_id = ? AND repo_id = ?
                 """,
                 (project_id, repo_id),
@@ -206,7 +206,7 @@ class ProjectRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM project_repos
+                SELECT * FROM repos
                 WHERE project_id = ?
                 ORDER BY created_at DESC
                 """,
@@ -237,7 +237,7 @@ class ProjectRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM project_repos
+                SELECT * FROM repos
                 WHERE project_id = ? AND repo_id = ?
                 """,
                 (project_id, repo_id),
@@ -267,7 +267,7 @@ class ProjectRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM project_repos
+                SELECT * FROM repos
                 WHERE project_id = ? AND name = ?
                 """,
                 (project_id, name),
@@ -301,7 +301,7 @@ class ProjectRepository:
 
             cursor.execute(
                 """
-                UPDATE project_repos
+                UPDATE repos
                 SET name = ?, remote_url = ?, default_branch = ?,
                     workspace_relpath = ?, role = ?, is_writable = ?,
                     auth_profile = ?, updated_at = ?, metadata = ?
@@ -349,7 +349,7 @@ class ProjectRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM project_repos
+                SELECT * FROM repos
                 WHERE project_id = ? AND is_writable = 1
                 ORDER BY created_at DESC
                 """,
@@ -377,7 +377,7 @@ class ProjectRepository:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM project_repos
+                SELECT * FROM repos
                 WHERE project_id = ? AND role = ?
                 ORDER BY created_at DESC
                 """,
@@ -464,6 +464,10 @@ class RepoRegistry:
     def add_repo(self, repo_spec: RepoSpec) -> str:
         """Add repository (delegate to CRUD)"""
         return self.repo_crud.add_repo(repo_spec)
+
+    def get_repo(self, project_id: str, repo_id: str) -> Optional[RepoSpec]:
+        """Get repository (delegate to CRUD)"""
+        return self.repo_crud.get_repo(project_id, repo_id)
 
     def remove_repo(self, project_id: str, repo_id: str) -> bool:
         """Remove repository (delegate to CRUD)"""

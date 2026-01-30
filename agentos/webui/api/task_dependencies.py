@@ -272,17 +272,19 @@ async def get_task_repos(
             if audit.commit_hash and not repo_data["commit_hash"]:
                 repo_data["commit_hash"] = audit.commit_hash
 
-        # Try to get real repo names from registry
+        # Try to get real repo names from database
         try:
-            from agentos.core.project.repository import RepoRegistry
-
-            registry = RepoRegistry(db_path)
+            cursor = db_path.cursor()
             for repo_id, repo_data in repos_map.items():
-                repo_spec = registry.get_repo(repo_id)
-                if repo_spec:
-                    repo_data["name"] = repo_spec.name
-                    repo_data["role"] = repo_spec.role.value if isinstance(repo_spec.role, RepoRole) else repo_spec.role
-                    repo_data["writable"] = repo_spec.is_writable
+                cursor.execute(
+                    "SELECT name, role, is_writable FROM project_repos WHERE repo_id = ?",
+                    (repo_id,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    repo_data["name"] = row[0]
+                    repo_data["role"] = row[1]
+                    repo_data["writable"] = bool(row[2])
         except Exception as e:
             pass  # Ignore errors fetching repo details
 

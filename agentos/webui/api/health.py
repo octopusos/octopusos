@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 import psutil
 import os
 
-from agentos.store import get_db
+from agentos.store import get_db, get_writer
 
 router = APIRouter()
 
@@ -78,3 +78,62 @@ async def get_health() -> HealthStatus:
             components={"error": str(e)},
             metrics={},
         )
+
+
+@router.get("/writer-stats")
+async def get_writer_stats() -> Dict[str, Any]:
+    """
+    Get SQLiteWriter monitoring statistics
+
+    Returns real-time metrics for the database writer including:
+    - Queue status and backlog
+    - Write performance metrics
+    - Retry and failure counts
+    - Throughput and latency statistics
+
+    Returns:
+        Dict containing all writer monitoring metrics
+        Returns error dict if writer not initialized
+    """
+    try:
+        # Get the global writer instance
+        writer = get_writer()
+
+        if writer:
+            stats = writer.get_stats()
+
+            # Add health status based on metrics
+            status = "ok"
+            warnings = []
+
+            if stats["queue_size"] > 100:
+                status = "critical"
+                warnings.append("Queue backlog critical - immediate action required")
+            elif stats["queue_size"] > 50:
+                status = "warning"
+                warnings.append("Queue backlog detected - consider optimization")
+
+            if stats["failed_writes"] > 0:
+                failure_rate = stats["failed_writes"] / max(stats["total_writes"], 1)
+                if failure_rate > 0.01:  # >1% failure rate
+                    status = "warning"
+                    warnings.append(f"High failure rate: {failure_rate*100:.1f}%")
+
+            stats["status"] = status
+            if warnings:
+                stats["warnings"] = warnings
+
+            return stats
+        else:
+            return {
+                "error": "Writer not initialized",
+                "status": "unavailable",
+                "message": "SQLiteWriter has not been initialized yet"
+            }
+
+    except Exception as e:
+        return {
+            "error": str(e),
+            "status": "error",
+            "message": "Failed to retrieve writer statistics"
+        }

@@ -77,7 +77,7 @@ class LMStudioProvider(Provider):
                     status = ProviderStatus(
                         id=self.id,
                         type=self.type,
-                        state=ProviderState.READY,
+                        state=ProviderState.RUNNING,
                         endpoint=self.endpoint,
                         latency_ms=round(latency_ms, 2),
                         last_ok_at=self.now_iso(),
@@ -111,7 +111,7 @@ class LMStudioProvider(Provider):
             status = ProviderStatus(
                 id=self.id,
                 type=self.type,
-                state=ProviderState.DISCONNECTED,
+                state=ProviderState.STOPPED,
                 endpoint=self.endpoint,
                 latency_ms=None,
                 last_ok_at=None,

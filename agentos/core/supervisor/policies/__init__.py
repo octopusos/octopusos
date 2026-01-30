@@ -13,10 +13,12 @@ from .base import BasePolicy
 from .on_task_created import OnTaskCreatedPolicy
 from .on_step_completed import OnStepCompletedPolicy
 from .on_task_failed import OnTaskFailedPolicy
+from .on_mode_violation import OnModeViolationPolicy
 
 __all__ = [
     "BasePolicy",
     "OnTaskCreatedPolicy",
     "OnStepCompletedPolicy",
     "OnTaskFailedPolicy",
+    "OnModeViolationPolicy",
 ]

@@ -25,22 +25,22 @@ class KnowledgeJobsView {
                     <h2>Index Jobs</h2>
                     <div class="header-actions">
                         <button class="btn-primary" id="jobs-trigger-incremental">
-                            <span class="icon"><span class="material-icons md-18">update</span></span> Incremental
+                            <span class="material-icons md-18">update</span> Incremental
                         </button>
                         <button class="btn-primary" id="jobs-trigger-rebuild">
-                            <span class="icon"><span class="material-icons md-18">refresh</span></span> Rebuild
+                            <span class="material-icons md-18">refresh</span> Rebuild
                         </button>
                         <button class="btn-secondary" id="jobs-trigger-repair">
-                            <span class="icon"><span class="material-icons md-18">build</span></span> Repair
+                            <span class="material-icons md-18">build</span> Repair
                         </button>
                         <button class="btn-secondary" id="jobs-trigger-vacuum">
-                            <span class="icon"><span class="material-icons md-18">cleaning_services</span></span> Vacuum
+                            <span class="material-icons md-18">cleaning_services</span> Vacuum
                         </button>
                         <button class="btn-refresh" id="jobs-refresh">
-                            <span class="icon"><span class="material-icons md-18">refresh</span></span> Refresh
+                            <span class="material-icons md-18">refresh</span> Refresh
                         </button>
                         <button class="btn-secondary" id="jobs-cleanup-stale">
-                            <span class="icon"><span class="material-icons md-18">delete_sweep</span></span> Clean Stale
+                            <span class="material-icons md-18">delete_sweep</span> Clean Stale
                         </button>
                     </div>
                 </div>

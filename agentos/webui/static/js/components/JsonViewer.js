@@ -70,14 +70,14 @@ class JsonViewer {
         // Copy button
         const copyBtn = document.createElement('button');
         copyBtn.className = 'json-btn';
-        copyBtn.textContent = '<span class="material-icons md-18">content_copy</span> Copy';
+        copyBtn.innerHTML = '<span class="material-icons md-18">content_copy</span> Copy';
         copyBtn.onclick = () => this.copyToClipboard();
         toolbar.appendChild(copyBtn);
 
         // Download button
         const downloadBtn = document.createElement('button');
         downloadBtn.className = 'json-btn';
-        downloadBtn.textContent = '<span class="material-icons md-18">download</span> Download';
+        downloadBtn.innerHTML = '<span class="material-icons md-18">download</span> Download';
         downloadBtn.onclick = () => this.download();
         toolbar.appendChild(downloadBtn);
 

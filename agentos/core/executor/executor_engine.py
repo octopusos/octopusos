@@ -22,6 +22,9 @@ from ..infra.git_client import GitClientFactory
 
 # 🔩 M1 绑定点：导入 Mode System（最小化）
 from agentos.core.mode import get_mode, ModeViolationError
+from agentos.core.mode.mode_alerts import alert_mode_violation, AlertSeverity
+# Task 27: Mode Event Listener integration
+from agentos.core.mode.mode_event_listener import emit_mode_violation
 
 # Task-Driven: Import TaskManager
 from agentos.core.task import TaskManager
@@ -673,6 +676,21 @@ class ExecutorEngine:
                 "reason": f"Mode '{mode_id}' does not allow commit/diff operations",
                 "context": audit_context or "unknown"
             })
+
+            # 🔔 Mode 违规告警 (Task 27: Emit to EventBus)
+            emit_mode_violation(
+                mode_id=mode_id,
+                operation="apply_diff",
+                message=f"Mode '{mode_id}' attempted to apply diff (forbidden)",
+                context={
+                    "audit_context": audit_context or "unknown",
+                    "allows_commit": False,
+                    "error_category": "config"
+                },
+                severity=AlertSeverity.ERROR,
+                task_id=None  # Will be extracted from context if available
+            )
+
             raise ModeViolationError(
                 f"Mode '{mode_id}' does not allow diff operations. Only 'implementation' mode can apply diffs.",
                 mode_id=mode_id,

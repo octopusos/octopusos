@@ -15,6 +15,7 @@ Created for Phase 5.2: Cross-repository audit trail
 
 import json
 import logging
+import sqlite3
 import subprocess
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from agentos.core.task.repo_context import TaskRepoContext
-from agentos.store import get_db
+from agentos.store import get_db, get_writer
 
 logger = logging.getLogger(__name__)
 
@@ -348,19 +349,48 @@ class TaskAuditService:
         return [TaskAudit.from_db_row(dict(row)) for row in rows]
 
     def _insert_audit(self, audit: TaskAudit) -> None:
-        """Insert audit record into database"""
+        """Insert audit record into database
+
+        使用 SQLiteWriter 串行化写入，避免并发锁冲突。
+        如果遇到外键约束失败（task_id 不存在），则降级处理：
+        - 记录警告日志
+        - 不抛出异常（best-effort）
+        """
         db_data = audit.to_db_dict()
+        writer = get_writer()
 
-        cursor = self.db.execute(
-            """
-            INSERT INTO task_audits (task_id, repo_id, level, event_type, payload, created_at)
-            VALUES (:task_id, :repo_id, :level, :event_type, :payload, :created_at)
-            """,
-            db_data,
-        )
+        def _do_insert(conn):
+            """在 writer 线程中执行插入"""
+            try:
+                cursor = conn.execute(
+                    """
+                    INSERT INTO task_audits (task_id, repo_id, level, event_type, payload, created_at)
+                    VALUES (:task_id, :repo_id, :level, :event_type, :payload, :created_at)
+                    """,
+                    db_data,
+                )
+                return cursor.lastrowid
+            except sqlite3.IntegrityError as e:
+                # 外键约束失败：task_id 不存在
+                if "FOREIGN KEY constraint" in str(e):
+                    logger.warning(
+                        f"Audit dropped: task_id={audit.task_id} not found in tasks table. "
+                        f"This is expected if task creation failed or audit arrived before task. "
+                        f"Event: {audit.event_type}"
+                    )
+                    # 返回 None 表示写入失败，但不抛异常
+                    return None
+                else:
+                    # 其他完整性错误，继续抛出
+                    raise
 
-        audit.audit_id = cursor.lastrowid
-        self.db.commit()
+        try:
+            audit_id = writer.submit(_do_insert, timeout=5.0)
+            if audit_id is not None:
+                audit.audit_id = audit_id
+        except Exception as e:
+            # Best-effort：audit 失败不应该影响业务
+            logger.warning(f"Failed to insert audit (best-effort): {e}")
 
     def _get_git_status_summary(self, repo_path: Path, max_size: int = MAX_STATUS_SIZE) -> Optional[str]:
         """Get git status --porcelain output

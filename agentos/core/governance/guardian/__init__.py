@@ -11,6 +11,7 @@ from .models import (
 from .base import Guardian
 from .registry import GuardianRegistry
 from .smoke_test_guardian import SmokeTestGuardian
+from .mode_guardian import ModeGuardian
 
 __all__ = [
     "VerdictStatus",
@@ -20,4 +21,5 @@ __all__ = [
     "Guardian",
     "GuardianRegistry",
     "SmokeTestGuardian",
+    "ModeGuardian",
 ]

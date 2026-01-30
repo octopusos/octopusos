@@ -38,7 +38,8 @@ from agentos.core.task.errors import (
 )
 from agentos.core.task.state_machine import TaskStateMachine
 from agentos.core.task.manager import TaskManager
-from agentos.store import get_db
+from agentos.core.task.project_settings_inheritance import ProjectSettingsInheritance
+from agentos.store import get_db, get_writer
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class TaskService:
         self.db_path = db_path
         self.task_manager = TaskManager(db_path=db_path)
         self.state_machine = TaskStateMachine(db_path=db_path)
+        self.settings_inheritance = ProjectSettingsInheritance(db_path=db_path)
 
     # =========================================================================
     # TASK CREATION (State: DRAFT)
@@ -70,6 +72,7 @@ class TaskService:
         self,
         title: str,
         session_id: Optional[str] = None,
+        project_id: Optional[str] = None,
         created_by: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         route_plan_json: Optional[str] = None,
@@ -86,6 +89,7 @@ class TaskService:
         Args:
             title: Task title
             session_id: Optional session ID
+            project_id: Optional project ID to associate task with
             created_by: Optional creator identifier
             metadata: Optional metadata
             route_plan_json: Optional route plan JSON
@@ -132,11 +136,12 @@ class TaskService:
             router_version=router_version,
         )
 
-        conn = self.task_manager._get_conn()
-        try:
+        # Define write function for serialized execution
+        def _write_task_to_db(conn):
+            """将任务写入数据库（在 writer 线程中执行）"""
             cursor = conn.cursor()
 
-            # If we auto-created session_id, create the session record first
+            # 1. If we auto-created session_id, create the session record first
             if auto_created_session:
                 cursor.execute(
                     """
@@ -152,19 +157,21 @@ class TaskService:
                     ),
                 )
 
+            # 2. Insert task record
             cursor.execute(
                 """
                 INSERT INTO tasks (
-                    task_id, title, status, session_id, created_at, updated_at, created_by, metadata,
+                    task_id, title, status, session_id, project_id, created_at, updated_at, created_by, metadata,
                     route_plan_json, requirements_json, selected_instance_id, router_version
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task.task_id,
                     task.title,
                     task.status,
                     task.session_id,
+                    project_id,
                     task.created_at,
                     task.updated_at,
                     task.created_by,
@@ -176,7 +183,7 @@ class TaskService:
                 ),
             )
 
-            # Record creation audit
+            # 3. Record creation audit
             cursor.execute(
                 """
                 INSERT INTO task_audits (task_id, level, event_type, payload, created_at)
@@ -195,26 +202,132 @@ class TaskService:
                 )
             )
 
-            conn.commit()
-            logger.info(f"Created draft task: {task_id} (session: {session_id})")
+            return task_id
 
-            # Auto-route task after creation (if routing service is available)
+        # Submit write operation through SQLiteWriter (serialized, avoids lock conflicts)
+        writer = get_writer()
+        try:
+            result_task_id = writer.submit(_write_task_to_db, timeout=10.0)
+            logger.info(f"Created draft task: {result_task_id} (session: {session_id})")
+        except Exception as e:
+            logger.error(f"Failed to create task in database: {e}", exc_info=True)
+            raise
+
+        # Apply project settings if project_id is set (Task #13)
+        if project_id:
             try:
-                from agentos.core.task.routing_service import TaskRoutingService
-                import asyncio
-                routing_service = TaskRoutingService()
-                task_spec = {
-                    "task_id": task.task_id,
-                    "title": task.title,
-                    "metadata": task.metadata or {},
-                }
-                asyncio.run(routing_service.route_new_task(task.task_id, task_spec))
+                effective_config = self.settings_inheritance.apply_project_settings(task)
+                logger.info(
+                    f"Applied project settings to task {task.task_id}: "
+                    f"runner={effective_config.get('runner')}, "
+                    f"workdir={effective_config.get('workdir')}"
+                )
             except Exception as e:
-                logger.exception(f"Task routing failed for task {task.task_id}: {e}")
+                logger.error(f"Failed to apply project settings: {e}", exc_info=True)
+
+        # Auto-route task after creation (if routing service is available)
+        # Skip routing if running in test mode (no provider instances available)
+        try:
+            from agentos.core.task.routing_service import TaskRoutingService
+            import asyncio
+            routing_service = TaskRoutingService()
+            task_spec = {
+                "task_id": task.task_id,
+                "title": task.title,
+                "metadata": task.metadata or {},
+            }
+            asyncio.run(routing_service.route_new_task(task.task_id, task_spec))
+        except Exception as e:
+            # Routing is optional - task can still be created without routing
+            logger.warning(f"Task routing failed for task {task.task_id}: {e}")
+            # Don't raise - allow task to be created even if routing fails
+
+        return task
+
+    def create_approve_queue_and_start(
+        self,
+        title: str,
+        session_id: Optional[str] = None,
+        project_id: Optional[str] = None,
+        created_by: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        actor: str = "system",
+    ) -> Task:
+        """
+        Create a task and immediately approve, queue, and start execution
+
+        Task #1 (PR-A): Combined operation for event-driven task execution.
+        This method orchestrates the full flow from creation to running.
+
+        Flow:
+            1. Create task in DRAFT state
+            2. Approve task (DRAFT -> APPROVED)
+            3. Queue task (APPROVED -> QUEUED)
+            4. Launch runner in background (triggers QUEUED -> RUNNING)
+
+        Args:
+            title: Task title
+            session_id: Optional session ID
+            project_id: Optional project ID
+            created_by: Optional creator identifier
+            metadata: Optional metadata
+            actor: Actor performing the operations (for audit trail)
+
+        Returns:
+            Task object in QUEUED state (runner starting in background)
+
+        Raises:
+            ValueError: If task creation or state transitions fail
+        """
+        # 1. Create task in DRAFT state
+        task = self.create_draft_task(
+            title=title,
+            session_id=session_id,
+            project_id=project_id,
+            created_by=created_by,
+            metadata=metadata
+        )
+
+        logger.info(f"Created task {task.task_id} for immediate execution")
+
+        try:
+            # 2. Approve task (DRAFT -> APPROVED)
+            task = self.approve_task(
+                task_id=task.task_id,
+                actor=actor,
+                reason="Auto-approved for immediate execution"
+            )
+            logger.info(f"Approved task {task.task_id}")
+
+            # 3. Queue task (APPROVED -> QUEUED)
+            task = self.queue_task(
+                task_id=task.task_id,
+                actor=actor,
+                reason="Auto-queued for immediate execution"
+            )
+            logger.info(f"Queued task {task.task_id}")
+
+            # 4. Launch runner in background (note: this doesn't change status yet)
+            # The runner will transition QUEUED -> RUNNING once it starts
+            from agentos.core.runner.launcher import launch_task_async
+
+            success = launch_task_async(task.task_id, actor=actor)
+            if not success:
+                logger.error(f"Failed to launch runner for task {task.task_id}")
+                raise ValueError(f"Failed to launch runner for task {task.task_id}")
+
+            logger.info(f"Launched runner for task {task.task_id}")
 
             return task
-        finally:
-            conn.close()
+
+        except Exception as e:
+            logger.error(
+                f"Failed to approve/queue/start task {task.task_id}: {e}",
+                exc_info=True
+            )
+            # Task was created but failed to launch
+            # Leave it in current state for manual intervention
+            raise
 
     # =========================================================================
     # STATE TRANSITIONS (Using State Machine)
@@ -476,6 +589,78 @@ class TaskService:
             metadata=metadata
         )
 
+    def cancel_running_task(
+        self,
+        task_id: str,
+        actor: str,
+        reason: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ) -> Task:
+        """
+        Cancel a running task
+
+        This sends a cancel signal to the running task. The runner will
+        detect the signal on its next iteration and perform graceful shutdown.
+
+        Transition: RUNNING -> CANCELED
+
+        Args:
+            task_id: Task ID
+            actor: Who is canceling the task
+            reason: Reason for cancellation (REQUIRED)
+            metadata: Optional metadata for the transition
+
+        Returns:
+            Updated task in CANCELED state
+
+        Raises:
+            TaskNotFoundError: If task doesn't exist
+            InvalidTransitionError: If task is not in RUNNING state
+        """
+        # Validate task exists and is in correct state
+        task = self.get_task(task_id)
+        if not task:
+            raise TaskNotFoundError(task_id)
+
+        if task.status != TaskState.RUNNING.value:
+            raise InvalidTransitionError(
+                from_state=task.status,
+                to_state=TaskState.CANCELED.value,
+                reason="Can only cancel tasks in RUNNING state"
+            )
+
+        # Add cancel metadata for runner to detect
+        if not task.metadata:
+            task.metadata = {}
+
+        task.metadata["cancel_actor"] = actor
+        task.metadata["cancel_reason"] = reason
+        task.metadata["cancel_requested_at"] = datetime.now(timezone.utc).isoformat()
+
+        # Update task metadata first (runner will detect this)
+        self.task_manager.update_task(task)
+
+        # Record audit
+        self.add_audit(
+            task_id=task_id,
+            event_type="TASK_CANCEL_REQUESTED",
+            level="warn",
+            payload={
+                "actor": actor,
+                "reason": reason,
+                "metadata": metadata or {},
+            }
+        )
+
+        # Perform state transition
+        return self.state_machine.transition(
+            task_id=task_id,
+            to=TaskState.CANCELED.value,
+            actor=actor,
+            reason=f"Running task canceled: {reason}",
+            metadata=metadata
+        )
+
     def retry_failed_task(
         self,
         task_id: str,
@@ -485,6 +670,12 @@ class TaskService:
     ) -> Task:
         """
         Retry a failed task
+
+        Enforces retry policy:
+        1. Check if retry is allowed (max_retries not exceeded)
+        2. Check for retry loops
+        3. Update retry state
+        4. Transition to QUEUED state
 
         Transition: FAILED -> QUEUED
 
@@ -499,12 +690,69 @@ class TaskService:
 
         Raises:
             InvalidTransitionError: If task is not in FAILED state
+            RetryNotAllowedError: If retry is not allowed (max retries exceeded or retry loop)
+            TaskNotFoundError: If task doesn't exist
         """
+        from agentos.core.task.retry_strategy import RetryStrategyManager
+        from agentos.core.task.errors import RetryNotAllowedError
+
+        # Load task
+        task = self.get_task(task_id)
+        if not task:
+            raise TaskNotFoundError(task_id)
+
+        # Get retry config and state
+        retry_config = task.get_retry_config()
+        retry_state = task.get_retry_state()
+
+        # Check if retry is allowed
+        retry_manager = RetryStrategyManager()
+        can_retry, retry_reason = retry_manager.can_retry(retry_config, retry_state)
+
+        if not can_retry:
+            raise RetryNotAllowedError(
+                task_id=task_id,
+                current_state=task.status,
+                reason=retry_reason
+            )
+
+        # Record retry attempt
+        retry_state = retry_manager.record_retry_attempt(
+            retry_state,
+            reason=reason,
+            metadata=metadata
+        )
+
+        # Calculate next retry time
+        next_retry_time = retry_manager.calculate_next_retry_time(
+            retry_config,
+            retry_state
+        )
+        retry_state.next_retry_after = next_retry_time
+
+        # Update task metadata
+        task.update_retry_state(retry_state)
+        self.task_manager.update_task(task)
+
+        # Record audit
+        self.add_audit(
+            task_id=task_id,
+            event_type="TASK_RETRY_ATTEMPT",
+            level="info",
+            payload={
+                "retry_count": retry_state.retry_count,
+                "max_retries": retry_config.max_retries,
+                "next_retry_after": next_retry_time,
+                "reason": reason,
+            }
+        )
+
+        # Perform state transition
         return self.state_machine.transition(
             task_id=task_id,
             to=TaskState.QUEUED.value,
             actor=actor,
-            reason=reason,
+            reason=f"Retry attempt {retry_state.retry_count}/{retry_config.max_retries}: {reason}",
             metadata=metadata
         )
 

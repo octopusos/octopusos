@@ -12,6 +12,32 @@ class ProvidersView {
         this.apiClient = apiClient;
         this.instances = [];
         this.selectedInstance = null;
+
+        // Task #17: P0.4 - Auto-refresh configuration
+        this.autoRefreshInterval = null;
+        this.autoRefreshEnabled = true;  // Default to enabled
+        this.autoRefreshIntervalMs = 5000;  // 5 seconds
+
+        // Task #21: P1.8 - Debounced operations to prevent duplicate clicks
+        this.debouncedOperations = new Map();
+    }
+
+    /**
+     * Task #21: P1.8 - Debounce utility to prevent duplicate operations
+     * @param {Function} func - Function to debounce
+     * @param {number} wait - Wait time in milliseconds
+     * @returns {Function} Debounced function
+     */
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func.apply(this, args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
 
     async render() {
@@ -20,9 +46,27 @@ class ProvidersView {
                 <div class="view-header">
                     <h1>Local Model Providers</h1>
                     <div class="header-actions">
+                        <label class="auto-refresh-toggle">
+                            <input type="checkbox" id="auto-refresh-toggle" checked>
+                            <span>Auto-refresh (5s)</span>
+                        </label>
+                        <button id="stop-all-instances" class="btn btn-warning" style="display:none">
+                            <span class="material-icons md-18">stop_circle</span> Stop All
+                        </button>
+                        <button id="restart-all-instances" class="btn btn-secondary" style="display:none">
+                            <span class="material-icons md-18">restart_alt</span> Restart All
+                        </button>
                         <button id="refresh-all" class="btn btn-primary">
                             <span class="icon"><span class="material-icons md-18">refresh</span></span> Refresh All
                         </button>
+                    </div>
+                </div>
+
+                <!-- Models Directory Configuration Panel -->
+                <div class="models-config-panel">
+                    <h2>Models Directories</h2>
+                    <div id="models-directories-container">
+                        <p class="loading-text">Loading configuration...</p>
                     </div>
                 </div>
 
@@ -34,6 +78,72 @@ class ProvidersView {
                             <button class="btn btn-sm" data-action="add-instance" data-provider="ollama">
                                 + Add Instance
                             </button>
+                        </div>
+                        <div class="executable-config" data-provider="ollama">
+                            <h3>Executable Configuration</h3>
+                            <div class="executable-path-row">
+                                <input type="text"
+                                       class="executable-path-input"
+                                       data-provider="ollama"
+                                       placeholder="Not configured"
+                                       readonly>
+                                <button class="btn-detect btn btn-sm" data-provider="ollama">
+                                    <span class="material-icons md-18">search</span> Detect
+                                </button>
+                                <button class="btn-browse btn btn-sm" data-provider="ollama">
+                                    <span class="material-icons md-18">folder_open</span> Browse
+                                </button>
+                                <button class="btn-validate btn btn-sm" data-provider="ollama" style="display:none">
+                                    <span class="material-icons md-18">check_circle</span> Validate
+                                </button>
+                                <button class="btn-save btn btn-sm" data-provider="ollama" style="display:none">
+                                    <span class="material-icons md-18">save</span> Save
+                                </button>
+                            </div>
+                            <div class="executable-paths-info" data-provider="ollama">
+                                <div class="path-info-row">
+                                    <span class="path-label">Detected:</span>
+                                    <span class="detected-path" data-provider="ollama">—</span>
+                                </div>
+                                <div class="path-info-row">
+                                    <span class="path-label">Custom:</span>
+                                    <span class="custom-path" data-provider="ollama">—</span>
+                                </div>
+                                <div class="path-info-row">
+                                    <span class="path-label">Resolved:</span>
+                                    <span class="resolved-path" data-provider="ollama">—</span>
+                                </div>
+                            </div>
+                            <div class="executable-info" data-provider="ollama">
+                                <span class="install-status" data-provider="ollama">Checking...</span>
+                                <span class="version-info"></span>
+                                <span class="platform-info"></span>
+                            </div>
+                            <div class="validation-message" data-provider="ollama"></div>
+
+                        <!-- Task #19: P1.6 - Diagnostics Panel -->
+                        <div class="diagnostics-section" data-provider="ollama">
+                            <button class="btn-diagnostics btn btn-sm" data-provider="ollama">
+                                <span class="material-icons md-18">assessment</span> Show Diagnostics
+                            </button>
+                            <div class="diagnostics-panel" data-provider="ollama" style="display:none;">
+                                <div class="diagnostics-header">
+                                    <strong>Diagnostics</strong>
+                                    <div class="diagnostics-actions">
+                                        <button class="btn btn-xs" data-action="health-check" data-provider="ollama" title="Run Health Check">
+                                            <span class="material-icons md-18">health_and_safety</span>
+                                        </button>
+                                        <button class="btn btn-xs" data-action="copy-diagnostics" data-provider="ollama" title="Copy Diagnostics">
+                                            <span class="material-icons md-18">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="diagnostics-content" data-provider="ollama">
+                                    <p class="loading-text">Loading diagnostics...</p>
+                                </div>
+                            </div>
+                        </div>
+
                         </div>
                         <div class="instances-container" data-provider="ollama"></div>
                     </div>
@@ -51,6 +161,72 @@ class ProvidersView {
                                 </button>
                             </div>
                         </div>
+                        <div class="executable-config" data-provider="lmstudio">
+                            <h3>Executable Configuration</h3>
+                            <div class="executable-path-row">
+                                <input type="text"
+                                       class="executable-path-input"
+                                       data-provider="lmstudio"
+                                       placeholder="Not configured"
+                                       readonly>
+                                <button class="btn-detect btn btn-sm" data-provider="lmstudio">
+                                    <span class="material-icons md-18">search</span> Detect
+                                </button>
+                                <button class="btn-browse btn btn-sm" data-provider="lmstudio">
+                                    <span class="material-icons md-18">folder_open</span> Browse
+                                </button>
+                                <button class="btn-validate btn btn-sm" data-provider="lmstudio" style="display:none">
+                                    <span class="material-icons md-18">check_circle</span> Validate
+                                </button>
+                                <button class="btn-save btn btn-sm" data-provider="lmstudio" style="display:none">
+                                    <span class="material-icons md-18">save</span> Save
+                                </button>
+                            </div>
+                            <div class="executable-paths-info" data-provider="lmstudio">
+                                <div class="path-info-row">
+                                    <span class="path-label">Detected:</span>
+                                    <span class="detected-path" data-provider="lmstudio">—</span>
+                                </div>
+                                <div class="path-info-row">
+                                    <span class="path-label">Custom:</span>
+                                    <span class="custom-path" data-provider="lmstudio">—</span>
+                                </div>
+                                <div class="path-info-row">
+                                    <span class="path-label">Resolved:</span>
+                                    <span class="resolved-path" data-provider="lmstudio">—</span>
+                                </div>
+                            </div>
+                            <div class="executable-info" data-provider="lmstudio">
+                                <span class="install-status" data-provider="lmstudio">Checking...</span>
+                                <span class="version-info"></span>
+                                <span class="platform-info"></span>
+                            </div>
+                            <div class="validation-message" data-provider="lmstudio"></div>
+
+                        <!-- Task #19: P1.6 - Diagnostics Panel -->
+                        <div class="diagnostics-section" data-provider="lmstudio">
+                            <button class="btn-diagnostics btn btn-sm" data-provider="lmstudio">
+                                <span class="material-icons md-18">assessment</span> Show Diagnostics
+                            </button>
+                            <div class="diagnostics-panel" data-provider="lmstudio" style="display:none;">
+                                <div class="diagnostics-header">
+                                    <strong>Diagnostics</strong>
+                                    <div class="diagnostics-actions">
+                                        <button class="btn btn-xs" data-action="health-check" data-provider="lmstudio" title="Run Health Check">
+                                            <span class="material-icons md-18">health_and_safety</span>
+                                        </button>
+                                        <button class="btn btn-xs" data-action="copy-diagnostics" data-provider="lmstudio" title="Copy Diagnostics">
+                                            <span class="material-icons md-18">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="diagnostics-content" data-provider="lmstudio">
+                                    <p class="loading-text">Loading diagnostics...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        </div>
                         <div class="instances-container" data-provider="lmstudio"></div>
                     </div>
 
@@ -61,6 +237,72 @@ class ProvidersView {
                             <button class="btn btn-sm" data-action="add-instance" data-provider="llamacpp">
                                 + Add Instance
                             </button>
+                        </div>
+                        <div class="executable-config" data-provider="llamacpp">
+                            <h3>Executable Configuration</h3>
+                            <div class="executable-path-row">
+                                <input type="text"
+                                       class="executable-path-input"
+                                       data-provider="llamacpp"
+                                       placeholder="Not configured"
+                                       readonly>
+                                <button class="btn-detect btn btn-sm" data-provider="llamacpp">
+                                    <span class="material-icons md-18">search</span> Detect
+                                </button>
+                                <button class="btn-browse btn btn-sm" data-provider="llamacpp">
+                                    <span class="material-icons md-18">folder_open</span> Browse
+                                </button>
+                                <button class="btn-validate btn btn-sm" data-provider="llamacpp" style="display:none">
+                                    <span class="material-icons md-18">check_circle</span> Validate
+                                </button>
+                                <button class="btn-save btn btn-sm" data-provider="llamacpp" style="display:none">
+                                    <span class="material-icons md-18">save</span> Save
+                                </button>
+                            </div>
+                            <div class="executable-paths-info" data-provider="llamacpp">
+                                <div class="path-info-row">
+                                    <span class="path-label">Detected:</span>
+                                    <span class="detected-path" data-provider="llamacpp">—</span>
+                                </div>
+                                <div class="path-info-row">
+                                    <span class="path-label">Custom:</span>
+                                    <span class="custom-path" data-provider="llamacpp">—</span>
+                                </div>
+                                <div class="path-info-row">
+                                    <span class="path-label">Resolved:</span>
+                                    <span class="resolved-path" data-provider="llamacpp">—</span>
+                                </div>
+                            </div>
+                            <div class="executable-info" data-provider="llamacpp">
+                                <span class="install-status" data-provider="llamacpp">Checking...</span>
+                                <span class="version-info"></span>
+                                <span class="platform-info"></span>
+                            </div>
+                            <div class="validation-message" data-provider="llamacpp"></div>
+
+                        <!-- Task #19: P1.6 - Diagnostics Panel -->
+                        <div class="diagnostics-section" data-provider="llamacpp">
+                            <button class="btn-diagnostics btn btn-sm" data-provider="llamacpp">
+                                <span class="material-icons md-18">assessment</span> Show Diagnostics
+                            </button>
+                            <div class="diagnostics-panel" data-provider="llamacpp" style="display:none;">
+                                <div class="diagnostics-header">
+                                    <strong>Diagnostics</strong>
+                                    <div class="diagnostics-actions">
+                                        <button class="btn btn-xs" data-action="health-check" data-provider="llamacpp" title="Run Health Check">
+                                            <span class="material-icons md-18">health_and_safety</span>
+                                        </button>
+                                        <button class="btn btn-xs" data-action="copy-diagnostics" data-provider="llamacpp" title="Copy Diagnostics">
+                                            <span class="material-icons md-18">content_copy</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="diagnostics-content" data-provider="llamacpp">
+                                    <p class="loading-text">Loading diagnostics...</p>
+                                </div>
+                            </div>
+                        </div>
+
                         </div>
                         <div class="instances-container" data-provider="llamacpp"></div>
                     </div>
@@ -106,6 +348,7 @@ class ProvidersView {
                 <!-- Modals -->
                 <div id="instance-modal" class="modal" style="display:none"></div>
                 <div id="output-modal" class="modal" style="display:none"></div>
+                <div id="model-browser-modal" class="modal" style="display:none"></div>
             </div>
         `;
     }
@@ -113,14 +356,30 @@ class ProvidersView {
     async mount() {
         await this.loadInstances();
         await this.checkCLI();
+        await this.loadModelsDirectories();
+        await this.initExecutableConfigs();
         this.attachEventListeners();
         this.startAutoRefresh();
     }
 
     attachEventListeners() {
+        // Task #17: P0.4 - Auto-refresh toggle
+        document.getElementById('auto-refresh-toggle')?.addEventListener('change', (e) => {
+            this.toggleAutoRefresh(e.target.checked);
+        });
+
         // Refresh all
         document.getElementById('refresh-all')?.addEventListener('click', () => {
-            this.loadInstances();
+            this.refreshStatus();
+        });
+
+        // Task #21: P1.8 - Batch operations
+        document.getElementById('stop-all-instances')?.addEventListener('click', () => {
+            this.stopAllInstances();
+        });
+
+        document.getElementById('restart-all-instances')?.addEventListener('click', () => {
+            this.restartAllInstances();
         });
 
         // Add instance buttons
@@ -148,7 +407,84 @@ class ProvidersView {
             });
         });
 
+        // Executable configuration buttons
+        document.querySelectorAll('.btn-detect').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const provider = e.target.closest('[data-provider]').dataset.provider;
+                this.detectExecutable(provider);
+            });
+        });
+
+        document.querySelectorAll('.btn-browse').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const provider = e.target.closest('[data-provider]').dataset.provider;
+                this.browseExecutable(provider);
+            });
+        });
+
+        // Task #21: P1.8 - Validate button event listener
+        document.querySelectorAll('.btn-validate').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const provider = e.target.closest('[data-provider]').dataset.provider;
+                const input = document.querySelector(`.executable-path-input[data-provider="${provider}"]`);
+                if (input && input.value.trim()) {
+                    this.validateExecutablePath(provider, input.value.trim());
+                }
+            });
+        });
+
+        document.querySelectorAll('.btn-save').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const provider = e.target.closest('[data-provider]').dataset.provider;
+                this.saveExecutablePath(provider);
+            });
+        });
+
+        // Task #21: P1.8 - Real-time validation on path input (show buttons)
+        document.querySelectorAll('.executable-path-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const provider = e.target.dataset.provider;
+                const path = e.target.value.trim();
+
+                // Task #21: P1.8 - Show validate and save buttons when input changes
+                const validateBtn = document.querySelector(`.btn-validate[data-provider="${provider}"]`);
+                const saveBtn = document.querySelector(`.btn-save[data-provider="${provider}"]`);
+
+                if (validateBtn) {
+                    validateBtn.style.display = path ? 'inline-flex' : 'none';
+                }
+                if (saveBtn) {
+                    saveBtn.style.display = path ? 'inline-flex' : 'none';
+                }
+            });
+        });
+
         // Instance actions (delegated)
+
+        // Task #19: P1.6 - Diagnostics panel toggles
+        document.querySelectorAll('.btn-diagnostics').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const providerId = e.currentTarget.dataset.provider;
+                await this.toggleDiagnostics(providerId);
+            });
+        });
+
+        // Task #19: P1.6 - Health check buttons
+        document.querySelectorAll('[data-action="health-check"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const providerId = e.currentTarget.dataset.provider;
+                await this.runHealthCheck(providerId);
+            });
+        });
+
+        // Task #19: P1.6 - Copy diagnostics buttons
+        document.querySelectorAll('[data-action="copy-diagnostics"]').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const providerId = e.currentTarget.dataset.provider;
+                await this.copyDiagnostics(providerId);
+            });
+        });
+
         document.addEventListener('click', (e) => {
             // Find the button element (in case user clicks on icon inside button)
             const button = e.target.closest('[data-instance-action]');
@@ -245,18 +581,60 @@ class ProvidersView {
                 </table>
             `;
         });
+
+        // Task #21: P1.8 - Show/hide batch operation buttons based on running instances
+        this.updateBatchOperationButtons();
+    }
+
+    /**
+     * Task #21: P1.8 - Update batch operation buttons visibility
+     */
+    updateBatchOperationButtons() {
+        const runningInstances = this.getAllRunningInstances();
+        const stopAllBtn = document.getElementById('stop-all-instances');
+        const restartAllBtn = document.getElementById('restart-all-instances');
+
+        if (stopAllBtn) {
+            stopAllBtn.style.display = runningInstances.length > 0 ? 'inline-flex' : 'none';
+        }
+        if (restartAllBtn) {
+            restartAllBtn.style.display = runningInstances.length > 0 ? 'inline-flex' : 'none';
+        }
     }
 
     renderInstanceRow(inst) {
+        // Task #17: P0.4 - Enhanced state mapping with new states
         const stateClass = {
-            'READY': 'state-ready',
+            'RUNNING': 'state-ready',
+            'STOPPED': 'state-disconnected',
+            'STARTING': 'state-starting',
+            'DEGRADED': 'state-degraded',
             'ERROR': 'state-error',
+            'UNKNOWN': 'state-unknown',
+            // Legacy states for backward compatibility
+            'READY': 'state-ready',
             'DISCONNECTED': 'state-disconnected'
         }[inst.state] || 'state-unknown';
 
-        const processStatus = inst.process_running ?
-            `<span class="process-running">Running (PID ${inst.process_pid})</span>` :
-            `<span class="process-stopped">Stopped</span>`;
+        // Task #17: P0.4 - Enhanced process status with health check details
+        let processStatus = '';
+        if (inst.process_running) {
+            const pidInfo = inst.pid ? ` (PID ${inst.pid})` : '';
+            const healthDetails = [];
+            if (inst.pid_exists !== null && inst.pid_exists !== undefined) {
+                healthDetails.push(inst.pid_exists ? 'PID ✓' : 'PID ✗');
+            }
+            if (inst.port_listening !== null && inst.port_listening !== undefined) {
+                healthDetails.push(inst.port_listening ? 'Port ✓' : 'Port ✗');
+            }
+            if (inst.api_responding !== null && inst.api_responding !== undefined) {
+                healthDetails.push(inst.api_responding ? 'API ✓' : 'API ✗');
+            }
+            const healthInfo = healthDetails.length > 0 ? ` [${healthDetails.join(', ')}]` : '';
+            processStatus = `<span class="process-running">Running${pidInfo}${healthInfo}</span>`;
+        } else {
+            processStatus = `<span class="process-stopped">Stopped</span>`;
+        }
 
         // PR-4: Extract routing metadata
         const metadata = inst.metadata || {};
@@ -464,9 +842,17 @@ class ProvidersView {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Model Path</label>
-                        <input type="text" name="launch_model"
-                               value="${args.model || ''}"
-                               placeholder="/path/to/model.gguf (required to start)">
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" name="launch_model"
+                                   style="flex: 1;"
+                                   value="${args.model || ''}"
+                                   placeholder="/path/to/model.gguf (required to start)">
+                            <button type="button" class="btn btn-sm" id="browse-models-btn"
+                                    onclick="window.providersView.showModelBrowser('llamacpp')">
+                                <span class="material-icons md-18">folder_open</span> Browse
+                            </button>
+                        </div>
+                        <small class="form-hint">Browse available model files or enter full path</small>
                     </div>
                 </div>
                 <div class="form-row">
@@ -613,7 +999,7 @@ class ProvidersView {
             await this.loadInstances();
         } catch (error) {
             console.error('Failed to save instance:', error);
-            Toast.error(`Failed to save instance: ${error.message}`);
+            this.handleProviderError(error, `saving ${provider} instance`, provider);
         }
     }
 
@@ -708,41 +1094,291 @@ class ProvidersView {
     }
 
     async startInstance(providerId, instanceId) {
+        // Task #21: P1.8 - Enhanced button state management
+        const instanceKey = `${providerId}:${instanceId}`;
+        const button = document.querySelector(`button[data-action="start-instance"][data-instance-key="${instanceKey}"]`);
+
+        if (!button) {
+            console.warn(`Start button not found for ${instanceKey}`);
+        }
+
+        const originalContent = button ? button.innerHTML : '';
+
         try {
+            // Task #21: P1.8 - Show loading state
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<span class="btn-spinner"></span> Starting...';
+            }
+
             await this.apiClient.post(`/api/providers/${providerId}/instances/start`, {
                 instance_id: instanceId
             });
-            Toast.success(`Starting ${providerId}:${instanceId}...`);
-            await this.loadInstances();
+            Toast.success(`Instance ${providerId}:${instanceId} started successfully`);
+
+            // Task #21: P1.8 - Auto-refresh after 1s delay
+            setTimeout(() => this.refreshStatus(), 1000);
         } catch (error) {
             console.error('Failed to start instance:', error);
-            Toast.error(`Failed to start instance: ${error.message}`);
+            this.handleProviderError(error, `starting ${providerId} instance`, providerId);
+        } finally {
+            // Task #21: P1.8 - Restore button state
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalContent || '<span class="material-icons md-18">play_arrow</span> Start';
+            }
         }
     }
 
     async stopInstance(providerId, instanceId) {
+        // Task #21: P1.8 - Confirmation dialog for destructive operation
+        const confirmed = confirm(
+            `Are you sure you want to stop ${providerId} instance?\n\n` +
+            `This will terminate the running process.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        // Task #21: P1.8 - Enhanced button state management
+        const instanceKey = `${providerId}:${instanceId}`;
+        const button = document.querySelector(`button[data-action="stop-instance"][data-instance-key="${instanceKey}"]`);
+
+        const originalContent = button ? button.innerHTML : '';
+
         try {
+            // Task #21: P1.8 - Show loading state
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<span class="btn-spinner"></span> Stopping...';
+            }
+
             await this.apiClient.post(`/api/providers/${providerId}/instances/stop`, {
                 instance_id: instanceId
             });
-            Toast.success(`Stopping ${providerId}:${instanceId}...`);
-            await this.loadInstances();
+            Toast.success(`Instance ${providerId}:${instanceId} stopped successfully`);
+
+            // Task #21: P1.8 - Auto-refresh after 1s delay
+            setTimeout(() => this.refreshStatus(), 1000);
         } catch (error) {
             console.error('Failed to stop instance:', error);
-            Toast.error(`Failed to stop instance: ${error.message}`);
+            this.handleProviderError(error, `stopping ${providerId} instance`, providerId);
+        } finally {
+            // Task #21: P1.8 - Restore button state
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalContent || '<span class="material-icons md-18">stop</span> Stop';
+            }
         }
     }
 
     async restartInstance(providerId, instanceId) {
-        await this.stopInstance(providerId, instanceId);
-        setTimeout(() => this.startInstance(providerId, instanceId), 1000);
+        // Task #21: P1.8 - Confirmation dialog for destructive operation
+        const confirmed = confirm(
+            `Are you sure you want to restart ${providerId} instance?\n\n` +
+            `This will stop and restart the running process.`
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        // Task #16: Use dedicated restart endpoint for proper lifecycle management
+        const instanceKey = `${providerId}:${instanceId}`;
+        const row = document.querySelector(`tr[data-instance-key="${instanceKey}"]`);
+        const button = document.querySelector(`button[data-action="restart-instance"][data-instance-key="${instanceKey}"]`);
+
+        const originalContent = button ? button.innerHTML : '';
+
+        try {
+            // Task #21: P1.8 - Show loading state
+            if (row) {
+                row.classList.add('restarting');
+            }
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<span class="btn-spinner"></span> Restarting...';
+            }
+
+            const response = await this.apiClient.post(`/api/providers/${providerId}/instances/restart`, {
+                instance_id: instanceId,
+                force: false
+            });
+
+            if (response.ok) {
+                Toast.success(`Instance restarted: old PID ${response.old_pid || 'N/A'}, new PID ${response.new_pid || 'N/A'}`);
+
+                // Task #21: P1.8 - Auto-refresh after 1s delay for service startup
+                setTimeout(() => this.refreshStatus(), 1000);
+            } else {
+                Toast.error(`Failed to restart: ${response.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to restart instance:', error);
+            this.handleProviderError(error, 'restarting instance', providerId);
+        } finally {
+            // Task #21: P1.8 - Restore button state
+            if (row) {
+                row.classList.remove('restarting');
+            }
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = originalContent || '<span class="material-icons md-18">restart_alt</span> Restart';
+            }
+        }
+    }
+
+    /**
+     * Task #21: P1.8 - Batch operation: Stop all running instances
+     */
+    async stopAllInstances() {
+        const runningInstances = this.getAllRunningInstances();
+
+        if (runningInstances.length === 0) {
+            Toast.info('No running instances to stop');
+            return;
+        }
+
+        // Confirmation dialog
+        const confirmed = confirm(
+            `Are you sure you want to stop ${runningInstances.length} running instance(s)?\n\n` +
+            runningInstances.map(i => `• ${i.providerId}:${i.instanceId}`).join('\n')
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const stopBtn = document.getElementById('stop-all-instances');
+        const originalContent = stopBtn ? stopBtn.innerHTML : '';
+
+        try {
+            if (stopBtn) {
+                stopBtn.disabled = true;
+                stopBtn.innerHTML = '<span class="btn-spinner"></span> Stopping...';
+            }
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const instance of runningInstances) {
+                try {
+                    await this.apiClient.post(`/api/providers/${instance.providerId}/instances/stop`, {
+                        instance_id: instance.instanceId
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to stop ${instance.providerId}:${instance.instanceId}:`, error);
+                    failCount++;
+                }
+            }
+
+            if (successCount > 0) {
+                Toast.success(`Stopped ${successCount} instance(s)` + (failCount > 0 ? `, ${failCount} failed` : ''));
+            }
+            if (failCount > 0 && successCount === 0) {
+                Toast.error(`Failed to stop ${failCount} instance(s)`);
+            }
+
+            // Auto-refresh after 1s
+            setTimeout(() => this.refreshStatus(), 1000);
+        } finally {
+            if (stopBtn) {
+                stopBtn.disabled = false;
+                stopBtn.innerHTML = originalContent || '<span class="material-icons md-18">stop_circle</span> Stop All';
+            }
+        }
+    }
+
+    /**
+     * Task #21: P1.8 - Batch operation: Restart all running instances
+     */
+    async restartAllInstances() {
+        const runningInstances = this.getAllRunningInstances();
+
+        if (runningInstances.length === 0) {
+            Toast.info('No running instances to restart');
+            return;
+        }
+
+        // Confirmation dialog
+        const confirmed = confirm(
+            `Are you sure you want to restart ${runningInstances.length} running instance(s)?\n\n` +
+            runningInstances.map(i => `• ${i.providerId}:${i.instanceId}`).join('\n')
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        const restartBtn = document.getElementById('restart-all-instances');
+        const originalContent = restartBtn ? restartBtn.innerHTML : '';
+
+        try {
+            if (restartBtn) {
+                restartBtn.disabled = true;
+                restartBtn.innerHTML = '<span class="btn-spinner"></span> Restarting...';
+            }
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const instance of runningInstances) {
+                try {
+                    await this.apiClient.post(`/api/providers/${instance.providerId}/instances/restart`, {
+                        instance_id: instance.instanceId,
+                        force: false
+                    });
+                    successCount++;
+                } catch (error) {
+                    console.error(`Failed to restart ${instance.providerId}:${instance.instanceId}:`, error);
+                    failCount++;
+                }
+            }
+
+            if (successCount > 0) {
+                Toast.success(`Restarted ${successCount} instance(s)` + (failCount > 0 ? `, ${failCount} failed` : ''));
+            }
+            if (failCount > 0 && successCount === 0) {
+                Toast.error(`Failed to restart ${failCount} instance(s)`);
+            }
+
+            // Auto-refresh after 1s
+            setTimeout(() => this.refreshStatus(), 1000);
+        } finally {
+            if (restartBtn) {
+                restartBtn.disabled = false;
+                restartBtn.innerHTML = originalContent || '<span class="material-icons md-18">restart_alt</span> Restart All';
+            }
+        }
+    }
+
+    /**
+     * Task #21: P1.8 - Helper method to get all running instances
+     */
+    getAllRunningInstances() {
+        const runningInstances = [];
+
+        for (const instance of this.instances) {
+            if (instance.status === 'RUNNING' || instance.status === 'running') {
+                runningInstances.push({
+                    providerId: instance.provider_id,
+                    instanceId: instance.instance_id
+                });
+            }
+        }
+
+        return runningInstances;
     }
 
     async openLMStudio() {
         try {
             await this.apiClient.post('/api/providers/lmstudio/open-app');
+            Toast.success('Opening LM Studio...');
         } catch (error) {
-            Dialog.alert('Failed to open LM Studio: ' + error.message, { title: 'Error' });
+            console.error('Failed to open LM Studio:', error);
+            this.handleProviderError(error, 'opening LM Studio', 'lmstudio');
         }
     }
 
@@ -751,17 +1387,23 @@ class ProvidersView {
     }
 
     async installProvider(provider) {
+        const btn = document.querySelector(`.btn-install[data-provider="${provider}"]`);
         try {
-            const btn = document.querySelector(`.btn-install[data-provider="${provider}"]`);
             btn.disabled = true;
             btn.textContent = 'Installing...';
 
             await this.apiClient.post(`/api/providers/${provider}/install`);
 
             btn.innerHTML = 'Installed <span class="material-icons" style="font-size: 16px; vertical-align: middle;">check</span>';
+            Toast.success(`${provider} installed successfully`);
             await this.checkCLI();
         } catch (error) {
-            Dialog.alert('Installation failed: ' + error.message, { title: 'Installation Error' });
+            console.error(`Failed to install ${provider}:`, error);
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Install (brew)';
+            }
+            this.handleProviderError(error, `installing ${provider}`, provider);
         }
     }
 
@@ -931,9 +1573,1270 @@ class ProvidersView {
         }
     }
 
-    startAutoRefresh() {
-        setInterval(() => this.loadInstances(), 10000);
+    async initExecutableConfigs() {
+        const providers = ['ollama', 'llamacpp', 'lmstudio'];
+
+        for (const provider of providers) {
+            try {
+                await this.detectExecutable(provider);
+                await this.loadProviderCapabilities(provider);
+            } catch (error) {
+                console.error(`Failed to initialize executable config for ${provider}:`, error);
+            }
+        }
     }
+
+    async loadProviderCapabilities(providerId) {
+        try {
+            const response = await this.apiClient.get(`/api/providers/${providerId}/capabilities`);
+
+            // Create or update supported actions display
+            const configSection = document.querySelector(`.executable-config[data-provider="${providerId}"]`);
+            if (!configSection) return;
+
+            // Check if actions display already exists
+            let actionsDisplay = configSection.querySelector('.supported-actions-display');
+            if (!actionsDisplay) {
+                // Create new display
+                actionsDisplay = document.createElement('div');
+                actionsDisplay.className = 'supported-actions-display';
+                configSection.appendChild(actionsDisplay);
+            }
+
+            // Render supported actions
+            const actionIcons = {
+                'start': 'play_arrow',
+                'stop': 'stop',
+                'restart': 'restart_alt',
+                'open_app': 'open_in_new',
+                'detect': 'search'
+            };
+
+            const actionLabels = {
+                'start': 'Start',
+                'stop': 'Stop',
+                'restart': 'Restart',
+                'open_app': 'Open App',
+                'detect': 'Detect'
+            };
+
+            const allActions = ['start', 'stop', 'restart', 'open_app', 'detect'];
+
+            const actionsHTML = allActions.map(action => {
+                const supported = response.supported_actions.includes(action);
+                const icon = actionIcons[action] || 'help';
+                const label = actionLabels[action] || action;
+                const statusIcon = supported ? '✅' : '❌';
+
+                return `
+                    <span class="action-badge ${supported ? 'supported' : 'unsupported'}"
+                          title="${supported ? 'Supported' : 'Not supported'}">
+                        <span class="material-icons md-18">${icon}</span>
+                        ${label} ${statusIcon}
+                    </span>
+                `;
+            }).join('');
+
+            actionsDisplay.innerHTML = `
+                <h4>Supported Actions</h4>
+                <div class="actions-matrix">
+                    ${actionsHTML}
+                </div>
+                ${response.manual_lifecycle ? '<p class="manual-lifecycle-note">⚠️ This provider requires manual app management</p>' : ''}
+            `;
+
+        } catch (error) {
+            console.error(`Failed to load capabilities for ${providerId}:`, error);
+        }
+    }
+
+    async detectExecutable(providerId) {
+        const input = document.querySelector(`.executable-path-input[data-provider="${providerId}"]`);
+        const statusEl = document.querySelector(`.install-status[data-provider="${providerId}"]`);
+        const versionEl = document.querySelector(`.executable-info[data-provider="${providerId}"] .version-info`);
+        const platformEl = document.querySelector(`.executable-info[data-provider="${providerId}"] .platform-info`);
+        const validationEl = document.querySelector(`.validation-message[data-provider="${providerId}"]`);
+        const detectBtn = document.querySelector(`.btn-detect[data-provider="${providerId}"]`);
+
+        // New: Get path info elements
+        const detectedPathEl = document.querySelector(`.detected-path[data-provider="${providerId}"]`);
+        const customPathEl = document.querySelector(`.custom-path[data-provider="${providerId}"]`);
+        const resolvedPathEl = document.querySelector(`.resolved-path[data-provider="${providerId}"]`);
+
+        if (!input || !statusEl) return;
+
+        try {
+            // Show loading state
+            if (detectBtn) {
+                detectBtn.disabled = true;
+                detectBtn.innerHTML = '<span class="material-icons md-18">hourglass_empty</span> Detecting...';
+            }
+            statusEl.textContent = 'Detecting...';
+            statusEl.className = 'install-status';
+
+            // Call detect API
+            const response = await this.apiClient.get(`/api/providers/${providerId}/executable/detect`);
+
+            // Update path info display (new fields)
+            if (detectedPathEl) {
+                detectedPathEl.textContent = response.path || '—';
+                detectedPathEl.title = response.path || '';
+            }
+            if (customPathEl) {
+                customPathEl.textContent = response.custom_path || '—';
+                customPathEl.title = response.custom_path || '';
+            }
+            if (resolvedPathEl) {
+                resolvedPathEl.textContent = response.resolved_path || '—';
+                resolvedPathEl.title = response.resolved_path || '';
+
+                // Add source badge
+                if (response.detection_source) {
+                    const sourceBadge = document.createElement('span');
+                    sourceBadge.className = `source-badge source-${response.detection_source}`;
+                    sourceBadge.textContent = response.detection_source;
+                    sourceBadge.title = {
+                        'config': 'Using custom configured path',
+                        'standard': 'Found in standard installation path',
+                        'path': 'Found in system PATH'
+                    }[response.detection_source] || '';
+                    resolvedPathEl.appendChild(document.createTextNode(' '));
+                    resolvedPathEl.appendChild(sourceBadge);
+                }
+            }
+
+            if (response.detected && response.resolved_path) {
+                // Found
+                input.value = response.resolved_path;
+                input.readOnly = true;
+
+                statusEl.textContent = '✅ Installed';
+                statusEl.className = 'install-status installed';
+
+                if (versionEl && response.version) {
+                    versionEl.textContent = `Version: ${response.version}`;
+                }
+
+                if (platformEl && response.platform) {
+                    platformEl.textContent = `Platform: ${response.platform}`;
+                }
+
+                if (validationEl) {
+                    validationEl.textContent = '';
+                    validationEl.className = 'validation-message';
+                }
+
+                Toast.success(`${providerId} executable detected at: ${response.resolved_path}`);
+            } else {
+                // Not found
+                input.value = '';
+                input.readOnly = false;
+                input.placeholder = 'Not found - enter path manually';
+
+                statusEl.textContent = '⚠️ Not found';
+                statusEl.className = 'install-status not-found';
+
+                if (versionEl) versionEl.textContent = '';
+                if (platformEl && response.platform) {
+                    platformEl.textContent = `Platform: ${response.platform}`;
+                }
+
+                if (validationEl && response.search_paths) {
+                    validationEl.textContent = `Searched: ${response.search_paths.join(', ')}`;
+                    validationEl.className = 'validation-message info';
+                }
+
+                Toast.warning(`${providerId} executable not found. Please install or configure path manually.`);
+            }
+        } catch (error) {
+            console.error(`Failed to detect executable for ${providerId}:`, error);
+
+            statusEl.textContent = '❌ Error';
+            statusEl.className = 'install-status error';
+
+            if (validationEl) {
+                validationEl.textContent = `Detection failed: ${error.message}`;
+                validationEl.className = 'validation-message error';
+            }
+
+            this.handleProviderError(error, `detecting ${providerId} executable`, providerId);
+        } finally {
+            // Restore button state
+            if (detectBtn) {
+                detectBtn.disabled = false;
+                detectBtn.innerHTML = '<span class="material-icons md-18">search</span> Detect';
+            }
+        }
+    }
+
+    browseExecutable(providerId) {
+        // Create a file input element
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.style.display = 'none';
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const input = document.querySelector(`.executable-path-input[data-provider="${providerId}"]`);
+                if (input) {
+                    input.value = file.path || file.name;
+                    input.readOnly = false;
+
+                    // Show save button
+                    const saveBtn = document.querySelector(`.btn-save[data-provider="${providerId}"]`);
+                    if (saveBtn) {
+                        saveBtn.style.display = 'inline-flex';
+                    }
+
+                    // Validate the selected path
+                    this.validateExecutablePath(providerId, input.value);
+                }
+            }
+            document.body.removeChild(fileInput);
+        });
+
+        document.body.appendChild(fileInput);
+        fileInput.click();
+    }
+
+    async validateExecutablePath(providerId, path) {
+        // Task #21: P1.8 - Enhanced validation with button state management
+        const validationEl = document.querySelector(`.validation-message[data-provider="${providerId}"]`);
+        const validateBtn = document.querySelector(`.btn-validate[data-provider="${providerId}"]`);
+
+        if (!validationEl) return { is_valid: false };
+
+        if (!path || path.trim() === '') {
+            validationEl.textContent = '';
+            validationEl.className = 'validation-message';
+            return { is_valid: false };
+        }
+
+        const originalBtnContent = validateBtn ? validateBtn.innerHTML : '';
+
+        try {
+            // Task #21: P1.8 - Show validating state on button
+            if (validateBtn) {
+                validateBtn.disabled = true;
+                validateBtn.innerHTML = '<span class="btn-spinner"></span> Validating...';
+            }
+
+            // Show validating state
+            validationEl.textContent = '⏳ Validating...';
+            validationEl.className = 'validation-message validating';
+
+            // Call validate API
+            const response = await this.apiClient.post(
+                `/api/providers/${providerId}/executable/validate`,
+                { path: path }
+            );
+
+            if (response.is_valid) {
+                // Valid
+                validationEl.textContent = '✓ Valid executable';
+                validationEl.className = 'validation-message valid';
+
+                // Update version info if available
+                const versionEl = document.querySelector(`.executable-info[data-provider="${providerId}"] .version-info`);
+                if (versionEl && response.version) {
+                    versionEl.textContent = `Version: ${response.version}`;
+                }
+
+                Toast.success(`${providerId} executable validated successfully`);
+                return { is_valid: true, version: response.version };
+            } else {
+                // Invalid
+                validationEl.textContent = `✗ ${response.error || 'Invalid executable'}`;
+                validationEl.className = 'validation-message invalid';
+
+                Toast.error(`Validation failed: ${response.error || 'Invalid executable'}`);
+                return { is_valid: false, error: response.error };
+            }
+        } catch (error) {
+            console.error(`Failed to validate executable path for ${providerId}:`, error);
+            validationEl.textContent = `✗ Validation failed: ${error.message}`;
+            validationEl.className = 'validation-message invalid';
+
+            Toast.error(`Validation failed: ${error.message}`);
+            return { is_valid: false, error: error.message };
+        } finally {
+            // Task #21: P1.8 - Restore button state
+            if (validateBtn) {
+                validateBtn.disabled = false;
+                validateBtn.innerHTML = originalBtnContent || '<span class="material-icons md-18">check_circle</span> Validate';
+            }
+        }
+    }
+
+    async saveExecutablePath(providerId) {
+        const input = document.querySelector(`.executable-path-input[data-provider="${providerId}"]`);
+        const saveBtn = document.querySelector(`.btn-save[data-provider="${providerId}"]`);
+
+        if (!input) return;
+
+        const path = input.value.trim();
+
+        // Task #21: P1.8 - Validate before saving
+        if (path) {
+            const validationResult = await this.validateExecutablePath(providerId, path);
+            if (!validationResult.is_valid) {
+                Toast.error('Please fix validation errors before saving');
+                return;
+            }
+        }
+
+        try {
+            // Task #21: P1.8 - Show saving state
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="btn-spinner"></span> Saving...';
+            }
+
+            // Determine if we're setting a custom path or enabling auto-detect
+            const requestData = path
+                ? { path: path, auto_detect: false }
+                : { path: null, auto_detect: true };
+
+            // Call save API
+            const response = await this.apiClient.put(
+                `/api/providers/${providerId}/executable`,
+                requestData
+            );
+
+            if (response.success) {
+                // Update UI
+                if (response.path) {
+                    input.value = response.path;
+                    input.readOnly = true;
+
+                    const statusEl = document.querySelector(`.install-status[data-provider="${providerId}"]`);
+                    if (statusEl) {
+                        statusEl.textContent = response.auto_detect ? '✅ Installed' : '🔧 Custom path';
+                        statusEl.className = 'install-status ' + (response.auto_detect ? 'installed' : 'custom');
+                    }
+
+                    const versionEl = document.querySelector(`.executable-info[data-provider="${providerId}"] .version-info`);
+                    if (versionEl && response.version) {
+                        versionEl.textContent = `Version: ${response.version}`;
+                    }
+
+                    const validationEl = document.querySelector(`.validation-message[data-provider="${providerId}"]`);
+                    if (validationEl) {
+                        validationEl.textContent = '';
+                        validationEl.className = 'validation-message';
+                    }
+
+                    Toast.success(`${providerId} executable path saved successfully`);
+                } else {
+                    Toast.warning(`${providerId} executable not found after saving`);
+                }
+
+                // Hide save button
+                if (saveBtn) {
+                    saveBtn.style.display = 'none';
+                }
+
+                // Task #21: P1.8 - Auto-refresh after save
+                setTimeout(() => this.refreshStatus(), 1000);
+            }
+        } catch (error) {
+            console.error(`Failed to save executable path for ${providerId}:`, error);
+            this.handleProviderError(error, `saving ${providerId} executable path`, providerId);
+        } finally {
+            // Task #21: P1.8 - Restore button state
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<span class="material-icons md-18">save</span> Save';
+            }
+        }
+    }
+
+    /**
+     * Task #17: P0.4 - Enhanced auto-refresh with configurable toggle
+     *
+     * Start auto-refresh timer if enabled. Refreshes provider status every 5s.
+     */
+    startAutoRefresh() {
+        if (!this.autoRefreshEnabled) {
+            return;
+        }
+
+        // Clear existing interval if any
+        this.stopAutoRefresh();
+
+        // Start new interval
+        this.autoRefreshInterval = setInterval(() => {
+            this.refreshStatus();
+        }, this.autoRefreshIntervalMs);
+
+        console.log(`Auto-refresh started (interval: ${this.autoRefreshIntervalMs}ms)`);
+    }
+
+    /**
+     * Task #17: P0.4 - Stop auto-refresh timer
+     */
+    stopAutoRefresh() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+            this.autoRefreshInterval = null;
+            console.log('Auto-refresh stopped');
+        }
+    }
+
+    /**
+     * Task #17: P0.4 - Toggle auto-refresh on/off
+     */
+    toggleAutoRefresh(enabled) {
+        this.autoRefreshEnabled = enabled;
+
+        if (enabled) {
+            this.startAutoRefresh();
+        } else {
+            this.stopAutoRefresh();
+        }
+    }
+
+    /**
+     * Task #17: P0.4 - Manual status refresh
+     * Task #22: P0.4补充 - Updated to use /refresh endpoint
+     *
+     * Refreshes provider status immediately (bypasses cache if needed).
+     */
+    async refreshStatus() {
+        try {
+            // 触发后端刷新（清除缓存）
+            await this.apiClient.post('/providers/refresh');
+
+            // 1秒后重新获取状态（让后端有时间重新探测）
+            setTimeout(async () => {
+                await this.loadInstances();
+            }, 1000);
+        } catch (error) {
+            console.error('Failed to refresh status:', error);
+            Toast.error('Failed to refresh status');
+        }
+    }
+
+    // ============================================================================
+    // Models Directory Management
+    // ============================================================================
+
+    async loadModelsDirectories() {
+        try {
+            const response = await this.apiClient.get('/api/providers/models/directories');
+            await this.renderModelsDirectories(response);
+        } catch (error) {
+            console.error('Failed to load models directories:', error);
+            document.getElementById('models-directories-container').innerHTML = `
+                <p class="error-text">Failed to load models directories configuration.</p>
+            `;
+        }
+    }
+
+    async renderModelsDirectories(config) {
+        const container = document.getElementById('models-directories-container');
+
+        // Get detected directories
+        let detected = {};
+        try {
+            const detectResponse = await this.apiClient.get('/api/providers/models/directories/detect');
+            detected = detectResponse.providers || {};
+        } catch (error) {
+            console.warn('Failed to detect directories:', error);
+        }
+
+        const html = `
+            <!-- Global Models Directory -->
+            <div class="models-dir-row">
+                <label class="models-dir-label">Global Models Directory:</label>
+                <input
+                    type="text"
+                    class="models-dir-input"
+                    id="global-models-dir"
+                    value="${config.global_dir || ''}"
+                    placeholder="/path/to/models"
+                />
+                <button class="btn btn-sm" onclick="window.providersView.detectModelsDir('global')">
+                    <span class="material-icons md-18">search</span> Detect
+                </button>
+                <button class="btn btn-sm" onclick="window.providersView.browseModelsDir('global')">
+                    <span class="material-icons md-18">folder_open</span> Browse
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="window.providersView.saveModelsDir('global')">
+                    <span class="material-icons md-18">save</span> Save
+                </button>
+            </div>
+
+            <div class="models-dir-separator"></div>
+
+            <div class="models-dir-label" style="margin-bottom: 12px;">Provider-specific directories:</div>
+
+            <!-- Ollama -->
+            <div class="models-dir-row">
+                <label class="provider-label">Ollama:</label>
+                <select class="models-dir-select" id="ollama-dir-mode" onchange="window.providersView.handleDirModeChange('ollama', this.value)">
+                    <option value="auto" ${!config.providers.ollama ? 'selected' : ''}>Auto-detect</option>
+                    <option value="custom" ${config.providers.ollama ? 'selected' : ''}>Custom path</option>
+                </select>
+                <input
+                    type="text"
+                    class="models-dir-input"
+                    id="ollama-models-dir"
+                    value="${config.providers.ollama || ''}"
+                    placeholder="/path/to/ollama/models"
+                    style="${config.providers.ollama ? '' : 'display:none;'}"
+                />
+                <button class="btn btn-sm" onclick="window.providersView.browseModelsDir('ollama')"
+                        style="${config.providers.ollama ? '' : 'display:none;'}" id="ollama-browse-btn">
+                    <span class="material-icons md-18">folder_open</span>
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="window.providersView.saveModelsDir('ollama')"
+                        style="${config.providers.ollama ? '' : 'display:none;'}" id="ollama-save-btn">
+                    <span class="material-icons md-18">save</span>
+                </button>
+                <span class="detected-path" id="ollama-detected-path" style="${config.providers.ollama ? 'display:none;' : ''}">
+                    ${detected.ollama?.path ? `${detected.ollama.path} ${detected.ollama.exists ? `(${detected.ollama.model_count || 0} models)` : '(not found)'}` : 'not detected'}
+                </span>
+            </div>
+
+            <!-- LlamaCpp -->
+            <div class="models-dir-row">
+                <label class="provider-label">LlamaCpp:</label>
+                <select class="models-dir-select" id="llamacpp-dir-mode" onchange="window.providersView.handleDirModeChange('llamacpp', this.value)">
+                    <option value="auto" ${!config.providers.llamacpp ? 'selected' : ''}>Auto-detect</option>
+                    <option value="global" ${config.providers.llamacpp === config.global_dir ? 'selected' : ''}>Use global</option>
+                    <option value="custom" ${config.providers.llamacpp && config.providers.llamacpp !== config.global_dir ? 'selected' : ''}>Custom path</option>
+                </select>
+                <input
+                    type="text"
+                    class="models-dir-input"
+                    id="llamacpp-models-dir"
+                    value="${config.providers.llamacpp || ''}"
+                    placeholder="/path/to/llamacpp/models"
+                    style="${config.providers.llamacpp ? '' : 'display:none;'}"
+                />
+                <button class="btn btn-sm" onclick="window.providersView.browseModelsDir('llamacpp')"
+                        style="${config.providers.llamacpp ? '' : 'display:none;'}" id="llamacpp-browse-btn">
+                    <span class="material-icons md-18">folder_open</span>
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="window.providersView.saveModelsDir('llamacpp')"
+                        style="${config.providers.llamacpp ? '' : 'display:none;'}" id="llamacpp-save-btn">
+                    <span class="material-icons md-18">save</span>
+                </button>
+                <span class="detected-path" id="llamacpp-detected-path" style="${config.providers.llamacpp ? 'display:none;' : ''}">
+                    ${detected.llamacpp?.path ? `${detected.llamacpp.path} ${detected.llamacpp.exists ? `(${detected.llamacpp.model_count || 0} models)` : '(not found)'}` : 'not detected'}
+                </span>
+            </div>
+
+            <!-- LM Studio -->
+            <div class="models-dir-row">
+                <label class="provider-label">LM Studio:</label>
+                <select class="models-dir-select" id="lmstudio-dir-mode" onchange="window.providersView.handleDirModeChange('lmstudio', this.value)">
+                    <option value="auto" ${!config.providers.lmstudio ? 'selected' : ''}>Auto-detect</option>
+                    <option value="custom" ${config.providers.lmstudio ? 'selected' : ''}>Custom path</option>
+                </select>
+                <input
+                    type="text"
+                    class="models-dir-input"
+                    id="lmstudio-models-dir"
+                    value="${config.providers.lmstudio || ''}"
+                    placeholder="/path/to/lmstudio/models"
+                    style="${config.providers.lmstudio ? '' : 'display:none;'}"
+                />
+                <button class="btn btn-sm" onclick="window.providersView.browseModelsDir('lmstudio')"
+                        style="${config.providers.lmstudio ? '' : 'display:none;'}" id="lmstudio-browse-btn">
+                    <span class="material-icons md-18">folder_open</span>
+                </button>
+                <button class="btn btn-sm btn-primary" onclick="window.providersView.saveModelsDir('lmstudio')"
+                        style="${config.providers.lmstudio ? '' : 'display:none;'}" id="lmstudio-save-btn">
+                    <span class="material-icons md-18">save</span>
+                </button>
+                <span class="detected-path" id="lmstudio-detected-path" style="${config.providers.lmstudio ? 'display:none;' : ''}">
+                    ${detected.lmstudio?.path ? `${detected.lmstudio.path} ${detected.lmstudio.exists ? `(${detected.lmstudio.model_count || 0} models)` : '(not found)'}` : 'not detected'}
+                </span>
+            </div>
+
+            <!-- Security Information -->
+            <div class="security-hint" style="margin-top: 16px; padding: 12px; background: #f8f9fa; border-left: 3px solid #007bff; border-radius: 4px;">
+                <div style="display: flex; align-items: flex-start; gap: 8px;">
+                    <span class="material-icons" style="color: #007bff; font-size: 20px;">lock</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; margin-bottom: 4px;">Security Notice</div>
+                        <div style="font-size: 13px; color: #6c757d; line-height: 1.5;">
+                            These directories will be accessible to the WebUI for read-only browsing.
+                            <strong>Do not select system-sensitive directories</strong> such as:
+                            <ul style="margin: 4px 0; padding-left: 20px;">
+                                <li>Windows: C:\\Windows, C:\\Program Files, C:\\Users\\[username]\\AppData\\Roaming</li>
+                                <li>macOS/Linux: /etc, /var, /usr/bin, /System (macOS)</li>
+                            </ul>
+                            Only configured directories can be browsed. Path traversal protection is enabled.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    handleDirModeChange(providerId, mode) {
+        const input = document.getElementById(`${providerId}-models-dir`);
+        const browseBtn = document.getElementById(`${providerId}-browse-btn`);
+        const saveBtn = document.getElementById(`${providerId}-save-btn`);
+        const detectedPath = document.getElementById(`${providerId}-detected-path`);
+
+        if (mode === 'auto') {
+            // Hide input and buttons, show detected path
+            input.style.display = 'none';
+            if (browseBtn) browseBtn.style.display = 'none';
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (detectedPath) detectedPath.style.display = 'inline';
+        } else if (mode === 'global') {
+            // Use global directory
+            const globalDir = document.getElementById('global-models-dir').value;
+            input.value = globalDir;
+            input.style.display = 'inline';
+            if (browseBtn) browseBtn.style.display = 'inline';
+            if (saveBtn) saveBtn.style.display = 'inline';
+            if (detectedPath) detectedPath.style.display = 'none';
+        } else {
+            // Custom path
+            input.style.display = 'inline';
+            if (browseBtn) browseBtn.style.display = 'inline';
+            if (saveBtn) saveBtn.style.display = 'inline';
+            if (detectedPath) detectedPath.style.display = 'none';
+        }
+    }
+
+    async detectModelsDir(providerId) {
+        try {
+            const response = await this.apiClient.get('/api/providers/models/directories/detect');
+            const detected = response.providers[providerId];
+
+            if (detected?.path) {
+                const input = document.getElementById(`${providerId}-models-dir`);
+                if (input) {
+                    input.value = detected.path;
+                }
+                Toast.success(`Detected: ${detected.path} (${detected.model_count || 0} models)`);
+            } else {
+                Toast.warning(`Could not detect models directory for ${providerId}`);
+            }
+        } catch (error) {
+            console.error('Failed to detect models directory:', error);
+            this.handleProviderError(error, `detecting models directory for ${providerId}`, providerId);
+        }
+    }
+
+    async browseModelsDir(providerId) {
+        // Note: Directory browsing would require a file picker dialog
+        // For now, we'll show a model file browser modal
+        Toast.info('Opening model file browser...');
+        await this.showModelBrowser(providerId);
+    }
+
+    async saveModelsDir(providerId) {
+        const inputId = providerId === 'global' ? 'global-models-dir' : `${providerId}-models-dir`;
+        const input = document.getElementById(inputId);
+
+        if (!input || !input.value) {
+            Toast.warning('Please enter a directory path first');
+            return;
+        }
+
+        try {
+            await this.apiClient.put('/api/providers/models/directories', {
+                provider_id: providerId,
+                path: input.value
+            });
+
+            Toast.success(`Models directory saved for ${providerId}`);
+            await this.loadModelsDirectories();
+        } catch (error) {
+            console.error('Failed to save models directory:', error);
+            this.handleProviderError(error, `saving models directory for ${providerId}`, providerId);
+        }
+    }
+
+    async showModelBrowser(providerId) {
+        const modal = document.getElementById('model-browser-modal');
+
+        // Initial loading state
+        modal.innerHTML = `
+            <div class="modal-content model-browser-modal">
+                <div class="modal-header">
+                    <h2>Select Model File - ${providerId}</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="model-browser-controls">
+                        <input type="text" id="model-search" class="filter-input" placeholder="Search models...">
+                    </div>
+                    <div id="model-files-list" class="model-files-list">
+                        <p class="loading-text">Loading model files...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        modal.style.display = 'flex';
+
+        // Close button
+        modal.querySelector('.modal-close').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Load model files
+        try {
+            const response = await this.apiClient.get('/api/providers/models/files', {
+                params: { provider_id: providerId }
+            });
+
+            this.renderModelFiles(response.files, response.directory);
+        } catch (error) {
+            console.error('Failed to load model files:', error);
+            document.getElementById('model-files-list').innerHTML = `
+                <p class="error-text">Failed to load model files: ${error.message}</p>
+                <p class="hint-text">Make sure the models directory is configured correctly.</p>
+            `;
+        }
+
+        // Search functionality
+        document.getElementById('model-search').addEventListener('input', (e) => {
+            this.filterModelFiles(e.target.value);
+        });
+    }
+
+    renderModelFiles(files, directory) {
+        const container = document.getElementById('model-files-list');
+
+        if (!files || files.length === 0) {
+            container.innerHTML = `
+                <div class="model-files-empty">
+                    <span class="material-icons md-36" style="color: #adb5bd;">folder_open</span>
+                    <p>No model files found in this directory</p>
+                    <p class="hint-text">Directory: ${directory}</p>
+                </div>
+            `;
+            return;
+        }
+
+        const html = files.map(file => `
+            <div class="model-file-item" data-filename="${file.name}" onclick="window.providersView.selectModelFile('${file.name}')">
+                <div class="model-file-info">
+                    <span class="model-name">${file.name}</span>
+                    <span class="model-extension">${file.extension}</span>
+                </div>
+                <div class="model-file-meta">
+                    <span class="model-size">${file.size_human}</span>
+                    <span class="model-date">${new Date(file.modified).toLocaleDateString()}</span>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    filterModelFiles(query) {
+        const items = document.querySelectorAll('.model-file-item');
+        const lowerQuery = query.toLowerCase();
+
+        items.forEach(item => {
+            const filename = item.dataset.filename.toLowerCase();
+            if (filename.includes(lowerQuery)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    selectModelFile(fileName) {
+        // Store selected model file (this will be used when adding/editing llamacpp instances)
+        this.selectedModelFile = fileName;
+
+        // Close modal
+        document.getElementById('model-browser-modal').style.display = 'none';
+
+        Toast.success(`Selected: ${fileName}`);
+
+        // If we have a model path input field open, fill it
+        const modelPathInput = document.querySelector('input[name="launch_model"]');
+        if (modelPathInput) {
+            modelPathInput.value = fileName;
+        }
+    }
+
+    // ============================================================================
+    // Error Handling Utilities
+    // ============================================================================
+
+    /**
+     * Parse and display provider errors with user-friendly messages
+     * @param {Object} error - Error from API response
+     * @param {string} context - Error context (e.g., "starting ollama instance")
+     * @param {string} providerId - Provider identifier (ollama, llamacpp, lmstudio)
+     */
+    handleProviderError(error, context = '', providerId = '') {
+        // Check if the error response contains structured error format
+        const errorData = error.response?.data?.error || error.detail?.error;
+
+        if (errorData) {
+            // Structured error from backend (Task #8 unified format)
+            const { code, message, details, suggestion } = errorData;
+
+            // Create detailed error dialog
+            const errorHtml = this.renderErrorDialog(code, message, details, suggestion, providerId);
+
+            // Show error dialog
+            this.showErrorDialog(errorHtml);
+        } else {
+            // Fallback to generic error handling
+            const errorMsg = error.message || error.statusText || 'Unknown error';
+            Toast.error(`Failed to ${context}: ${errorMsg}`);
+        }
+    }
+
+    /**
+     * Render error dialog HTML
+     * @param {string} code - Error code
+     * @param {string} message - Error message
+     * @param {Object} details - Error details
+     * @param {string} suggestion - Action suggestion
+     * @param {string} providerId - Provider identifier
+     * @returns {string} HTML string
+     */
+    renderErrorDialog(code, message, details, suggestion, providerId) {
+        const title = this.getErrorTitle(code);
+        const detailsHtml = details ? this.renderErrorDetails(details) : '';
+        const suggestionHtml = suggestion ? this.renderErrorSuggestion(suggestion, code, details, providerId) : '';
+
+        return `
+            <div class="provider-error">
+                <div class="error-title">${title}</div>
+                <div class="error-message">${message}</div>
+                ${suggestionHtml}
+                ${detailsHtml}
+            </div>
+        `;
+    }
+
+    /**
+     * Convert error code to user-friendly title
+     * @param {string} errorCode - Error code constant
+     * @returns {string} User-friendly title
+     */
+    getErrorTitle(errorCode) {
+        const titles = {
+            'EXECUTABLE_NOT_FOUND': '可执行文件未找到',
+            'PORT_IN_USE': '端口被占用',
+            'PROCESS_START_FAILED': '启动失败',
+            'PROCESS_STOP_FAILED': '停止失败',
+            'INVALID_PATH': '路径无效',
+            'MODEL_FILE_NOT_FOUND': '模型文件未找到',
+            'PERMISSION_DENIED': '权限不足',
+            'TIMEOUT_ERROR': '操作超时',
+            'STARTUP_TIMEOUT': '启动超时',
+            'SHUTDOWN_TIMEOUT': '停止超时',
+            'DIRECTORY_NOT_FOUND': '目录未找到',
+            'NOT_A_DIRECTORY': '不是有效目录',
+            'DIRECTORY_NOT_READABLE': '目录不可读',
+            'NOT_EXECUTABLE': '文件不可执行',
+            'FILE_NOT_FOUND': '文件未找到',
+            'PROCESS_NOT_RUNNING': '进程未运行',
+            'PROCESS_ALREADY_RUNNING': '进程已在运行',
+            'PORT_NOT_AVAILABLE': '端口不可用',
+            'INVALID_MODEL_FILE': '模型文件无效',
+            'CONFIG_ERROR': '配置错误',
+            'INVALID_CONFIG': '配置无效',
+            'UNSUPPORTED_PLATFORM': '平台不支持',
+            'PLATFORM_SPECIFIC_ERROR': '平台特定错误',
+            'INTERNAL_ERROR': '内部错误',
+            'LAUNCH_FAILED': '启动失败',
+            'VALIDATION_ERROR': '验证失败'
+        };
+        return titles[errorCode] || '操作失败';
+    }
+
+    /**
+     * Render error details section
+     * @param {Object} details - Error details object
+     * @returns {string} HTML string
+     */
+    renderErrorDetails(details) {
+        let html = '<div class="error-details">';
+
+        // Searched paths
+        if (details.searched_paths && details.searched_paths.length > 0) {
+            html += '<div class="detail-section">';
+            html += '<strong>搜索路径：</strong>';
+            html += '<ul>';
+            details.searched_paths.forEach(path => {
+                html += `<li><code>${this.escapeHtml(path)}</code></li>`;
+            });
+            html += '</ul>';
+            html += '</div>';
+        }
+
+        // Platform
+        if (details.platform) {
+            html += `<div class="detail-section"><strong>平台：</strong> ${this.escapeHtml(details.platform)}</div>`;
+        }
+
+        // Port
+        if (details.port) {
+            html += `<div class="detail-section"><strong>端口：</strong> ${details.port}</div>`;
+        }
+
+        // Occupant (for port conflicts)
+        if (details.occupant) {
+            html += `<div class="detail-section"><strong>占用者：</strong> ${this.escapeHtml(details.occupant)}</div>`;
+        }
+
+        // Timeout
+        if (details.timeout_seconds) {
+            html += `<div class="detail-section"><strong>超时时间：</strong> ${details.timeout_seconds}秒</div>`;
+        }
+
+        // Provider ID
+        if (details.provider_id) {
+            html += `<div class="detail-section"><strong>Provider：</strong> ${this.escapeHtml(details.provider_id)}</div>`;
+        }
+
+        // Instance key
+        if (details.instance_key) {
+            html += `<div class="detail-section"><strong>实例：</strong> ${this.escapeHtml(details.instance_key)}</div>`;
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Render error suggestion with actionable links
+     * @param {string} suggestion - Suggestion text
+     * @param {string} code - Error code
+     * @param {Object} details - Error details
+     * @param {string} providerId - Provider identifier
+     * @returns {string} HTML string
+     */
+    renderErrorSuggestion(suggestion, code, details, providerId) {
+        let html = `<div class="error-suggestion">${this.escapeHtml(suggestion)}`;
+
+        // Add action links based on error type
+        if (code === 'EXECUTABLE_NOT_FOUND') {
+            html += `<br><br><a href="#" class="error-action-link" onclick="window.providersView.navigateToExecutableConfig('${providerId}'); return false;">
+                点击配置路径 →
+            </a>`;
+            html += ` | `;
+            html += this.getProviderHelpLink(providerId);
+        } else if (code === 'PORT_IN_USE' && details.port) {
+            html += `<br><br>请检查是否有其他 ${providerId} 实例正在运行，或更改端口配置。`;
+        } else if (code === 'MODEL_FILE_NOT_FOUND') {
+            html += `<br><br><a href="#" class="error-action-link" onclick="window.providersView.showModelBrowser('${providerId}'); return false;">
+                浏览可用模型 →
+            </a>`;
+        } else if (code === 'PERMISSION_DENIED' && details.platform === 'windows') {
+            html += '<br><br>请尝试以管理员权限运行 AgentOS。';
+        } else if (code === 'PERMISSION_DENIED' && details.platform !== 'windows') {
+            html += '<br><br>请检查文件权限或使用 sudo 运行。';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    /**
+     * Get help link for provider
+     * @param {string} providerId - Provider identifier
+     * @returns {string} HTML anchor tag
+     */
+    getProviderHelpLink(providerId) {
+        const links = {
+            'ollama': 'https://ollama.ai',
+            'llamacpp': 'https://github.com/ggerganov/llama.cpp',
+            'lmstudio': 'https://lmstudio.ai'
+        };
+
+        const url = links[providerId];
+        if (url) {
+            return `<a href="${url}" target="_blank" class="error-action-link">访问官网 →</a>`;
+        }
+        return '';
+    }
+
+    /**
+     * Navigate to executable configuration for provider
+     * @param {string} providerId - Provider identifier
+     */
+    navigateToExecutableConfig(providerId) {
+        // Scroll to the executable config section
+        const configSection = document.querySelector(`.executable-config[data-provider="${providerId}"]`);
+        if (configSection) {
+            configSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Highlight the section temporarily
+            configSection.style.transition = 'background-color 0.5s';
+            configSection.style.backgroundColor = '#fff3cd';
+            setTimeout(() => {
+                configSection.style.backgroundColor = '';
+            }, 2000);
+
+            // Focus on the path input
+            const input = document.querySelector(`.executable-path-input[data-provider="${providerId}"]`);
+            if (input) {
+                setTimeout(() => input.focus(), 600);
+            }
+        }
+    }
+
+    /**
+     * Show error dialog using Dialog component or fallback to alert
+     * @param {string} htmlContent - HTML content for dialog
+     */
+    showErrorDialog(htmlContent) {
+        // Check if Dialog component is available
+        if (typeof Dialog !== 'undefined' && Dialog.alert) {
+            Dialog.alert(htmlContent, {
+                title: 'Provider 错误',
+                html: true,
+                width: '600px'
+            });
+        } else {
+            // Fallback: create a simple modal
+            const modal = document.createElement('div');
+            modal.className = 'error-modal-overlay';
+            modal.innerHTML = `
+                <div class="error-modal-content">
+                    <div class="error-modal-header">
+                        <h3>Provider 错误</h3>
+                        <button class="error-modal-close" onclick="this.closest('.error-modal-overlay').remove()">×</button>
+                    </div>
+                    <div class="error-modal-body">
+                        ${htmlContent}
+                    </div>
+                    <div class="error-modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closest('.error-modal-overlay').remove()">关闭</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Click outside to close
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped text
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+
+    // =============================================================================
+    // Diagnostics Functions (Task #19: P1.6)
+    // =============================================================================
+
+    /**
+     * Toggle diagnostics panel visibility for a provider
+     * @param {string} providerId - Provider identifier
+     */
+    async toggleDiagnostics(providerId) {
+        const panel = document.querySelector(`.diagnostics-panel[data-provider="${providerId}"]`);
+        const button = document.querySelector(`.btn-diagnostics[data-provider="${providerId}"]`);
+
+        if (!panel || !button) return;
+
+        if (panel.style.display === 'none') {
+            // Show panel and load diagnostics
+            panel.style.display = 'block';
+            button.innerHTML = '<span class="material-icons md-18">assessment</span> Hide Diagnostics';
+            await this.loadDiagnostics(providerId);
+        } else {
+            // Hide panel
+            panel.style.display = 'none';
+            button.innerHTML = '<span class="material-icons md-18">assessment</span> Show Diagnostics';
+        }
+    }
+
+    /**
+     * Load and display diagnostics for a provider
+     * @param {string} providerId - Provider identifier
+     */
+    async loadDiagnostics(providerId) {
+        const contentDiv = document.querySelector(`.diagnostics-content[data-provider="${providerId}"]`);
+        if (!contentDiv) return;
+
+        try {
+            contentDiv.innerHTML = '<p class="loading-text">Loading diagnostics...</p>';
+
+            const diagnostics = await this.apiClient.get(`/api/providers/${providerId}/diagnostics`);
+
+            // Store diagnostics for copy function
+            if (!this.diagnosticsCache) {
+                this.diagnosticsCache = {};
+            }
+            this.diagnosticsCache[providerId] = diagnostics;
+
+            // Render diagnostics
+            contentDiv.innerHTML = this.renderDiagnosticsContent(diagnostics);
+
+        } catch (error) {
+            console.error('Failed to load diagnostics:', error);
+            contentDiv.innerHTML = `<p class="error-text">Failed to load diagnostics: ${error.message}</p>`;
+        }
+    }
+
+    /**
+     * Render diagnostics content HTML
+     * @param {Object} diag - Diagnostics data
+     * @returns {string} HTML content
+     */
+    renderDiagnosticsContent(diag) {
+        const statusClass = {
+            'RUNNING': 'status-running',
+            'STOPPED': 'status-stopped',
+            'ERROR': 'status-error',
+            'STARTING': 'status-starting'
+        }[diag.current_status] || 'status-unknown';
+
+        return `
+            <div class="diag-row">
+                <span class="diag-label">Platform:</span>
+                <span class="diag-value">${this.escapeHtml(diag.platform)}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Detected Executable:</span>
+                <span class="diag-value">${diag.detected_executable || '<span class="text-muted">Not found</span>'}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Configured Executable:</span>
+                <span class="diag-value">${diag.configured_executable || '<span class="text-muted">(auto)</span>'}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Resolved Executable:</span>
+                <span class="diag-value highlight">${diag.resolved_executable || '<span class="text-muted">Not resolved</span>'}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Detection Source:</span>
+                <span class="diag-value">${diag.detection_source || '<span class="text-muted">—</span>'}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Version:</span>
+                <span class="diag-value">${diag.version || '<span class="text-muted">Unknown</span>'}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Supported Actions:</span>
+                <span class="diag-value">${diag.supported_actions.join(', ')}</span>
+            </div>
+            <div class="diag-row">
+                <span class="diag-label">Current Status:</span>
+                <span class="diag-value ${statusClass}">${diag.current_status || 'UNKNOWN'}</span>
+            </div>
+            ${diag.pid ? `
+            <div class="diag-row">
+                <span class="diag-label">PID:</span>
+                <span class="diag-value">${diag.pid}</span>
+            </div>
+            ` : ''}
+            ${diag.port ? `
+            <div class="diag-row">
+                <span class="diag-label">Port:</span>
+                <span class="diag-value">${diag.port} ${diag.port_listening ? '<span class="status-listening">(listening)</span>' : '<span class="status-not-listening">(not listening)</span>'}</span>
+            </div>
+            ` : ''}
+            <div class="diag-row">
+                <span class="diag-label">Models Directory:</span>
+                <span class="diag-value">${diag.models_directory || '<span class="text-muted">Not configured</span>'}</span>
+            </div>
+            ${diag.models_count !== null && diag.models_count !== undefined ? `
+            <div class="diag-row">
+                <span class="diag-label">Models Count:</span>
+                <span class="diag-value">${diag.models_count}</span>
+            </div>
+            ` : ''}
+            ${diag.last_error ? `
+            <div class="diag-row">
+                <span class="diag-label">Last Error:</span>
+                <span class="diag-value diag-error">${this.escapeHtml(diag.last_error)}</span>
+            </div>
+            ` : ''}
+        `;
+    }
+
+    /**
+     * Run health check for a provider (force refresh diagnostics)
+     * @param {string} providerId - Provider identifier
+     */
+    async runHealthCheck(providerId) {
+        const button = document.querySelector(`[data-action="health-check"][data-provider="${providerId}"]`);
+        if (button) {
+            button.disabled = true;
+            button.innerHTML = '<span class="material-icons md-18 spin">refresh</span>';
+        }
+
+        try {
+            await this.loadDiagnostics(providerId);
+            this.showToast('Health check completed', 'success');
+        } catch (error) {
+            this.showToast('Health check failed: ' + error.message, 'error');
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<span class="material-icons md-18">health_and_safety</span>';
+            }
+        }
+    }
+
+    /**
+     * Copy diagnostics to clipboard in Markdown format
+     * @param {string} providerId - Provider identifier
+     */
+    async copyDiagnostics(providerId) {
+        const diag = this.diagnosticsCache?.[providerId];
+        if (!diag) {
+            this.showToast('Please load diagnostics first', 'warning');
+            return;
+        }
+
+        const markdown = `## ${providerId} Diagnostics
+
+- **Platform**: ${diag.platform}
+- **Detected Executable**: ${diag.detected_executable || 'Not found'}
+- **Configured Executable**: ${diag.configured_executable || '(auto)'}
+- **Resolved Executable**: ${diag.resolved_executable || 'Not resolved'}
+- **Detection Source**: ${diag.detection_source || '—'}
+- **Version**: ${diag.version || 'Unknown'}
+- **Supported Actions**: ${diag.supported_actions.join(', ')}
+- **Current Status**: ${diag.current_status || 'UNKNOWN'}
+${diag.pid ? `- **PID**: ${diag.pid}` : ''}
+${diag.port ? `- **Port**: ${diag.port} ${diag.port_listening ? '(listening)' : '(not listening)'}` : ''}
+- **Models Directory**: ${diag.models_directory || 'Not configured'}
+${diag.models_count !== null && diag.models_count !== undefined ? `- **Models Count**: ${diag.models_count}` : ''}
+${diag.last_error ? `- **Last Error**: ${diag.last_error}` : ''}
+`;
+
+        try {
+            await navigator.clipboard.writeText(markdown);
+            this.showToast('Diagnostics copied to clipboard', 'success');
+        } catch (error) {
+            console.error('Failed to copy to clipboard:', error);
+            this.showToast('Failed to copy to clipboard', 'error');
+        }
+    }
+
 
     unmount() {
         // Cleanup

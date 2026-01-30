@@ -64,6 +64,7 @@ const state = {
     contextStatusInterval: null,
     currentProvider: null,
     currentViewInstance: null, // PR-2: Track current view instance for cleanup
+    projectSelector: null, // Task #18: Project selector component
 };
 
 // Initialize application
@@ -75,6 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup refresh button
     setupRefreshButton();
+
+    // Setup project selector (Task #18)
+    setupProjectSelector();
 
     // Start health check
     startHealthCheck();
@@ -126,6 +130,22 @@ function updateNavigationActive(viewName) {
 // Session selector removed - use Sessions page for session management
 // function setupSessionSelector() { ... }
 // function loadSessions() { ... }
+
+// Setup project selector (Task #18)
+function setupProjectSelector() {
+    const container = document.getElementById('project-selector-container');
+    if (!container) {
+        console.warn('Project selector container not found');
+        return;
+    }
+
+    // Only initialize if ProjectSelector is available
+    if (typeof ProjectSelector !== 'undefined') {
+        state.projectSelector = new ProjectSelector(container);
+    } else {
+        console.warn('ProjectSelector component not loaded');
+    }
+}
 
 // Setup refresh button
 function setupRefreshButton() {
@@ -191,6 +211,9 @@ function loadView(viewName) {
         case 'history':
             renderHistoryView(container);
             break;
+        case 'pipeline':
+            renderPipelineView(container);
+            break;
         case 'skills':
             renderSkillsView(container);
             break;
@@ -252,6 +275,9 @@ function loadView(viewName) {
         case 'auth':
         case 'auth-profiles':
             renderAuthProfilesView(container);
+            break;
+        case 'mode-monitor':
+            renderModeMonitorView(container);
             break;
         default:
             container.innerHTML = '<div class="p-6 text-gray-500">View not implemented</div>';
@@ -2491,7 +2517,8 @@ const WS = {
           handleIncomingChatMessage(data);
 
         } catch (err) {
-          console.error('[WS] Message parse error:', err);
+          console.warn('[WS] Message parse error (invalid JSON from server):', err);
+          // Don't show to user - this is a technical error that should be fixed on backend
         }
       };
 
@@ -2688,6 +2715,12 @@ function setupWebSocket() {
 function handleWebSocketMessage(message) {
     const messagesDiv = document.getElementById('messages');
 
+    // If messages div doesn't exist (not on chat view), only log and return
+    if (!messagesDiv) {
+        console.log('[WS] Message received but not on chat view, ignoring UI update:', message.type);
+        return;
+    }
+
     if (message.type === 'message.start') {
         // Create new assistant message element (empty, will be filled by deltas)
         const assistantMsg = createMessageElement('assistant', '');
@@ -2740,6 +2773,17 @@ function handleWebSocketMessage(message) {
         console.log('Event:', message);
 
     } else if (message.type === 'error') {
+        // Filter out technical errors that users don't need to see
+        const technicalErrors = ['Invalid JSON', 'invalid json'];
+        const shouldSkip = technicalErrors.some(err =>
+            message.content && message.content.toLowerCase().includes(err.toLowerCase())
+        );
+
+        if (shouldSkip) {
+            console.warn('WebSocket technical error (filtered from UI):', message.content);
+            return;
+        }
+
         // Show error
         const errorMsg = createMessageElement('event', `Error: ${message.content}`);
         messagesDiv.appendChild(errorMsg);
@@ -4508,6 +4552,64 @@ function renderEventsView(container) {
     state.currentViewInstance = new EventsView(container);
 }
 
+// Render Pipeline View (PR-V4: Pipeline Visualization)
+function renderPipelineView(container) {
+    // Clear previous view
+    if (state.currentViewInstance && state.currentViewInstance.destroy) {
+        state.currentViewInstance.destroy();
+    }
+
+    // Get task ID from URL hash or prompt user
+    const urlParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const taskId = urlParams.get('task_id');
+
+    if (!taskId) {
+        // Show task selector
+        container.innerHTML = `
+            <div class="p-8">
+                <h2 class="text-2xl font-bold mb-4">Pipeline Visualization</h2>
+                <p class="text-gray-600 mb-4">Enter a task ID to visualize its execution pipeline:</p>
+                <div class="flex gap-4 max-w-md">
+                    <input
+                        type="text"
+                        id="pipeline-task-id-input"
+                        placeholder="task_abc123..."
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                        id="pipeline-load-btn"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Load
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const input = container.querySelector('#pipeline-task-id-input');
+        const btn = container.querySelector('#pipeline-load-btn');
+
+        btn.addEventListener('click', () => {
+            const taskId = input.value.trim();
+            if (taskId) {
+                window.location.hash = `#pipeline?task_id=${taskId}`;
+                loadView('pipeline');
+            }
+        });
+
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                btn.click();
+            }
+        });
+
+        return;
+    }
+
+    // Create new view instance
+    state.currentViewInstance = new PipelineView(container, taskId);
+}
+
 // Render Logs View (PR-2: Observability - Updated)
 function renderLogsView(container) {
     // Clear previous view
@@ -5319,7 +5421,12 @@ async function renderProvidersView(container) {
 
         // Create API client instance
         const apiClient = {
-            get: async (url) => {
+            get: async (url, options = {}) => {
+                // Handle query parameters
+                if (options.params) {
+                    const queryString = new URLSearchParams(options.params).toString();
+                    url = queryString ? `${url}?${queryString}` : url;
+                }
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(response.statusText);
                 return response.json();
@@ -5354,6 +5461,8 @@ async function renderProvidersView(container) {
         await view.mount();
 
         state.currentViewInstance = view;
+        // Expose view instance globally for onclick handlers
+        window.providersView = view;
     } catch (error) {
         console.error('Failed to load ProvidersView:', error);
         container.innerHTML = `<div class="error">Failed to load providers view: ${error.message}</div>`;
@@ -5515,5 +5624,49 @@ function renderAuthProfilesView(container) {
     } catch (error) {
         console.error('Failed to load AuthProfilesView:', error);
         container.innerHTML = `<div class="error">Failed to load auth profiles view: ${error.message}</div>`;
+    }
+}
+
+// Render Mode Monitor View (Task #15: Phase 3.4)
+async function renderModeMonitorView(container) {
+    try {
+        // Clear previous view instance
+        if (state.currentViewInstance && state.currentViewInstance.destroy) {
+            state.currentViewInstance.destroy();
+            state.currentViewInstance = null;
+        }
+
+        // Check if ModeMonitorView is available
+        if (typeof window.ModeMonitorView === 'undefined') {
+            console.error('ModeMonitorView not loaded');
+            container.innerHTML = `
+                <div class="p-6 text-center">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                        <h2 class="text-xl font-bold text-red-900 mb-2">Module Loading Error</h2>
+                        <p class="text-red-700">ModeMonitorView module failed to load. Please refresh the page.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        // Create and render the view
+        const view = new window.ModeMonitorView();
+        state.currentViewInstance = view;
+
+        await view.render(container);
+
+        console.log('Mode Monitor View rendered successfully');
+    } catch (error) {
+        console.error('Failed to render Mode Monitor View:', error);
+        container.innerHTML = `
+            <div class="p-6 text-center">
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <h2 class="text-xl font-bold text-red-900 mb-2">Rendering Error</h2>
+                    <p class="text-red-700 mb-2">Failed to load Mode Monitor view.</p>
+                    <p class="text-sm text-red-600">Error: ${error.message}</p>
+                </div>
+            </div>
+        `;
     }
 }

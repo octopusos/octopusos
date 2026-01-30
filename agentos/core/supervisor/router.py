@@ -144,3 +144,24 @@ class PolicyRouter:
             result["__default__"] = policy_name
 
         return result
+
+    def register_mode_policies(self, db_path) -> None:
+        """
+        注册 Mode 相关的 policies（Task 27 helper）
+
+        Args:
+            db_path: 数据库路径
+        """
+        from pathlib import Path
+        from .policies.on_mode_violation import OnModeViolationPolicy
+
+        db_path = Path(db_path) if not isinstance(db_path, Path) else db_path
+
+        # 注册 MODE_VIOLATION 事件处理
+        # 使用精确匹配 "mode.violation" (EventType.MODE_VIOLATION.value)
+        self.register("mode.violation", OnModeViolationPolicy(db_path))
+        logger.info("Mode policies registered (mode.violation)")
+
+        # 也支持通配符匹配 "mode.*" 以匹配未来的 mode 事件
+        # Note: 如果需要支持多种 mode 事件，可以使用 "mode.*" 模式
+        # self.register("mode.*", OnModeViolationPolicy(db_path))

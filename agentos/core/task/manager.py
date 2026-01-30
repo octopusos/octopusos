@@ -250,15 +250,27 @@ class TaskManager:
             except (KeyError, IndexError):
                 router_version = None
 
+            try:
+                project_id = row["project_id"]
+            except (KeyError, IndexError):
+                project_id = None
+
+            try:
+                exit_reason = row["exit_reason"]
+            except (KeyError, IndexError):
+                exit_reason = None
+
             return Task(
                 task_id=row["task_id"],
                 title=row["title"],
                 status=row["status"],
                 session_id=row["session_id"],
+                project_id=project_id,
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
                 created_by=row["created_by"],
                 metadata=metadata,
+                exit_reason=exit_reason,
                 route_plan_json=route_plan_json,
                 requirements_json=requirements_json,
                 selected_instance_id=selected_instance_id,
@@ -417,7 +429,46 @@ class TaskManager:
             logger.info(f"Updated task {task.task_id}: status={task.status}, metadata keys={list(task.metadata.keys()) if task.metadata else []}")
         finally:
             conn.close()
-    
+
+    def update_task_exit_reason(self, task_id: str, exit_reason: str, status: Optional[str] = None) -> None:
+        """
+        Update task exit_reason (and optionally status)
+
+        This method is used by the task runner to record why execution stopped.
+
+        Args:
+            task_id: Task ID
+            exit_reason: Exit reason (done, max_iterations, blocked, fatal_error, user_cancelled, unknown)
+            status: Optional new status (if provided, will be updated together with exit_reason)
+        """
+        # Validate exit_reason
+        valid_reasons = ['done', 'max_iterations', 'blocked', 'fatal_error', 'user_cancelled', 'unknown']
+        if exit_reason not in valid_reasons:
+            logger.warning(f"Invalid exit_reason '{exit_reason}', setting to 'unknown'")
+            exit_reason = 'unknown'
+
+        conn = self._get_conn()
+        try:
+            cursor = conn.cursor()
+            now = datetime.now(timezone.utc).isoformat()
+
+            if status:
+                cursor.execute(
+                    "UPDATE tasks SET exit_reason = ?, status = ?, updated_at = ? WHERE task_id = ?",
+                    (exit_reason, status, now, task_id)
+                )
+                logger.info(f"Updated task {task_id}: exit_reason={exit_reason}, status={status}")
+            else:
+                cursor.execute(
+                    "UPDATE tasks SET exit_reason = ?, updated_at = ? WHERE task_id = ?",
+                    (exit_reason, now, task_id)
+                )
+                logger.info(f"Updated task {task_id}: exit_reason={exit_reason}")
+
+            conn.commit()
+        finally:
+            conn.close()
+
     def add_lineage(
         self,
         task_id: str,

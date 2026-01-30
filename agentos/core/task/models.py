@@ -19,12 +19,14 @@ class Task:
 
     task_id: str  # ULID
     title: str
-    status: str = "created"  # Free-form: created/planning/executing/succeeded/failed/canceled/orphan
+    status: str = "created"  # Free-form: created/planning/executing/succeeded/failed/canceled/orphan/blocked
     session_id: Optional[str] = None
+    project_id: Optional[str] = None  # FK to projects table (v0.26)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    exit_reason: Optional[str] = None  # done, max_iterations, blocked, fatal_error, user_cancelled, unknown (v0.28)
 
     # Router fields (PR-2: Chat→Task Router Integration)
     route_plan_json: Optional[str] = None  # JSON serialized RoutePlan
@@ -51,7 +53,57 @@ class Task:
     def set_current_stage(self, stage: str) -> None:
         """Set current stage in metadata"""
         self.metadata["current_stage"] = stage
-    
+
+    def get_retry_config(self) -> "RetryConfig":
+        """Get retry configuration from metadata"""
+        from agentos.core.task.retry_strategy import RetryConfig
+
+        retry_data = self.metadata.get("retry_config")
+        if retry_data:
+            return RetryConfig.from_dict(retry_data)
+        else:
+            # Return default config
+            return RetryConfig()
+
+    def get_retry_state(self) -> "RetryState":
+        """Get retry state from metadata"""
+        from agentos.core.task.retry_strategy import RetryState
+
+        retry_state_data = self.metadata.get("retry_state")
+        if retry_state_data:
+            return RetryState.from_dict(retry_state_data)
+        else:
+            # Return initial state
+            return RetryState()
+
+    def update_retry_state(self, retry_state: "RetryState") -> None:
+        """Update retry state in metadata"""
+        self.metadata["retry_state"] = retry_state.to_dict()
+
+    def get_timeout_config(self) -> "TimeoutConfig":
+        """Get timeout configuration from metadata"""
+        from agentos.core.task.timeout_manager import TimeoutConfig
+
+        timeout_data = self.metadata.get("timeout_config")
+        if timeout_data:
+            return TimeoutConfig.from_dict(timeout_data)
+        else:
+            return TimeoutConfig()
+
+    def get_timeout_state(self) -> "TimeoutState":
+        """Get timeout state from metadata"""
+        from agentos.core.task.timeout_manager import TimeoutState
+
+        timeout_state_data = self.metadata.get("timeout_state")
+        if timeout_state_data:
+            return TimeoutState.from_dict(timeout_state_data)
+        else:
+            return TimeoutState()
+
+    def update_timeout_state(self, timeout_state: "TimeoutState") -> None:
+        """Update timeout state in metadata"""
+        self.metadata["timeout_state"] = timeout_state.to_dict()
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         result = {
@@ -59,10 +111,12 @@ class Task:
             "title": self.title,
             "status": self.status,
             "session_id": self.session_id,
+            "project_id": self.project_id,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "created_by": self.created_by,
             "metadata": self.metadata,
+            "exit_reason": self.exit_reason,
         }
         # Add router fields if present
         if self.route_plan_json:
@@ -334,4 +388,63 @@ class TaskArtifactRef:
             summary=row.get("summary"),
             created_at=row.get("created_at"),
             metadata=metadata,
+        )
+
+
+# ============================================
+# Task Template Models (v26)
+# ============================================
+
+
+@dataclass
+class TaskTemplate:
+    """Task template for saving and reusing task configurations
+
+    Maps to task_templates table in v26 schema.
+    Allows users to save common task configurations as templates.
+    """
+
+    template_id: str
+    name: str  # 1-100 characters
+    title_template: str
+    description: Optional[str] = None
+    created_by_default: Optional[str] = None
+    metadata_template: Dict[str, Any] = field(default_factory=dict)
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    use_count: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            "template_id": self.template_id,
+            "name": self.name,
+            "description": self.description,
+            "title_template": self.title_template,
+            "created_by_default": self.created_by_default,
+            "metadata_template": self.metadata_template,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "created_by": self.created_by,
+            "use_count": self.use_count,
+        }
+
+    @classmethod
+    def from_db_row(cls, row: Dict[str, Any]) -> "TaskTemplate":
+        """Create from database row"""
+        metadata_raw = row.get("metadata_template_json")
+        metadata = json.loads(metadata_raw) if metadata_raw else {}
+
+        return cls(
+            template_id=row["template_id"],
+            name=row["name"],
+            description=row.get("description"),
+            title_template=row["title_template"],
+            created_by_default=row.get("created_by_default"),
+            metadata_template=metadata,
+            created_at=row.get("created_at"),
+            updated_at=row.get("updated_at"),
+            created_by=row.get("created_by"),
+            use_count=row.get("use_count", 0),
         )

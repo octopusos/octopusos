@@ -113,6 +113,11 @@ from agentos.cli.web import web_cmd
 from agentos.cli.webui_control import webui_group
 from agentos.cli.auth import auth_group
 
+# Import v0.4 Project-Aware Task OS commands
+from agentos.cli.commands.project_v31 import project_v31_group
+from agentos.cli.commands.repo_v31 import repo_v31_group
+from agentos.cli.commands.task_v31 import task_v31_group
+
 cli.add_command(init_cmd, name="init")
 cli.add_command(doctor, name="doctor")
 cli.add_command(project_group, name="project")
@@ -136,6 +141,11 @@ cli.add_command(kb, name="kb")
 cli.add_command(web_cmd, name="web")
 cli.add_command(webui_group, name="webui")
 cli.add_command(auth_group, name="auth")
+
+# Register v0.4 Project-Aware Task OS commands
+cli.add_command(project_v31_group, name="project-v31")
+cli.add_command(repo_v31_group, name="repo-v31")
+cli.add_command(task_v31_group, name="task-v31")
 
 
 @cli.command(name="interactive")

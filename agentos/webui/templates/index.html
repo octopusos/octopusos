@@ -21,6 +21,10 @@
     <!-- Lottie Web for Animations -->
     <script src="/static/vendor/lottie/lottie.min.js?v=1"></script>
 
+    <!-- Vis.js Network for Task Graph Visualization -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <link href="https://unpkg.com/vis-network/styles/vis-network.min.css" rel="stylesheet">
+
     <!-- Sentry SDK for Error Tracking & Release Health -->
     <script
       src="/static/vendor/sentry/bundle.tracing.replay.min.js?v=1"
@@ -41,6 +45,10 @@
     <link rel="stylesheet" href="/static/css/intent-workbench.css?v=1">
     <link rel="stylesheet" href="/static/css/answers.css?v=1">
     <link rel="stylesheet" href="/static/css/auth-card.css?v=1">
+    <link rel="stylesheet" href="/static/css/project-context.css?v=1">
+    <link rel="stylesheet" href="/static/css/project-v31.css?v=1">
+    <link rel="stylesheet" href="/static/css/pipeline-view.css?v=1">
+    <link rel="stylesheet" href="/static/css/mode-monitor.css?v=1">
 
     <!-- PrismJS Syntax Highlighting -->
     <link id="prism-theme" rel="stylesheet" href="/static/vendor/prismjs/themes/prism-tomorrow.min.css?v=1">
@@ -121,6 +129,18 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>History</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="pipeline">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        <span>Pipeline</span>
+                    </a>
+                    <a href="#" class="nav-item" data-view="mode-monitor">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        <span>Mode Monitor</span>
                     </a>
                 </div>
 
@@ -287,6 +307,9 @@
                 </div>
 
                 <div class="flex items-center space-x-4">
+                    <!-- Project Selector -->
+                    <div id="project-selector-container"></div>
+
                     <!-- Health Badge -->
                     <div id="health-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-100">
                         <div class="w-2 h-2 rounded-full bg-gray-400"></div>
@@ -414,6 +437,10 @@
     <script src="/static/js/components/AdminTokenGate.js?v=1"></script>
     <script src="/static/js/components/RouteDecisionCard.js?v=1"></script>
 
+    <!-- Project Context Components (Task #18) -->
+    <script src="/static/js/services/ProjectContext.js?v=1"></script>
+    <script src="/static/js/components/ProjectSelector.js?v=1"></script>
+
     <!-- Governance Dashboard Components (Task #7) -->
     <script src="/static/js/components/RiskBadge.js?v=1"></script>
     <script src="/static/js/components/TrendSparkline.js?v=1"></script>
@@ -428,6 +455,15 @@
 
     <!-- FloatingPet Component (v0.3.2.6) -->
     <script src="/static/js/components/FloatingPet.js?v=6"></script>
+
+    <!-- v0.4 Project-Aware Task OS Components -->
+    <script src="/static/js/components/CreateTaskWizard.js?v=1"></script>
+
+    <!-- PR-V4: Pipeline Visualization Components -->
+    <script src="/static/js/components/StageBar.js?v=1"></script>
+    <script src="/static/js/components/WorkItemCard.js?v=1"></script>
+    <script src="/static/js/components/MergeNode.js?v=1"></script>
+    <script src="/static/js/components/BranchArrow.js?v=1"></script>
 
     <!-- View Controllers (PR-2: Observability Module) -->
     <script src="/static/js/views/TasksView.js?v=1"></script>
@@ -473,6 +509,15 @@
 
     <!-- View Controllers (Multi-Repository Module - Phase 6.2) -->
     <script src="/static/js/views/ProjectsView.js?v=1"></script>
+
+    <!-- View Controllers (PR-V4: Pipeline Visualization) -->
+    <script src="/static/js/views/PipelineView.js?v=1"></script>
+
+    <!-- View Controllers (Mode Monitor - Task #15) -->
+    <script type="module">
+        import ModeMonitorView from "/static/js/views/ModeMonitorView.js";
+        window.ModeMonitorView = ModeMonitorView;
+    </script>
 
     <!-- HTML Preview Dialog -->
     <dialog id="htmlPreviewDlg" class="preview-dlg">

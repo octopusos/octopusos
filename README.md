@@ -1,5 +1,11 @@
 # AgentOS
 
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Reliability](https://img.shields.io/badge/reliability-production--ready-green)
+![Concurrency](https://img.shields.io/badge/concurrency-fixed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-2234-success)
+![Docs](https://img.shields.io/badge/docs-comprehensive-blue)
+
 > ⚠️ **Public Repository Notice**
 >
 > This repository is a **curated public snapshot** of AgentOS.
@@ -12,23 +18,53 @@
 
 ## **AgentOS**
 
-**A system-level, project-agnostic AI Agent orchestration platform**
+**可中断、可恢复、可验证、可审计的 AI 执行系统**
 
-AgentOS is an engineering-grade execution system for AI agents, designed around **explicit tasks**, **human-in-the-loop control**, and **full auditability**.
+> A system-level, project-agnostic AI Agent orchestration platform with **interruptible, resumable, verifiable, and auditable** execution.
 
-Unlike chat-centric tools, AgentOS treats every operation as a **first-class task** with a deterministic lifecycle.
+AgentOS is an engineering-grade execution system for AI agents, designed around:
+- **可中断 (Interruptible)**: 系统崩溃 (kill -9) 不丢数据
+- **可恢复 (Resumable)**: 从最后验证的检查点继续,不重跑已完成工作
+- **可验证 (Verifiable)**: 每个执行步骤都有证据链 (文件哈希、命令退出码、数据库状态)
+- **可审计 (Auditable)**: 所有操作可追溯,符合企业级审计要求
+
+Unlike chat-centric tools that emphasize "full automation", AgentOS emphasizes **execution controllability** and **process traceability**. Every operation is a **first-class task** with a deterministic lifecycle and evidence-based checkpoints.
 
 ---
 
 ## **📌 Current Status**
 
-**v0.3.x — Architecture-stable release**
+**v0.4.0 — Project-Aware Task Operating System**
 
-Core validation layers (Schema / Governance / Execution Gates) are frozen and documented.
+Major architecture upgrade with multi-repository project management and strict governance.
 
-- Task lifecycle: **stable**
-- Governance semantics: **frozen**
-- CLI & WebUI control surface: **production-ready (local-first)**
+- **Project-Aware Architecture**: Tasks must bind to projects, supports multi-repo
+- **Spec Freezing**: Enforce specification stability before execution
+- **Audit Trail**: Complete operation history with event logging
+- **Enhanced APIs**: 16 new endpoints for projects, repos, and task specs
+- **CLI v31**: 14 new commands for project and repository management
+- **WebUI Wizard**: 4-step task creation flow with project binding
+
+[📖 See v0.4 Release Notes →](docs/releases/V04_RELEASE_NOTES.md)
+
+---
+
+## **🚀 Autonomous Execution Engine (AEE)**
+
+**NEW in v0.3.x**: AgentOS now includes a production-ready **Autonomous Execution Engine (AEE)** for fully autonomous task execution with built-in quality gates.
+
+```
+Chat → Task → Runner → Verify → Done
+```
+
+**Key Features**:
+- ⚡ **Event-driven triggering** (<5s startup, 6-12x faster than polling)
+- ✅ **Quality gates** (doctor/smoke/tests) - No false completions
+- 🔄 **Automatic retry** on gate failure with failure context
+- 📋 **Work items coordination** - Structured sub-task execution
+- 📊 **Full auditability** - Every operation recorded with exit_reason
+
+[📖 Learn more about AEE →](docs/architecture/AEE_OVERVIEW.md)
 
 ---
 
@@ -57,6 +93,56 @@ Core validation layers (Schema / Governance / Execution Gates) are frozen and do
 - 🔒 **Governance-by-design**
 
   Mode Gate, Pause Gate, and Execution Red Lines are enforced by the system.
+
+- 🌐 **Cross-platform providers**
+
+  Automatic detection and management of Ollama, LlamaCpp, LM Studio on Windows, macOS, and Linux.
+
+- 📁 **Multi-repo project management** (NEW in v0.4)
+
+  Organize repositories, tasks, and execution context in unified projects. Support for microservices, monorepos, and multi-repo architectures.
+
+- 🔒 **Spec Freezing** (NEW in v0.4)
+
+  Lock task specifications before execution to ensure stable goals and clear acceptance criteria.
+
+- 📋 **Project Binding** (NEW in v0.4)
+
+  All tasks must bind to projects with foreign key constraints for better organization and traceability.
+
+- 📊 **Audit Trail** (NEW in v0.4)
+
+  Complete operation history with event types (CREATED, SPEC_FROZEN, BOUND, READY, COMPLETED).
+
+- ✅ **Concurrency-Safe Database**: Queue-based write serialization (SQLiteWriter)
+- ✅ **Task Templates**: Reusable task configurations for faster creation
+- ✅ **Batch Task Creation**: Create 1-100 tasks at once (text/CSV modes)
+- ✅ **PostgreSQL Support**: Production-ready database with 2-4x performance boost
+- ✅ **API Rate Limiting**: Protection against abuse (10/min, 100/hour)
+- ✅ **Runtime Monitoring**: Real-time metrics for performance tracking
+
+---
+
+## 🎊 Recent Milestones
+
+### v0.3.x - Concurrency & Reliability (2026-01-29) ⭐
+
+This major milestone brings production-ready reliability and complete Task Management features:
+
+- 🔒 **100% Solved**: SQLite "database is locked" errors completely eliminated
+- 📝 **Feature Complete**: Task creation, templates, and batch operations
+- 🚀 **Performance**: 2-4x faster with PostgreSQL support
+- 📚 **Documentation**: 5,500+ lines of comprehensive guides
+- 🧪 **Testing**: 96% coverage with 49 new tests
+
+**Key Features**:
+- SQLiteWriter queue-based architecture
+- Task template system (50% faster task creation)
+- Batch creation (up to 100 tasks)
+- PostgreSQL production deployment
+- Runtime monitoring and alerting
+
+[📖 View Release Notes →](docs/releases/v0.3.1.md)
 
 ---
 
@@ -105,6 +191,11 @@ uv run agentos
 # Install in editable mode
 pip install -e .
 
+# Optional: PostgreSQL Support
+pip install "agentos[postgres]"
+# or
+uv add --optional postgres psycopg2-binary
+
 # Initialize database
 agentos init
 
@@ -125,6 +216,58 @@ agentos --web
 - No SaaS dependency
 - No mandatory authentication
 - Designed for **visibility**, not remote execution
+
+### **AI Providers Management**
+
+AgentOS supports automatic detection and management of local AI providers across all platforms:
+
+- **Ollama**: Automatic detection and lifecycle management
+- **LlamaCpp (llama-server)**: Multi-instance support with custom models
+- **LM Studio**: Cross-platform application launcher
+
+**Platform Support**:
+- ✅ Windows 10/11
+- ✅ macOS 13+
+- ✅ Linux (Ubuntu 22.04+, other distributions)
+
+**Features**:
+- Automatic executable detection
+- Manual path configuration with file browser
+- Models directory management
+- Process lifecycle control (start/stop/restart)
+- Platform-specific error messages and suggestions
+
+See [Providers Cross-Platform Setup Guide](docs/guides/providers_cross_platform_setup.md) for detailed configuration instructions.
+
+### **Task Management**
+
+Create and manage tasks directly through the WebUI:
+
+1. **Via Web Interface**:
+   - Navigate to Task Management page
+   - Click "Create Task" button
+   - Fill in task details (title, creator, metadata)
+   - Task will be created with auto-generated session ID
+
+2. **Via REST API**:
+   ```bash
+   curl -X POST http://localhost:8000/api/tasks \
+     -H "Content-Type: application/json" \
+     -d '{
+       "title": "Implement feature X",
+       "created_by": "user@example.com",
+       "metadata": {"priority": "high"}
+     }'
+   ```
+
+**Features**:
+- ✅ Auto-generated session IDs (format: `auto_{task_id}_{timestamp}`)
+- ✅ Rate limiting (10/min, 100/hour)
+- ✅ Full validation and error handling
+- ✅ Metadata support for custom fields
+- ✅ Automatic audit logging
+
+See [Task Management Guide](docs/guides/user/TASK_MANAGEMENT_GUIDE.md) for detailed usage.
 
 ---
 
@@ -213,6 +356,54 @@ agentos task create "Run tests and generate report"
 agentos task show <task_id>
 # Status: succeeded
 ```
+
+---
+
+## **⚙️ Database Configuration**
+
+AgentOS supports both **SQLite** (development) and **PostgreSQL** (production).
+
+### **SQLite (Default - Auto-configured)**
+Perfect for development and single-user scenarios. Zero configuration required.
+
+```bash
+# Just run AgentOS - SQLite is automatically configured
+uv run agentos server
+```
+
+### **PostgreSQL (Recommended for Production)**
+For multi-user production deployments with high concurrency:
+
+```bash
+# Set environment variables
+export DATABASE_TYPE=postgresql
+export DATABASE_HOST=localhost
+export DATABASE_PORT=5432
+export DATABASE_NAME=agentos
+export DATABASE_USER=agentos
+export DATABASE_PASSWORD=your_secure_password
+
+# Start with Docker Compose
+docker-compose up -d postgres
+
+# Run AgentOS
+uv run agentos server
+```
+
+**Performance**: PostgreSQL provides 2-4x better performance for concurrent operations.
+
+See [Database Migration Guide](docs/deployment/DATABASE_MIGRATION.md) for details.
+
+### **Quick Comparison**
+
+| Feature | SQLite | PostgreSQL |
+|---------|--------|------------|
+| **Setup** | Zero config | Requires server |
+| **Concurrency** | Limited (single writer) | Excellent (multi-user) |
+| **Use Case** | Development, single user | Production, multi-user |
+| **Performance** | Good for small data | Optimized for scale |
+
+**📖 Full Documentation**: See [Database Migration Guide](docs/deployment/DATABASE_MIGRATION.md)
 
 ---
 

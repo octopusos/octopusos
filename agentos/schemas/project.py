@@ -1,15 +1,102 @@
 """Project and Repository Schemas
 
 Data models for multi-repository project management.
-Maps to v18 schema (project_repos table).
+Maps to v25 schema (projects and project_repos tables).
 """
 
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
+
+
+class RiskProfile(BaseModel):
+    """Risk profile configuration for project security settings
+
+    Controls security-related behavior for the project.
+    """
+
+    allow_shell_write: bool = Field(
+        default=False,
+        description="Whether to allow shell write operations (e.g., file creation, modification)"
+    )
+    require_admin_token: bool = Field(
+        default=False,
+        description="Whether to require admin token for sensitive operations"
+    )
+    writable_paths: List[str] = Field(
+        default_factory=list,
+        description="Whitelist of paths that can be written to"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "allow_shell_write": True,
+                    "require_admin_token": False,
+                    "writable_paths": ["/tmp", "/var/project/data"]
+                }
+            ]
+        }
+
+
+class ProjectSettings(BaseModel):
+    """Project configuration settings
+
+    Stores project-level configuration including runner settings,
+    provider policies, environment overrides, and risk profiles.
+    """
+
+    default_runner: Optional[str] = Field(
+        default=None,
+        description="Default runner for the project (e.g., 'llama.cpp', 'openai')"
+    )
+    provider_policy: Optional[str] = Field(
+        default=None,
+        description="Provider selection policy (e.g., 'prefer-local', 'cloud-only')"
+    )
+    env_overrides: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Environment variable overrides (whitelist only)"
+    )
+    risk_profile: Optional[RiskProfile] = Field(
+        default=None,
+        description="Risk and security configuration"
+    )
+
+    @field_validator("risk_profile", mode="before")
+    @classmethod
+    def parse_risk_profile(cls, v: Any) -> Optional[RiskProfile]:
+        """Parse risk_profile from dict if needed"""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return RiskProfile(**v)
+        if isinstance(v, RiskProfile):
+            return v
+        return None
+
+    class Config:
+        json_schema_extra = {
+            "examples": [
+                {
+                    "default_runner": "llama.cpp",
+                    "provider_policy": "prefer-local",
+                    "env_overrides": {
+                        "PYTHONPATH": "/custom/path",
+                        "DEBUG": "true"
+                    },
+                    "risk_profile": {
+                        "allow_shell_write": True,
+                        "require_admin_token": False,
+                        "writable_paths": ["/tmp"]
+                    }
+                }
+            ]
+        }
 
 
 class RepoRole(str, Enum):
@@ -93,7 +180,7 @@ class RepoSpec(BaseModel):
             project_id=row["project_id"],
             name=row["name"],
             remote_url=row.get("remote_url"),
-            default_branch=row.get("default_branch", "main"),
+            default_branch=row.get("default_branch") or "main",
             workspace_relpath=row["workspace_relpath"],
             role=RepoRole(row.get("role", "code")),
             is_writable=bool(row.get("is_writable", 1)),
@@ -108,16 +195,105 @@ class Project(BaseModel):
     """Project with multi-repository support
 
     Represents a project that can bind to multiple repositories.
+    Maps to schema_v25 projects table with comprehensive metadata fields.
     Maintains backward compatibility with single-repo projects.
     """
 
-    id: str = Field(..., description="Project ID")
-    name: str = Field(..., description="Project name")
+    # Core fields
+    id: str = Field(..., description="Project ID (ULID or UUID)")
+    name: str = Field(..., description="Project name (user-friendly)")
+
+    # Enhanced metadata (v25)
+    description: Optional[str] = Field(None, description="Project description")
+    status: Literal["active", "archived", "deleted"] = Field(
+        default="active",
+        description="Project status (active/archived/deleted)"
+    )
+    tags: List[str] = Field(default_factory=list, description="Project tags")
+
+    # Repository configuration (v25)
+    default_repo_id: Optional[str] = Field(None, description="Default repository ID")
+    default_workdir: Optional[str] = Field(None, description="Default working directory")
+
+    # Project settings (v25)
+    settings: Optional[ProjectSettings] = Field(None, description="Project configuration settings")
+
+    # Timestamps (v25)
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Creation timestamp"
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Last update timestamp"
+    )
+    created_by: Optional[str] = Field(None, description="Creator user ID or identifier")
+
+    # Legacy/compatibility fields
     path: Optional[str] = Field(None, description="Project path (legacy, for backward compatibility)")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Extended metadata (JSON, legacy)")
+
+    # Multi-repository support
     repos: List[RepoSpec] = Field(default_factory=list, description="Bound repositories")
-    created_at: Optional[datetime] = Field(None, description="Creation timestamp")
-    updated_at: Optional[datetime] = Field(None, description="Last update timestamp")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Extended metadata (JSON)")
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def validate_status(cls, v: Any) -> str:
+        """Validate status is one of the allowed values"""
+        if v not in ("active", "archived", "deleted"):
+            raise ValueError(f"Invalid status: {v}. Must be 'active', 'archived', or 'deleted'")
+        return v
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def parse_tags(cls, v: Any) -> List[str]:
+        """Parse tags from JSON string if needed"""
+        if v is None:
+            return []
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if not isinstance(parsed, list):
+                    raise ValueError("Tags must be a JSON array")
+                return parsed
+            except json.JSONDecodeError:
+                return []
+        if isinstance(v, list):
+            return v
+        return []
+
+    @field_validator("settings", mode="before")
+    @classmethod
+    def parse_settings(cls, v: Any) -> Optional[ProjectSettings]:
+        """Parse settings from JSON string or dict if needed"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if not isinstance(parsed, dict):
+                    return None
+                return ProjectSettings(**parsed)
+            except (json.JSONDecodeError, ValueError):
+                return None
+        if isinstance(v, dict):
+            return ProjectSettings(**v)
+        if isinstance(v, ProjectSettings):
+            return v
+        return None
+
+    @field_validator("default_workdir", mode="before")
+    @classmethod
+    def validate_workdir(cls, v: Any) -> Optional[str]:
+        """Validate default_workdir path"""
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            return None
+        # Basic path validation - no null bytes
+        if '\x00' in v:
+            raise ValueError("Path cannot contain null bytes")
+        return v
 
     @field_validator("metadata", mode="before")
     @classmethod
@@ -132,14 +308,16 @@ class Project(BaseModel):
 
     @field_validator("created_at", "updated_at", mode="before")
     @classmethod
-    def parse_datetime(cls, v: Any) -> Optional[datetime]:
+    def parse_datetime(cls, v: Any) -> datetime:
         """Parse datetime from string if needed"""
         if v is None:
-            return None
+            return datetime.utcnow()
         if isinstance(v, str):
             v = v.replace('Z', '+00:00')
             return datetime.fromisoformat(v)
-        return v
+        if isinstance(v, datetime):
+            return v
+        return datetime.utcnow()
 
     def get_default_repo(self) -> Optional[RepoSpec]:
         """Get the default repository
@@ -295,3 +473,79 @@ class Project(BaseModel):
             return default_repo.default_branch
 
         return "main"
+
+    # Serialization/Deserialization methods (v25)
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for API responses or storage
+
+        Returns:
+            Dictionary representation of the project with all fields
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "status": self.status,
+            "tags": self.tags,
+            "default_repo_id": self.default_repo_id,
+            "default_workdir": self.default_workdir,
+            "settings": self.settings.model_dump() if self.settings else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by,
+            "path": self.path,  # Legacy
+            "metadata": self.metadata,  # Legacy
+            "repos": [repo.model_dump() for repo in self.repos],
+        }
+
+    def to_db_dict(self) -> Dict[str, Any]:
+        """Convert to database-compatible dictionary
+
+        Serializes JSON fields (tags, settings) to JSON strings for SQLite storage.
+
+        Returns:
+            Dictionary with database-compatible types
+        """
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "status": self.status,
+            "tags": json.dumps(self.tags) if self.tags else "[]",
+            "default_repo_id": self.default_repo_id,
+            "default_workdir": self.default_workdir,
+            "settings": json.dumps(self.settings.model_dump()) if self.settings else "{}",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "created_by": self.created_by,
+            "path": self.path,  # Legacy
+            "metadata": json.dumps(self.metadata) if self.metadata else "{}",  # Legacy
+        }
+
+    @classmethod
+    def from_db_row(cls, row: Dict[str, Any], repos: Optional[List[RepoSpec]] = None) -> "Project":
+        """Create Project from database row
+
+        Args:
+            row: Database row (sqlite3.Row or dict) from projects table
+            repos: Optional list of RepoSpec objects (from project_repos table)
+
+        Returns:
+            Project instance with all fields populated
+        """
+        return cls(
+            id=row.get("project_id") or row.get("id"),
+            name=row.get("name", ""),
+            description=row.get("description"),
+            status=row.get("status", "active"),
+            tags=row.get("tags", "[]"),  # Will be parsed by validator
+            default_repo_id=row.get("default_repo_id"),
+            default_workdir=row.get("default_workdir"),
+            settings=row.get("settings", "{}"),  # Will be parsed by validator
+            created_at=row.get("created_at"),  # Will be parsed by validator
+            updated_at=row.get("updated_at"),  # Will be parsed by validator
+            created_by=row.get("created_by"),
+            path=row.get("path"),  # Legacy
+            metadata=row.get("metadata", "{}"),  # Legacy, will be parsed by validator
+            repos=repos or [],
+        )

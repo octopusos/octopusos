@@ -211,6 +211,15 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
             # Receive message from client
             data = await websocket.receive_text()
 
+            # Handle heartbeat ping/pong (plain text ping, JSON pong)
+            if data.strip() == "ping":
+                await websocket.send_json({"type": "pong", "ts": datetime.now().isoformat()})
+                continue
+
+            # Skip empty messages
+            if not data.strip():
+                continue
+
             try:
                 message = json.loads(data)
                 message_type = message.get("type", "user_message")
@@ -221,7 +230,11 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
 
                 # Handle user message
                 if message_type == "user_message":
-                    await handle_user_message(session_id, content, metadata)
+                    # Check for /task command (intent recognition)
+                    if content.strip().startswith("/task"):
+                        await handle_task_command(session_id, content, metadata)
+                    else:
+                        await handle_user_message(session_id, content, metadata)
 
                 else:
                     # Unknown message type
@@ -230,11 +243,11 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
                         "content": f"Unknown message type: {message_type}",
                     })
 
-            except json.JSONDecodeError:
-                await manager.send_message(session_id, {
-                    "type": "error",
-                    "content": "Invalid JSON",
-                })
+            except json.JSONDecodeError as e:
+                logger.warning(f"Invalid JSON received from {session_id}: {data[:200]!r} - Error: {e}")
+                # Don't send error to client for debugging purposes
+                # Just log it and continue
+                continue
             except Exception as e:
                 logger.error(f"Error handling message: {e}", exc_info=True)
                 await manager.send_message(session_id, {
@@ -244,6 +257,136 @@ async def websocket_chat(websocket: WebSocket, session_id: str):
 
     except WebSocketDisconnect:
         manager.disconnect(session_id)
+
+
+async def handle_task_command(session_id: str, content: str, metadata: Dict[str, Any]):
+    """
+    Handle /task command from chat
+
+    Task #1 (PR-A): Auto-trigger runner for chat-created tasks
+
+    Command format:
+        /task <title>
+
+    Example:
+        /task Implement user authentication
+
+    Flow:
+        1. Parse command to extract task title
+        2. Create task via API (calls create_task_and_start endpoint)
+        3. Send task creation confirmation to chat
+        4. Task is auto-approved, queued, and launched in background
+
+    Args:
+        session_id: Chat session ID
+        content: Message content starting with /task
+        metadata: Message metadata
+    """
+    store = get_session_store()
+
+    try:
+        # 1. Parse command
+        command_parts = content.strip().split(maxsplit=1)
+        if len(command_parts) < 2:
+            await manager.send_message(session_id, {
+                "type": "message.error",
+                "content": "Usage: /task <title>\nExample: /task Implement user authentication",
+            })
+            return
+
+        task_title = command_parts[1].strip()
+        if not task_title:
+            await manager.send_message(session_id, {
+                "type": "message.error",
+                "content": "Task title cannot be empty",
+            })
+            return
+
+        # 2. Store user message
+        store.add_message(
+            session_id=session_id,
+            role="user",
+            content=content,
+            metadata={"command": "task", "title": task_title}
+        )
+
+        # 3. Create task and launch
+        logger.info(f"Creating task from chat: {task_title}")
+
+        from agentos.core.task.service import TaskService
+        from agentos.core.runner.launcher import launch_task_async
+
+        task_service = TaskService()
+
+        # Create task in DRAFT state
+        task = task_service.create_draft_task(
+            title=task_title,
+            created_by=f"chat_session_{session_id[:8]}",
+            metadata={
+                "source": "chat",
+                "session_id": session_id,
+                "command": content
+            }
+        )
+
+        logger.info(f"Created task {task.task_id} from chat command")
+
+        # 4. Launch task (auto-approve, queue, and start runner)
+        success = launch_task_async(task.task_id, actor="chat_launcher")
+
+        if success:
+            # Send success message
+            response_content = (
+                f"✅ Task created and launched!\n\n"
+                f"**Task ID:** {task.task_id}\n"
+                f"**Title:** {task.title}\n"
+                f"**Status:** Queued for execution\n\n"
+                f"The task will start running shortly."
+            )
+
+            await manager.send_message(session_id, {
+                "type": "message.end",
+                "content": response_content,
+                "metadata": {
+                    "task_id": task.task_id,
+                    "task_title": task.title,
+                    "auto_launched": True
+                }
+            })
+
+            # Store assistant message
+            store.add_message(
+                session_id=session_id,
+                role="assistant",
+                content=response_content,
+                metadata={"task_id": task.task_id}
+            )
+
+            logger.info(f"Task {task.task_id} launched successfully from chat")
+
+        else:
+            # Launch failed
+            error_content = (
+                f"⚠️ Task created but failed to launch automatically.\n\n"
+                f"**Task ID:** {task.task_id}\n"
+                f"**Title:** {task.title}\n\n"
+                f"Please approve and queue the task manually."
+            )
+
+            await manager.send_message(session_id, {
+                "type": "message.error",
+                "content": error_content,
+                "metadata": {"task_id": task.task_id}
+            })
+
+            logger.error(f"Failed to launch task {task.task_id} from chat")
+
+    except Exception as e:
+        logger.error(f"Error handling task command: {e}", exc_info=True)
+        await manager.send_message(session_id, {
+            "type": "message.error",
+            "content": f"Failed to create task: {str(e)}",
+        })
 
 
 async def handle_user_message(session_id: str, content: str, metadata: Dict[str, Any]):

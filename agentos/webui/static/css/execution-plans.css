@@ -60,6 +60,7 @@
 .execution-plans-view .header-actions {
     display: flex;
     gap: 12px;
+    align-items: center;
 }
 
 /* ==================== Plan Content ==================== */
@@ -676,7 +677,7 @@
 
 .risks-list .material-icons {
     color: #ffc107;
-    margin-top: 2px;
+    transform: translateY(2px);
 }
 
 /* ==================== Artifacts Section ==================== */

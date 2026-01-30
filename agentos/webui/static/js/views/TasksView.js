@@ -34,6 +34,9 @@ class TasksView {
                         <button class="btn-refresh" id="tasks-refresh">
                             <span class="icon"><span class="material-icons md-18">refresh</span></span> Refresh
                         </button>
+                        <button class="btn-secondary" id="tasks-batch-create">
+                            <span class="icon"><span class="material-icons md-18">playlist_add</span></span> Batch Create
+                        </button>
                         <button class="btn-primary" id="tasks-create">
                             <span class="icon"><span class="material-icons md-18">add</span></span> Create Task
                         </button>
@@ -62,7 +65,29 @@ class TasksView {
         this.setupFilterBar();
         this.setupDataTable();
         this.setupEventListeners();
+        this.parseURLParameters();  // Parse URL params for initial filters
+        this.loadProjects();  // Load projects for filter dropdown
         this.loadTasks();
+    }
+
+    parseURLParameters() {
+        // Parse URL hash parameters (e.g., #/tasks?project=abc123)
+        const hash = window.location.hash;
+        if (hash.includes('?')) {
+            const queryString = hash.split('?')[1];
+            const params = new URLSearchParams(queryString);
+
+            // Set initial filters from URL
+            if (params.has('project')) {
+                this.currentFilters.project_id = params.get('project');
+            }
+            if (params.has('status')) {
+                this.currentFilters.status = params.get('status');
+            }
+            if (params.has('session')) {
+                this.currentFilters.session_id = params.get('session');
+            }
+        }
     }
 
     setupFilterBar() {
@@ -88,6 +113,15 @@ class TasksView {
                         { value: 'failed', label: 'Failed' },
                         { value: 'cancelled', label: 'Cancelled' }
                     ]
+                },
+                {
+                    type: 'select',
+                    key: 'project_id',
+                    label: 'Project',
+                    options: [
+                        { value: '', label: 'All Projects' }
+                    ],
+                    dynamic: true  // Will be populated from API
                 },
                 {
                     type: 'text',
@@ -123,6 +157,12 @@ class TasksView {
                     label: 'Task ID',
                     width: '200px',
                     render: (value) => `<code class="code-inline">${value}</code>`
+                },
+                {
+                    key: 'project_id',
+                    label: 'Project',
+                    width: '160px',
+                    render: (value, row) => this.renderProjectBadge(value, row)
                 },
                 {
                     key: 'status',
@@ -175,6 +215,11 @@ class TasksView {
             this.createTask();
         });
 
+        // Batch create button
+        this.container.querySelector('#tasks-batch-create').addEventListener('click', () => {
+            this.showBatchCreateDialog();
+        });
+
         // Drawer close
         this.container.querySelector('#tasks-drawer-close').addEventListener('click', () => {
             this.hideTaskDetail();
@@ -198,6 +243,64 @@ class TasksView {
         this.loadTasks();
     }
 
+    setupProjectBadgeHandlers() {
+        // Use event delegation for project badge clicks
+        const tableContainer = this.container.querySelector('#tasks-table');
+        if (!tableContainer) return;
+
+        // Remove old listener if exists
+        if (this._projectBadgeHandler) {
+            tableContainer.removeEventListener('click', this._projectBadgeHandler);
+        }
+
+        // Create new handler
+        this._projectBadgeHandler = (e) => {
+            const badge = e.target.closest('.project-badge');
+            if (!badge) return;
+
+            e.stopPropagation(); // Prevent row click
+
+            const projectId = badge.getAttribute('data-project-id');
+            if (projectId && window.projectContext) {
+                // Filter by this project
+                window.projectContext.setCurrentProject(projectId);
+            }
+        };
+
+        tableContainer.addEventListener('click', this._projectBadgeHandler);
+    }
+
+    async loadProjects() {
+        try {
+            const result = await apiClient.get('/api/projects', {
+                requestId: `projects-for-filter-${Date.now()}`
+            });
+
+            if (result.ok && result.data && result.data.projects) {
+                const projects = result.data.projects;
+
+                // Update the project filter dropdown (only if filterBar is initialized)
+                if (this.filterBar && this.filterBar.filters) {
+                    const projectFilter = this.filterBar.filters.find(f => f.key === 'project_id');
+                    if (projectFilter) {
+                        projectFilter.options = [
+                            { value: '', label: 'All Projects' },
+                            ...projects.map(p => ({
+                                value: p.project_id,
+                                label: p.name
+                            }))
+                        ];
+
+                        // Re-render the filter bar to show updated options
+                        this.filterBar.render();
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load projects for filter:', error);
+        }
+    }
+
     async loadTasks(forceRefresh = false) {
         this.dataTable.setLoading(true);
 
@@ -210,6 +313,9 @@ class TasksView {
             }
             if (this.currentFilters.status) {
                 params.append('status', this.currentFilters.status);
+            }
+            if (this.currentFilters.project_id) {
+                params.append('project_id', this.currentFilters.project_id);
             }
             if (this.currentFilters.session_id) {
                 params.append('session_id', this.currentFilters.session_id);
@@ -228,6 +334,9 @@ class TasksView {
             if (result.ok) {
                 this.tasks = result.data.tasks || result.data || [];
                 this.dataTable.setData(this.tasks);
+
+                // Setup project badge click handlers
+                this.setupProjectBadgeHandlers();
 
                 if (forceRefresh) {
                     showToast('Tasks refreshed', 'success', 2000);
@@ -342,6 +451,92 @@ class TasksView {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Project & Spec Information (v0.4) -->
+                        ${task.project_id || task.spec_version ? `
+                            <div class="detail-section">
+                                <h4>Project & Specification</h4>
+                                <div class="project-info-box">
+                                    ${task.project_id ? `
+                                        <div class="project-info-item">
+                                            <label>Project:</label>
+                                            <div class="value">
+                                                <a href="#/projects" class="project-link" data-project-id="${task.project_id}">
+                                                    ${task.project_name || task.project_id}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    ${task.repo_id ? `
+                                        <div class="project-info-item">
+                                            <label>Repository:</label>
+                                            <div class="value">${task.repo_name || task.repo_id}</div>
+                                        </div>
+                                    ` : ''}
+                                    ${task.workdir ? `
+                                        <div class="project-info-item">
+                                            <label>Working Directory:</label>
+                                            <div class="value"><code>${task.workdir}</code></div>
+                                        </div>
+                                    ` : ''}
+                                    ${task.spec_version !== undefined ? `
+                                        <div class="project-info-item">
+                                            <label>Spec Version:</label>
+                                            <div class="value">
+                                                v${task.spec_version}
+                                                ${task.spec_frozen_at ? `
+                                                    <span class="spec-status-badge frozen">
+                                                        <span class="material-icons" style="font-size: 14px;">lock</span>
+                                                        Frozen
+                                                    </span>
+                                                ` : `
+                                                    <span class="spec-status-badge draft">
+                                                        <span class="material-icons" style="font-size: 14px;">edit</span>
+                                                        Draft
+                                                    </span>
+                                                `}
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                    ${task.spec_frozen_at ? `
+                                        <div class="project-info-item">
+                                            <label>Spec Frozen At:</label>
+                                            <div class="value">${this.formatTimestamp(task.spec_frozen_at)}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+
+                                <!-- Spec Actions -->
+                                ${!task.spec_frozen_at && task.status === 'draft' ? `
+                                    <div class="spec-actions">
+                                        <button class="btn-freeze-spec" id="btn-freeze-spec" data-task-id="${task.task_id}">
+                                            <span class="material-icons md-18">lock</span>
+                                            Freeze Specification
+                                        </button>
+                                    </div>
+                                ` : ''}
+                                ${task.spec_frozen_at && task.status === 'planned' ? `
+                                    <div class="spec-actions">
+                                        <button class="btn-mark-ready" id="btn-mark-ready" data-task-id="${task.task_id}">
+                                            <span class="material-icons md-18">play_arrow</span>
+                                            Mark as Ready
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+
+                        <!-- Acceptance Criteria (v0.4) -->
+                        ${task.acceptance_criteria && task.acceptance_criteria.length > 0 ? `
+                            <div class="detail-section">
+                                <h4>Acceptance Criteria</h4>
+                                <ol class="criteria-summary">
+                                    ${task.acceptance_criteria.map(criterion => `
+                                        <li>${this.escapeHtml(criterion)}</li>
+                                    `).join('')}
+                                </ol>
+                            </div>
+                        ` : ''}
 
                         ${task.description ? `
                             <div class="detail-section">
@@ -1105,6 +1300,36 @@ class TasksView {
                 // TODO: Filter by task's answer packs when AnswerPacksView is implemented
             });
         }
+
+        // v0.4: Freeze spec button
+        const freezeSpecBtn = drawerBody.querySelector('#btn-freeze-spec');
+        if (freezeSpecBtn) {
+            freezeSpecBtn.addEventListener('click', async () => {
+                const taskId = freezeSpecBtn.getAttribute('data-task-id');
+                await this.freezeTaskSpec(taskId);
+            });
+        }
+
+        // v0.4: Mark ready button
+        const markReadyBtn = drawerBody.querySelector('#btn-mark-ready');
+        if (markReadyBtn) {
+            markReadyBtn.addEventListener('click', async () => {
+                const taskId = markReadyBtn.getAttribute('data-task-id');
+                await this.markTaskReady(taskId);
+            });
+        }
+
+        // v0.4: Project link
+        const projectLink = drawerBody.querySelector('.project-link');
+        if (projectLink) {
+            projectLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                const projectId = projectLink.getAttribute('data-project-id');
+                window.navigateToView('projects');
+                this.hideTaskDetail();
+                // TODO: Open project detail when ProjectsView supports direct navigation
+            });
+        }
     }
 
     hideTaskDetail() {
@@ -1121,8 +1346,182 @@ class TasksView {
     }
 
     async createTask() {
-        showToast('Task creation UI coming soon', 'info');
-        // TODO: Implement task creation modal
+        // Create backdrop for wizard modal
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-wizard-overlay';
+
+        // Create dialog container for wizard
+        const wizardContainer = document.createElement('div');
+        wizardContainer.className = 'modal-wizard-content';
+
+        // Append to body
+        backdrop.appendChild(wizardContainer);
+        document.body.appendChild(backdrop);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            backdrop.style.display = 'flex';
+        });
+
+        // Get default project from current filter
+        const defaultProjectId = this.currentFilters.project_id || null;
+
+        // Initialize wizard
+        const wizard = new CreateTaskWizard(wizardContainer, {
+            defaultProjectId: defaultProjectId,
+            onComplete: (taskId) => {
+                showToast('Task created and spec frozen successfully', 'success');
+                backdrop.remove();
+                this.loadTasks(true);
+
+                // Optionally open the task detail
+                if (taskId) {
+                    setTimeout(() => {
+                        this.showTaskDetail(taskId);
+                    }, 500);
+                }
+            },
+            onCancel: () => {
+                backdrop.remove();
+            }
+        });
+
+        // Close on backdrop click
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                wizard.cancel();
+            }
+        });
+
+        // Close on Escape key
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                wizard.cancel();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+    }
+
+    renderCreateTaskForm() {
+        return `
+            <form id="create-task-form" class="create-task-form">
+                <div class="form-group">
+                    <label for="task-title" class="required">Title</label>
+                    <input
+                        type="text"
+                        id="task-title"
+                        class="form-control"
+                        placeholder="Enter task title"
+                        maxlength="500"
+                        required
+                    />
+                    <span class="form-error" id="task-title-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-created-by">Created By</label>
+                    <input
+                        type="text"
+                        id="task-created-by"
+                        class="form-control"
+                        placeholder="Your identifier"
+                    />
+                    <small class="form-hint">Optional: Your name or identifier</small>
+                    <span class="form-error" id="task-created-by-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-metadata">Metadata</label>
+                    <textarea
+                        id="task-metadata"
+                        class="form-control"
+                        placeholder='{"key": "value"}'
+                        rows="4"
+                    ></textarea>
+                    <small class="form-hint">Optional: JSON format metadata</small>
+                    <span class="form-error" id="task-metadata-error"></span>
+                </div>
+            </form>
+        `;
+    }
+
+    async handleCreateTaskSubmit(backdrop, closeDialog) {
+        // Step A: Clear previous errors
+        const form = document.getElementById('create-task-form');
+        form.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+        form.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+
+        // Step B: Get and validate form data
+        const title = document.getElementById('task-title').value.trim();
+        const createdBy = document.getElementById('task-created-by').value.trim();
+        const metadataStr = document.getElementById('task-metadata').value.trim();
+
+        // Validate title
+        if (!title) {
+            this.showFieldError('task-title', 'task-title-error', 'Title is required');
+            return;
+        }
+
+        // Validate metadata JSON if provided
+        let metadata = null;
+        if (metadataStr) {
+            try {
+                metadata = JSON.parse(metadataStr);
+            } catch (e) {
+                this.showFieldError('task-metadata', 'task-metadata-error', 'Invalid JSON format');
+                return;
+            }
+        }
+
+        // Build request data
+        const requestData = {
+            title: title
+        };
+
+        if (createdBy) {
+            requestData.created_by = createdBy;
+        }
+
+        if (metadata) {
+            requestData.metadata = metadata;
+        }
+
+        // Step E: Show loading state
+        const submitBtn = document.getElementById('create-task-submit');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Creating...';
+
+        try {
+            // Step C: Call API
+            const result = await apiClient.post('/api/tasks', requestData, {
+                requestId: 'create-task-' + Date.now()
+            });
+
+            // Step D: Handle response
+            if (result.ok) {
+                showToast('Task created successfully', 'success');
+                closeDialog();
+                this.loadTasks(true);
+            } else {
+                showToast(`Failed to create task: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to create task:', error);
+            showToast('Failed to create task', 'error');
+        } finally {
+            // Restore button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+
+    showFieldError(fieldId, errorId, message) {
+        const field = document.getElementById(fieldId);
+        const error = document.getElementById(errorId);
+        field.classList.add('error');
+        error.textContent = message;
     }
 
     async cancelTask(taskId) {
@@ -1272,6 +1671,31 @@ class TasksView {
 
         const config = statusMap[status] || { label: status, class: 'status-unknown', icon: '<span class="material-icons md-18">help</span>' };
         return `<span class="status-badge ${config.class}">${config.icon} ${config.label}</span>`;
+    }
+
+    renderProjectBadge(projectId, task) {
+        if (!projectId) {
+            return `<span class="project-badge project-badge-no-project">
+                <span class="material-icons md-14">folder_off</span>
+                <span>No Project</span>
+            </span>`;
+        }
+
+        // Get project name from context if available
+        let projectName = projectId;
+        if (window.projectContext && typeof window.projectContext.getProjectName === 'function') {
+            projectName = window.projectContext.getProjectName(projectId);
+        }
+
+        // Truncate long names
+        if (projectName.length > 20) {
+            projectName = projectName.substring(0, 17) + '...';
+        }
+
+        return `<span class="project-badge" data-project-id="${this.escapeHtml(projectId)}" title="${this.escapeHtml(projectId)}">
+            <span class="material-icons md-14">folder</span>
+            <span>${this.escapeHtml(projectName)}</span>
+        </span>`;
     }
 
     formatTimestamp(timestamp) {
@@ -1615,6 +2039,592 @@ class TasksView {
             reviews
         });
         panel.render();
+    }
+
+    showBatchCreateDialog() {
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'dialog-backdrop';
+
+        // Create dialog container
+        const dialog = document.createElement('div');
+        dialog.className = 'dialog-container dialog-container--large';
+
+        // Build dialog HTML
+        dialog.innerHTML = `
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3 class="dialog-title">Batch Create Tasks</h3>
+                </div>
+                <div class="dialog-body">
+                    ${this.renderBatchCreateForm()}
+                </div>
+                <div class="dialog-footer">
+                    <button class="dialog-btn btn-secondary" id="batch-create-cancel">Cancel</button>
+                    <button class="dialog-btn btn-primary" id="batch-create-submit">Create Tasks</button>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        backdrop.appendChild(dialog);
+        document.body.appendChild(backdrop);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            backdrop.classList.add('dialog-backdrop--visible');
+            dialog.classList.add('dialog-container--visible');
+        });
+
+        // Setup event handlers
+        const closeDialog = () => {
+            backdrop.classList.remove('dialog-backdrop--visible');
+            dialog.classList.remove('dialog-container--visible');
+            setTimeout(() => backdrop.remove(), 300);
+        };
+
+        // Cancel button
+        dialog.querySelector('#batch-create-cancel').addEventListener('click', closeDialog);
+
+        // Submit button
+        dialog.querySelector('#batch-create-submit').addEventListener('click', () => {
+            this.handleBatchCreate(dialog, closeDialog);
+        });
+
+        // Tab switching
+        dialog.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.getAttribute('data-tab');
+                dialog.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                dialog.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                dialog.querySelector(`#${tabName}-tab`).classList.add('active');
+            });
+        });
+
+        // CSV file change handler
+        const csvFile = dialog.querySelector('#csv-file');
+        if (csvFile) {
+            csvFile.addEventListener('change', (e) => {
+                this.handleCSVFileSelect(e.target.files[0], dialog);
+            });
+        }
+
+        // Backdrop click to close
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                closeDialog();
+            }
+        });
+
+        // Escape key to close
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                closeDialog();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+    }
+
+    renderBatchCreateForm() {
+        return `
+            <div class="batch-create-form">
+                <div class="form-tabs">
+                    <button class="tab-btn active" data-tab="text">Text Input</button>
+                    <button class="tab-btn" data-tab="csv">CSV Upload</button>
+                </div>
+
+                <div class="tab-content active" id="text-tab">
+                    <div class="form-group">
+                        <label>Task Titles (one per line)</label>
+                        <textarea
+                            id="batch-titles"
+                            rows="10"
+                            class="form-control"
+                            placeholder="Task 1&#10;Task 2&#10;Task 3"
+                        ></textarea>
+                        <small class="form-hint">Enter one task title per line (max 100)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Default Created By (Optional)</label>
+                        <input type="text" id="batch-created-by" class="form-control" placeholder="Your name or identifier" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Default Metadata (JSON, Optional)</label>
+                        <textarea
+                            id="batch-metadata"
+                            rows="4"
+                            class="form-control"
+                            placeholder='{"priority": "medium", "category": "development"}'
+                        ></textarea>
+                        <small class="form-hint">Optional JSON metadata to apply to all tasks</small>
+                        <span class="form-error" id="batch-metadata-error"></span>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="csv-tab">
+                    <div class="form-group">
+                        <label>Upload CSV File</label>
+                        <input type="file" id="csv-file" accept=".csv" class="form-control" />
+                        <small class="form-hint">
+                            CSV format: title,created_by,metadata<br>
+                            Example: "Task 1","user@example.com","{\\"priority\\":\\"high\\"}"
+                        </small>
+                    </div>
+
+                    <div id="csv-preview"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    async handleBatchCreate(dialog, closeDialog) {
+        const activeTab = dialog.querySelector('.tab-content.active').id;
+
+        // Clear previous errors
+        dialog.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+        dialog.querySelectorAll('.form-control').forEach(el => el.classList.remove('error'));
+
+        let tasks = [];
+
+        if (activeTab === 'text-tab') {
+            // Text input mode
+            const titlesEl = dialog.querySelector('#batch-titles');
+            const titles = titlesEl.value
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+
+            if (titles.length === 0) {
+                showToast('Please enter at least one task title', 'error');
+                titlesEl.classList.add('error');
+                return;
+            }
+
+            if (titles.length > 100) {
+                showToast('Maximum 100 tasks allowed', 'error');
+                titlesEl.classList.add('error');
+                return;
+            }
+
+            const createdBy = dialog.querySelector('#batch-created-by').value.trim() || null;
+            const metadataStr = dialog.querySelector('#batch-metadata').value.trim();
+
+            let metadata = null;
+            if (metadataStr) {
+                try {
+                    metadata = JSON.parse(metadataStr);
+                } catch (e) {
+                    const errorEl = dialog.querySelector('#batch-metadata-error');
+                    const metadataEl = dialog.querySelector('#batch-metadata');
+                    metadataEl.classList.add('error');
+                    errorEl.textContent = 'Invalid JSON format';
+                    showToast('Invalid JSON in metadata field', 'error');
+                    return;
+                }
+            }
+
+            tasks = titles.map(title => ({
+                title,
+                created_by: createdBy,
+                metadata: metadata
+            }));
+        } else {
+            // CSV mode
+            const csvData = dialog.querySelector('#csv-file').csvData;
+            if (!csvData || csvData.length === 0) {
+                showToast('Please upload and preview a CSV file first', 'error');
+                return;
+            }
+            tasks = csvData;
+        }
+
+        // Show loading state
+        const submitBtn = dialog.querySelector('#batch-create-submit');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span> Creating...';
+
+        try {
+            // Call batch creation API
+            const result = await apiClient.post('/api/tasks/batch', { tasks }, {
+                requestId: `batch-create-${Date.now()}`,
+                timeout: 60000  // 60s timeout for batch operations
+            });
+
+            if (result.ok) {
+                const data = result.data;
+                const message = `Created ${data.successful} tasks successfully` +
+                    (data.failed > 0 ? `, ${data.failed} failed` : '');
+
+                showToast(message, data.failed > 0 ? 'warning' : 'success');
+
+                // Show detailed results if there are failures
+                if (data.failed > 0) {
+                    this.showBatchCreateResults(data);
+                }
+
+                closeDialog();
+                this.loadTasks(true);  // Refresh task list
+            } else {
+                showToast(`Batch creation failed: ${result.message}`, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to create batch:', error);
+            showToast('Failed to create tasks batch', 'error');
+        } finally {
+            // Restore button state
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        }
+    }
+
+    async handleCSVFileSelect(file, dialog) {
+        const previewDiv = dialog.querySelector('#csv-preview');
+
+        if (!file) {
+            previewDiv.innerHTML = '';
+            return;
+        }
+
+        previewDiv.innerHTML = '<div class="loading-spinner">Parsing CSV...</div>';
+
+        try {
+            const csvData = await this.parseCSVFile(file);
+
+            if (!csvData || csvData.length === 0) {
+                previewDiv.innerHTML = '<div class="error-message">No valid data found in CSV</div>';
+                return;
+            }
+
+            // Store parsed data for later use
+            dialog.querySelector('#csv-file').csvData = csvData;
+
+            // Show preview
+            previewDiv.innerHTML = `
+                <div class="csv-preview-container">
+                    <h4>Preview (${csvData.length} tasks)</h4>
+                    <div class="preview-table">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Title</th>
+                                    <th>Created By</th>
+                                    <th>Metadata</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${csvData.slice(0, 5).map((task, idx) => `
+                                    <tr>
+                                        <td>${idx + 1}</td>
+                                        <td>${this._escapeHtml(task.title)}</td>
+                                        <td>${task.created_by || 'N/A'}</td>
+                                        <td>${task.metadata ? '<code>JSON</code>' : 'N/A'}</td>
+                                    </tr>
+                                `).join('')}
+                                ${csvData.length > 5 ? `
+                                    <tr>
+                                        <td colspan="4" class="text-muted">... and ${csvData.length - 5} more tasks</td>
+                                    </tr>
+                                ` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        } catch (error) {
+            previewDiv.innerHTML = `<div class="error-message">Failed to parse CSV: ${error.message}</div>`;
+        }
+    }
+
+    async parseCSVFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const csv = e.target.result;
+                    const lines = csv.split('\n').map(line => line.trim()).filter(line => line);
+
+                    if (lines.length === 0) {
+                        reject(new Error('CSV file is empty'));
+                        return;
+                    }
+
+                    // Check if first line is a header
+                    const firstLine = lines[0].toLowerCase();
+                    const hasHeader = firstLine.includes('title');
+                    const dataLines = hasHeader ? lines.slice(1) : lines;
+
+                    if (dataLines.length === 0) {
+                        reject(new Error('No data rows found in CSV'));
+                        return;
+                    }
+
+                    if (dataLines.length > 100) {
+                        reject(new Error('Maximum 100 tasks allowed'));
+                        return;
+                    }
+
+                    const tasks = [];
+                    for (let i = 0; i < dataLines.length; i++) {
+                        const line = dataLines[i];
+
+                        // Simple CSV parser (handles quoted fields)
+                        const parts = this._parseCSVLine(line);
+
+                        if (parts.length === 0 || !parts[0]) {
+                            continue;  // Skip empty lines
+                        }
+
+                        const task = {
+                            title: parts[0],
+                            created_by: parts[1] || null,
+                            metadata: null
+                        };
+
+                        // Parse metadata if present
+                        if (parts[2]) {
+                            try {
+                                task.metadata = JSON.parse(parts[2]);
+                            } catch (e) {
+                                console.warn(`Failed to parse metadata for row ${i + 1}: ${e.message}`);
+                            }
+                        }
+
+                        tasks.push(task);
+                    }
+
+                    resolve(tasks);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    }
+
+    _parseCSVLine(line) {
+        const parts = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                parts.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+
+        parts.push(current.trim());
+        return parts;
+    }
+
+    _escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    escapeHtml(text) {
+        return this._escapeHtml(text);
+    }
+
+    showBatchCreateResults(data) {
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'dialog-backdrop';
+
+        // Create dialog container
+        const dialog = document.createElement('div');
+        dialog.className = 'dialog-container dialog-container--large';
+
+        // Build results HTML
+        dialog.innerHTML = `
+            <div class="dialog-content">
+                <div class="dialog-header">
+                    <h3 class="dialog-title">Batch Create Results</h3>
+                </div>
+                <div class="dialog-body">
+                    <div class="batch-results">
+                        <div class="result-summary">
+                            <div class="summary-item">
+                                <span class="summary-label">Total:</span>
+                                <span class="summary-value">${data.total}</span>
+                            </div>
+                            <div class="summary-item success">
+                                <span class="summary-label">Successful:</span>
+                                <span class="summary-value">${data.successful}</span>
+                            </div>
+                            <div class="summary-item error">
+                                <span class="summary-label">Failed:</span>
+                                <span class="summary-value">${data.failed}</span>
+                            </div>
+                        </div>
+
+                        ${data.failed > 0 ? `
+                            <div class="failed-tasks">
+                                <h4>Failed Tasks:</h4>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Index</th>
+                                            <th>Title</th>
+                                            <th>Error</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${data.errors.map(err => `
+                                            <tr>
+                                                <td>${err.index + 1}</td>
+                                                <td>${this._escapeHtml(err.title)}</td>
+                                                <td>${this._escapeHtml(err.error)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+
+                                <button class="btn-secondary" id="download-failed-csv">
+                                    <span class="material-icons md-18">download</span>
+                                    Download Failed Tasks (CSV)
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="dialog-footer">
+                    <button class="dialog-btn btn-primary" id="results-close">Close</button>
+                </div>
+            </div>
+        `;
+
+        // Append to body
+        backdrop.appendChild(dialog);
+        document.body.appendChild(backdrop);
+
+        // Trigger animation
+        requestAnimationFrame(() => {
+            backdrop.classList.add('dialog-backdrop--visible');
+            dialog.classList.add('dialog-container--visible');
+        });
+
+        // Close handler
+        const closeDialog = () => {
+            backdrop.classList.remove('dialog-backdrop--visible');
+            dialog.classList.remove('dialog-container--visible');
+            setTimeout(() => backdrop.remove(), 300);
+        };
+
+        dialog.querySelector('#results-close').addEventListener('click', closeDialog);
+
+        // Download CSV handler
+        const downloadBtn = dialog.querySelector('#download-failed-csv');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', () => {
+                this.downloadFailedTasksCSV(data.errors);
+            });
+        }
+
+        // Backdrop click to close
+        backdrop.addEventListener('click', (e) => {
+            if (e.target === backdrop) {
+                closeDialog();
+            }
+        });
+    }
+
+    downloadFailedTasksCSV(errors) {
+        // Build CSV content
+        const csvLines = ['Title,Error'];
+        errors.forEach(err => {
+            const title = err.title.replace(/"/g, '""');  // Escape quotes
+            const error = err.error.replace(/"/g, '""');
+            csvLines.push(`"${title}","${error}"`);
+        });
+
+        const csvContent = csvLines.join('\n');
+
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `failed-tasks-${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showToast('Failed tasks downloaded', 'success');
+    }
+
+    // ==================== v0.4 Spec Management Methods ====================
+
+    async freezeTaskSpec(taskId) {
+        try {
+            showToast('Freezing specification...', 'info', 2000);
+
+            const result = await apiClient.post(`/api/tasks/${taskId}/spec/freeze`, null, {
+                requestId: `freeze-spec-${taskId}`
+            });
+
+            if (!result.ok) {
+                showToast(`Failed to freeze spec: ${result.message}`, 'error');
+                return;
+            }
+
+            showToast('Specification frozen successfully', 'success');
+
+            // Reload task details
+            await this.showTaskDetail(taskId);
+            this.loadTasks(true);
+
+        } catch (err) {
+            console.error('Failed to freeze spec:', err);
+            showToast('Failed to freeze spec: ' + err.message, 'error');
+        }
+    }
+
+    async markTaskReady(taskId) {
+        try {
+            showToast('Marking task as ready...', 'info', 2000);
+
+            const result = await apiClient.patch(`/api/tasks/${taskId}`, { status: 'ready' }, {
+                requestId: `mark-ready-${taskId}`
+            });
+
+            if (!result.ok) {
+                showToast(`Failed to mark task as ready: ${result.message}`, 'error');
+                return;
+            }
+
+            showToast('Task marked as ready', 'success');
+
+            // Reload task details
+            await this.showTaskDetail(taskId);
+            this.loadTasks(true);
+
+        } catch (err) {
+            console.error('Failed to mark task as ready:', err);
+            showToast('Failed to mark task as ready: ' + err.message, 'error');
+        }
+    }
+
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     destroy() {
