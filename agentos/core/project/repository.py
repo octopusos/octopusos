@@ -124,7 +124,7 @@ class ProjectRepository:
 
             cursor.execute(
                 """
-                INSERT INTO repos (
+                INSERT INTO project_repos (
                     repo_id, project_id, name, remote_url, default_branch,
                     workspace_relpath, role, is_writable, auth_profile,
                     created_at, updated_at, metadata
