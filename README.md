@@ -618,9 +618,9 @@ ruff format .
 
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/seacow-technology/agentos/issues)
 - 💡 **Feature Requests**: [GitHub Discussions](https://github.com/seacow-technology/agentos/discussions)
-- 💬 **Community Chat**: [Discord](https://discord.gg/agentos) *(coming soon)*
-- 📧 **Email**: support@agentos.dev
-- 🌐 **Website**: https://agentos.dev *(coming soon)*
+- 💬 **Community Chat**: Coming soon
+- 📧 **Email**: Coming soon
+- 🌐 **Website**: Coming soon
 
 ---
 
