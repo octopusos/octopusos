@@ -1,0 +1,31 @@
+{
+  "timeout_sec": 30,
+  "checks": [
+    {
+      "id": "health",
+      "description": "App startup exposes /api/health within 30 seconds",
+      "required": true
+    },
+    {
+      "id": "status",
+      "description": "/api/status returns runtime=embedded",
+      "required": true
+    },
+    {
+      "id": "diagnostic_export",
+      "description": "POST /api/diagnostic/export returns bundle_path and existing zip",
+      "required": true
+    },
+    {
+      "id": "bundle_contents",
+      "description": "Exported bundle contains manifest.json status.json config_snapshot.json and logs/",
+      "required": true
+    }
+  ],
+  "required_bundle_entries": [
+    "manifest.json",
+    "status.json",
+    "config_snapshot.json",
+    "logs/"
+  ]
+}
