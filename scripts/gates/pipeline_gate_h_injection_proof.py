@@ -27,7 +27,7 @@ def test_parent_process_isolation():
     print("1. Testing parent process isolation...")
     
     try:
-        from agentos.core.verify.schema_validator import SchemaValidator
+        from octopusos.core.verify.schema_validator import SchemaValidator
         print("   ⚠️  WARNING: SchemaValidator is available in parent process")
         print("   This suggests core may have been modified")
         return False, "SchemaValidator found in parent (core污染?)"
@@ -50,7 +50,7 @@ sitecustomize_loaded = 'sitecustomize' in sys.modules
 
 # 检查SchemaValidator是否Available
 try:
-    from agentos.core.verify.schema_validator import SchemaValidator
+    from octopusos.core.verify.schema_validator import SchemaValidator
     validator_available = True
     validator_type = str(type(SchemaValidator))
 except ImportError as e:

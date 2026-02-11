@@ -17,7 +17,7 @@ import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { useTextTranslation, K } from '@/ui/text'
 import type { GridColDef } from '@/ui'
-import { agentosService } from '@/services'
+import { networkosService } from '@/services'
 
 /**
  * Audit Log Type
@@ -83,16 +83,16 @@ export default function AuditLogPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await agentosService.getGovernanceAudit({
+      const response = await networkosService.capabilityGovernanceAuditApiCapabilityGovernanceAuditGet({
         agent_id: agentFilter || undefined,
         capability_id: capabilityFilter || undefined,
         allowed: resultFilter === 'all' ? undefined : resultFilter === 'allowed',
         limit: pagination.limit,
         offset: pagination.offset,
       })
-      setAuditLogs(response.invocations)
-      setStats(response.stats)
-      setPagination(response.pagination)
+      setAuditLogs(response.invocations || [])
+      setStats(response.stats || { total: 0, allowed: 0, denied: 0, success_rate: 0 })
+      setPagination(response.pagination || { limit: pagination.limit, offset: pagination.offset, has_more: false })
     } catch (err) {
       console.error('Failed to fetch audit logs:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')

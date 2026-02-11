@@ -21,7 +21,7 @@ class AutoCommMonitor:
 
     def __init__(self, log_file: str = None):
         """Initialize monitor with optional log file path"""
-        self.log_file = log_file or "logs/agentos.log"
+        self.log_file = log_file or "logs/octopusos.log"
 
     def parse_log_events(self) -> List[Dict[str, Any]]:
         """Parse AutoComm events from log file
@@ -159,27 +159,27 @@ def example_grep_commands():
     commands = [
         {
             "description": "Count total AutoComm attempts",
-            "command": 'grep "AUTOCOMM_ATTEMPT" logs/agentos.log | wc -l'
+            "command": 'grep "AUTOCOMM_ATTEMPT" logs/octopusos.log | wc -l'
         },
         {
             "description": "Count successful executions",
-            "command": 'grep "AUTOCOMM_SUCCESS" logs/agentos.log | wc -l'
+            "command": 'grep "AUTOCOMM_SUCCESS" logs/octopusos.log | wc -l'
         },
         {
             "description": "Count failed executions",
-            "command": 'grep "AUTOCOMM_FAILED" logs/agentos.log | wc -l'
+            "command": 'grep "AUTOCOMM_FAILED" logs/octopusos.log | wc -l'
         },
         {
             "description": "Find all ImportError failures",
-            "command": 'grep "AUTOCOMM_FAILED" logs/agentos.log | grep "ImportError"'
+            "command": 'grep "AUTOCOMM_FAILED" logs/octopusos.log | grep "ImportError"'
         },
         {
             "description": "Monitor AutoComm in real-time",
-            "command": 'tail -f logs/agentos.log | grep --line-buffered "AUTOCOMM"'
+            "command": 'tail -f logs/octopusos.log | grep --line-buffered "AUTOCOMM"'
         },
         {
             "description": "Find AutoComm events for specific session",
-            "command": 'grep "session-123" logs/agentos.log | grep "AUTOCOMM"'
+            "command": 'grep "session-123" logs/octopusos.log | grep "AUTOCOMM"'
         }
     ]
 

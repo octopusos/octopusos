@@ -8,7 +8,7 @@ This shows the complete workflow from proposal creation to implementation.
 import asyncio
 from datetime import datetime, timezone, timedelta
 
-from agentos.core.brain.improvement_proposal import (
+from octopusos.core.brain.improvement_proposal import (
     ImprovementProposal,
     ProposalEvidence,
     ProposalStatus,
@@ -16,7 +16,7 @@ from agentos.core.brain.improvement_proposal import (
     RiskLevel,
     RecommendationType,
 )
-from agentos.core.brain.improvement_proposal_store import get_store
+from octopusos.core.brain.improvement_proposal_store import get_store
 
 
 async def demo_keyword_expansion():

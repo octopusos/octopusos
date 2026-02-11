@@ -30,7 +30,6 @@ import {
 } from '@mui/icons-material'
 import { t, K } from '@/ui/text'
 import { get, post } from '@platform/http'
-import { config } from '@platform/config/env'
 
 export interface CodePreviewDialogProps {
   open: boolean
@@ -189,9 +188,7 @@ ${htmlCode}
           })
 
           if (data.url) {
-            // Construct full URL with backend base URL
-            const fullUrl = `${config.apiBaseUrl}${data.url}`
-            setPreviewUrl(fullUrl)
+            setPreviewUrl(new URL(data.url, window.location.origin).toString())
           }
         } catch (err: any) {
           console.error('[CodePreviewDialog] ❌ Failed to create preview session:', err)
@@ -226,9 +223,7 @@ ${htmlCode}
         })
 
         if (data.url) {
-          // Construct full URL with backend base URL
-          const fullUrl = `${config.apiBaseUrl}${data.url}`
-          setPreviewUrl(fullUrl)
+          setPreviewUrl(new URL(data.url, window.location.origin).toString())
         }
       } catch (err) {
         console.error('[CodePreviewDialog] Failed to refresh preview:', err)

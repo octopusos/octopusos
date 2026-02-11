@@ -80,7 +80,7 @@
         ],
         "risk_level": "high",
         "evidence_refs": [
-          "scan://file/agentos/store/migrations/v010_add_user_credentials_table.sql",
+          "scan://file/octopusos/store/migrations/v010_add_user_credentials_table.sql",
           "doc://db_schema/credentials_table_spec"
         ]
       },
@@ -96,7 +96,7 @@
         ],
         "risk_level": "critical",
         "evidence_refs": [
-          "scan://file/agentos/store/migrations/v010_rollback.sql",
+          "scan://file/octopusos/store/migrations/v010_rollback.sql",
           "doc://operations/rollback_procedures"
         ]
       },
@@ -111,7 +111,7 @@
         ],
         "risk_level": "medium",
         "evidence_refs": [
-          "scan://file/agentos/models/user_credentials.py"
+          "scan://file/octopusos/models/user_credentials.py"
         ]
       },
       {
@@ -126,7 +126,7 @@
         ],
         "risk_level": "high",
         "evidence_refs": [
-          "scan://file/agentos/services/credentials_service.py",
+          "scan://file/octopusos/services/credentials_service.py",
           "doc://security/encryption_standards"
         ]
       },
@@ -299,14 +299,14 @@
     "created_at": "2026-01-25T10:21:41.567570Z",
     "files": [
       {
-        "path": "agentos/store/migrations/v010_add_user_credentials_table.sql",
+        "path": "octopusos/store/migrations/v010_add_user_credentials_table.sql",
         "action": "modify",
-        "rationale": "Modify agentos/store/migrations/v010_add_user_credentials_table.sql to: Add secure user credentials storage with proper encryption and migration",
+        "rationale": "Modify octopusos/store/migrations/v010_add_user_credentials_table.sql to: Add secure user credentials storage with proper encryption and migration",
         "risk": "critical",
         "evidence_refs": [
           "doc://db_schema/credentials_table_spec",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/store/migrations/v010_add_user_credentials_table.sql",
-          "scan://file/agentos/store/migrations/v010_add_user_credentials_table.sql"
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/store/migrations/v010_add_user_credentials_table.sql",
+          "scan://file/octopusos/store/migrations/v010_add_user_credentials_table.sql"
         ],
         "lock_intent": {
           "mode": "exclusive",
@@ -316,13 +316,13 @@
         "estimated_impact": "critical"
       },
       {
-        "path": "agentos/store/migrations/v010_rollback.sql",
+        "path": "octopusos/store/migrations/v010_rollback.sql",
         "action": "modify",
-        "rationale": "Modify agentos/store/migrations/v010_rollback.sql to: Add secure user credentials storage with proper encryption and migration",
+        "rationale": "Modify octopusos/store/migrations/v010_rollback.sql to: Add secure user credentials storage with proper encryption and migration",
         "risk": "critical",
         "evidence_refs": [
-          "scan://file/agentos/store/migrations/v010_rollback.sql",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/store/migrations/v010_rollback.sql",
+          "scan://file/octopusos/store/migrations/v010_rollback.sql",
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/store/migrations/v010_rollback.sql",
           "doc://operations/rollback_procedures"
         ],
         "lock_intent": {
@@ -333,13 +333,13 @@
         "estimated_impact": "critical"
       },
       {
-        "path": "agentos/models/user_credentials.py",
+        "path": "octopusos/models/user_credentials.py",
         "action": "modify",
-        "rationale": "Modify agentos/models/user_credentials.py to: Add secure user credentials storage with proper encryption and migration",
+        "rationale": "Modify octopusos/models/user_credentials.py to: Add secure user credentials storage with proper encryption and migration",
         "risk": "critical",
         "evidence_refs": [
-          "scan://file/agentos/models/user_credentials.py",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/models/user_credentials.py"
+          "scan://file/octopusos/models/user_credentials.py",
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/models/user_credentials.py"
         ],
         "lock_intent": {
           "mode": "exclusive",
@@ -349,14 +349,14 @@
         "estimated_impact": "critical"
       },
       {
-        "path": "agentos/services/credentials_service.py",
+        "path": "octopusos/services/credentials_service.py",
         "action": "modify",
-        "rationale": "Modify agentos/services/credentials_service.py to: Add secure user credentials storage with proper encryption and migration",
+        "rationale": "Modify octopusos/services/credentials_service.py to: Add secure user credentials storage with proper encryption and migration",
         "risk": "critical",
         "evidence_refs": [
           "doc://security/encryption_standards",
-          "scan://file/agentos/services/credentials_service.py",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/services/credentials_service.py"
+          "scan://file/octopusos/services/credentials_service.py",
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/services/credentials_service.py"
         ],
         "lock_intent": {
           "mode": "exclusive",
@@ -384,9 +384,9 @@
     ],
     "estimated_diffs": [
       {
-        "file_path": "agentos/store/migrations/v010_add_user_credentials_table.sql",
+        "file_path": "octopusos/store/migrations/v010_add_user_credentials_table.sql",
         "diff_hash_placeholder": "placeholder_9443fd45defeb107",
-        "intent_summary": "Changes to agentos/store/migrations/v010_add_user_credentials_table.sql for: Add secure user credentials storage with proper encryption and migration",
+        "intent_summary": "Changes to octopusos/store/migrations/v010_add_user_credentials_table.sql for: Add secure user credentials storage with proper encryption and migration",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -394,9 +394,9 @@
         }
       },
       {
-        "file_path": "agentos/store/migrations/v010_rollback.sql",
+        "file_path": "octopusos/store/migrations/v010_rollback.sql",
         "diff_hash_placeholder": "placeholder_917d8c1c2f12cb53",
-        "intent_summary": "Changes to agentos/store/migrations/v010_rollback.sql for: Add secure user credentials storage with proper encryption and migration",
+        "intent_summary": "Changes to octopusos/store/migrations/v010_rollback.sql for: Add secure user credentials storage with proper encryption and migration",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -404,9 +404,9 @@
         }
       },
       {
-        "file_path": "agentos/models/user_credentials.py",
+        "file_path": "octopusos/models/user_credentials.py",
         "diff_hash_placeholder": "placeholder_9a1e9f77d8b0da56",
-        "intent_summary": "Changes to agentos/models/user_credentials.py for: Add secure user credentials storage with proper encryption and migration",
+        "intent_summary": "Changes to octopusos/models/user_credentials.py for: Add secure user credentials storage with proper encryption and migration",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -414,9 +414,9 @@
         }
       },
       {
-        "file_path": "agentos/services/credentials_service.py",
+        "file_path": "octopusos/services/credentials_service.py",
         "diff_hash_placeholder": "placeholder_79fddd3f12454927",
-        "intent_summary": "Changes to agentos/services/credentials_service.py for: Add secure user credentials storage with proper encryption and migration",
+        "intent_summary": "Changes to octopusos/services/credentials_service.py for: Add secure user credentials storage with proper encryption and migration",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -450,29 +450,29 @@
     "commits": [
       {
         "commit_id": "commit_0001",
-        "title": "feat(agentos): update 4 file(s)",
-        "scope": "agentos",
+        "title": "feat(octopusos): update 4 file(s)",
+        "scope": "octopusos",
         "files": [
-          "agentos/store/migrations/v010_add_user_credentials_table.sql",
-          "agentos/store/migrations/v010_rollback.sql",
-          "agentos/models/user_credentials.py",
-          "agentos/services/credentials_service.py"
+          "octopusos/store/migrations/v010_add_user_credentials_table.sql",
+          "octopusos/store/migrations/v010_rollback.sql",
+          "octopusos/models/user_credentials.py",
+          "octopusos/services/credentials_service.py"
         ],
-        "rationale": "Grouped 4 files from agentos directory",
+        "rationale": "Grouped 4 files from octopusos directory",
         "depends_on": [],
         "risk": "critical",
         "evidence_refs": [
           "doc://db_schema/credentials_table_spec",
-          "scan://file/agentos/services/credentials_service.py",
+          "scan://file/octopusos/services/credentials_service.py",
           "doc://security/encryption_standards",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/store/migrations/v010_rollback.sql",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/store/migrations/v010_add_user_credentials_table.sql",
-          "scan://file/agentos/store/migrations/v010_add_user_credentials_table.sql",
-          "scan://file/agentos/models/user_credentials.py",
-          "scan://file/agentos/store/migrations/v010_rollback.sql",
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/store/migrations/v010_rollback.sql",
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/store/migrations/v010_add_user_credentials_table.sql",
+          "scan://file/octopusos/store/migrations/v010_add_user_credentials_table.sql",
+          "scan://file/octopusos/models/user_credentials.py",
+          "scan://file/octopusos/store/migrations/v010_rollback.sql",
           "doc://operations/rollback_procedures",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/models/user_credentials.py",
-          "intent://intent_example_high_risk/scope/targets/files/agentos/services/credentials_service.py"
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/models/user_credentials.py",
+          "intent://intent_example_high_risk/scope/targets/files/octopusos/services/credentials_service.py"
         ],
         "rollback_strategy": "requires_manual",
         "estimated_review_time": "extended",
@@ -565,15 +565,15 @@
       "decision": "Planned changes for 5 files",
       "rationale": "Files from intent scope.targets.files",
       "evidence_refs": [
-        "scan://file/agentos/services/credentials_service.py",
+        "scan://file/octopusos/services/credentials_service.py",
         "doc://security/encryption_standards",
-        "scan://file/agentos/store/migrations/v010_add_user_credentials_table.sql",
+        "scan://file/octopusos/store/migrations/v010_add_user_credentials_table.sql",
         "doc://operations/migration_playbook",
         "threat_model://credentials_storage",
         "scan://file/tests/integration/test_credentials_migration.py",
         "doc://db_schema/credentials_table_spec",
-        "scan://file/agentos/models/user_credentials.py",
-        "scan://file/agentos/store/migrations/v010_rollback.sql",
+        "scan://file/octopusos/models/user_credentials.py",
+        "scan://file/octopusos/store/migrations/v010_rollback.sql",
         "doc://operations/rollback_procedures"
       ]
     },

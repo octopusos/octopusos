@@ -1,0 +1,10 @@
+id: sessions_md
+type: filesystem
+root: /Users/pangge/PycharmProjects/AgentOS/recordings/sessions
+include:
+  - "**/*.md"
+chunking:
+  strategy: heading
+  heading_prefix: "## "
+metadata:
+  parse_front_matter: true

@@ -82,7 +82,7 @@ def gate_r1_policy_deny_runtime(repo_root: Path) -> tuple[bool, str]:
         
         # 尝试运行 executor（应该失败）
         cmd = [
-            "uv", "run", "agentos", "exec", "run",
+            "uv", "run", "octopusos", "exec", "run",
             "--request", str(req_file),
             "--policy", str(policy_deny),
             "--repo", str(test_repo),

@@ -13,12 +13,13 @@
  * - form.field.level
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { TextField, Select, MenuItem, Box, Typography, Chip } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { DetailDrawer } from '@/ui/interaction'
+import { httpClient } from '@platform/http'
 import type { GridColDef } from '@/ui'
 
 // ===================================
@@ -34,59 +35,7 @@ interface LogRow {
   duration: string
 }
 
-/**
- * Mock 数据（迁移阶段）
- */
-const MOCK_LOGS: LogRow[] = [
-  {
-    id: 1,
-    timestamp: '2026-02-02 11:30:15',
-    level: 'INFO',
-    source: 'agentos.core.brain',
-    message: 'Brain cache refreshed successfully',
-    duration: '45ms',
-  },
-  {
-    id: 2,
-    timestamp: '2026-02-02 11:28:32',
-    level: 'WARN',
-    source: 'agentos.webui.api',
-    message: 'Rate limit approaching for API endpoint /api/chat',
-    duration: '12ms',
-  },
-  {
-    id: 3,
-    timestamp: '2026-02-02 11:25:08',
-    level: 'ERROR',
-    source: 'agentos.core.runner',
-    message: 'Failed to execute task: Connection timeout',
-    duration: '5002ms',
-  },
-  {
-    id: 4,
-    timestamp: '2026-02-02 11:20:00',
-    level: 'INFO',
-    source: 'agentos.store.migrations',
-    message: 'Database migration v75 completed',
-    duration: '128ms',
-  },
-  {
-    id: 5,
-    timestamp: '2026-02-02 11:15:45',
-    level: 'DEBUG',
-    source: 'agentos.core.memory',
-    message: 'Memory proposal generated for session sess_abc123',
-    duration: '8ms',
-  },
-  {
-    id: 6,
-    timestamp: '2026-02-02 11:10:22',
-    level: 'INFO',
-    source: 'agentos.webui.middleware',
-    message: 'Demo mode enabled for session',
-    duration: '3ms',
-  },
-]
+type RawLogRecord = Record<string, unknown>
 
 /**
  * LogsPage 组件
@@ -105,14 +54,119 @@ export default function LogsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [levelFilter, setLevelFilter] = useState('all')
   const [sourceFilter, setSourceFilter] = useState('all')
-  const [logs, setLogs] = useState<LogRow[]>(MOCK_LOGS)
-  const [loading, setLoading] = useState(false)
+  const [logs, setLogs] = useState<LogRow[]>([])
+  const [loading, setLoading] = useState(true)
 
   // ===================================
   // Phase 3 Integration - Interaction State
   // ===================================
   const [selectedLog, setSelectedLog] = useState<LogRow | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const FALLBACK_TIMESTAMP = 'N/A'
+
+  const extractTimestamp = (line: string): string | null => {
+    const patterns = [
+      /^(\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:\d{2})?)/,
+      /(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:[.,]\d+)?)/,
+      /(\d{2}\/[A-Za-z]{3}\/\d{4}[:\s]\d{2}:\d{2}:\d{2})/,
+    ]
+    for (const pattern of patterns) {
+      const match = line.match(pattern)
+      if (match?.[1]) return match[1]
+    }
+    return null
+  }
+
+  const normalizeLogRow = (entry: RawLogRecord, index: number): LogRow => {
+    const messageCandidate = entry.message ?? entry.msg ?? entry.content ?? entry.text
+    const message = typeof messageCandidate === 'string' ? messageCandidate : JSON.stringify(entry)
+
+    const levelCandidate = entry.level ?? entry.severity
+    const level = typeof levelCandidate === 'string' ? levelCandidate.toUpperCase() : 'INFO'
+
+    const sourceCandidate = entry.source ?? entry.logger ?? entry.module ?? entry.component
+    const source = typeof sourceCandidate === 'string' ? sourceCandidate : 'daemon'
+
+    const durationCandidate = entry.duration ?? entry.duration_ms ?? entry.elapsed_ms
+    const duration =
+      typeof durationCandidate === 'number'
+        ? `${durationCandidate}ms`
+        : typeof durationCandidate === 'string'
+        ? durationCandidate
+        : '-'
+
+    const timestampCandidate =
+      entry.timestamp ?? entry.ts ?? entry.time ?? entry.created_at ?? entry.createdAt
+    const timestampFromField =
+      typeof timestampCandidate === 'string' && timestampCandidate.trim() ? timestampCandidate : null
+    const timestamp = timestampFromField ?? extractTimestamp(message) ?? FALLBACK_TIMESTAMP
+
+    const idCandidate = entry.id
+    const id = typeof idCandidate === 'number' ? idCandidate : index + 1
+
+    return {
+      id,
+      timestamp,
+      level,
+      source,
+      message,
+      duration,
+    }
+  }
+
+  const parseDaemonLine = (line: string, index: number): LogRow => {
+    const levelMatch = line.match(/\b(ERROR|WARN|WARNING|INFO|DEBUG|TRACE)\b/i)
+    const normalizedLevel = (levelMatch?.[1] || 'INFO').toUpperCase()
+    const level = normalizedLevel === 'WARNING' ? 'WARN' : normalizedLevel
+    const timestamp = extractTimestamp(line) ?? FALLBACK_TIMESTAMP
+    const sourceMatch = line.match(/\[([a-zA-Z0-9_.:-]+)\]/)
+
+    return {
+      id: index + 1,
+      timestamp,
+      level,
+      source: sourceMatch?.[1] || 'daemon',
+      message: line,
+      duration: '-',
+    }
+  }
+
+  const loadLogs = async () => {
+    setLoading(true)
+    try {
+      const response = await httpClient.get<any>('/api/daemon/logs', {
+        params: { lines: 200 },
+      })
+      const payload = response?.data ?? response
+
+      if (Array.isArray(payload)) {
+        setLogs(payload.map((entry, index) => normalizeLogRow(entry as RawLogRecord, index)))
+        return
+      }
+
+      if (Array.isArray(payload?.logs)) {
+        setLogs(payload.logs.map((entry: unknown, index: number) => normalizeLogRow(entry as RawLogRecord, index)))
+        return
+      }
+
+      const rawContent = typeof payload?.content === 'string' ? payload.content : ''
+      const records = rawContent
+        .split('\n')
+        .map((line: string) => line.trim())
+        .filter(Boolean)
+        .map(parseDaemonLine)
+      setLogs(records)
+    } catch {
+      setLogs([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadLogs()
+  }, [])
 
   // ===================================
   // Page Header (v2.4 API)
@@ -137,18 +191,7 @@ export default function LogsPage() {
       key: 'refresh',
       label: t(K.common.refresh),
       variant: 'contained',
-      onClick: async () => {
-        setLoading(true)
-        try {
-          // API skeleton
-          // const response = await logsService.getLogs()  // Placeholder for Phase 6.1
-          // setLogs(response.data)
-          setLogs(MOCK_LOGS)
-          console.log('Refresh logs (API not implemented)')
-        } finally {
-          setLoading(false)
-        }
-      },
+      onClick: async () => loadLogs(),
     },
   ])
 
@@ -295,7 +338,7 @@ export default function LogsPage() {
       pagination={{
         page: 0,
         pageSize: 25,
-        total: MOCK_LOGS.length,
+        total: logs.length,
         onPageChange: () => {}, // 🔒 No-Interaction: 空函数
       }}
       onRowClick={handleRowClick}

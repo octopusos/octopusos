@@ -8,7 +8,7 @@
 import { Box, Typography, Chip, Button } from '@mui/material'
 import { DetailDrawer } from '../DetailDrawer'
 import { K, t } from '@/ui/text'
-import type { GetProjectResponse } from '@/modules/agentos/dto'
+import type { GetProjectResponse } from '@/modules/octopusos/dto'
 
 export interface ProjectDetailDrawerProps {
   /**

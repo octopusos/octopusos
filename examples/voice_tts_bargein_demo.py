@@ -49,7 +49,7 @@ async def demo_mock_tts_streaming():
     # Import MockTTSProvider directly (avoid audioop)
     try:
         # Workaround: Import directly without going through __init__
-        from agentos.core.communication.voice.tts.mock_provider import MockTTSProvider
+        from octopusos.core.communication.voice.tts.mock_provider import MockTTSProvider
 
         provider = MockTTSProvider(
             sample_rate=16000,
@@ -92,7 +92,7 @@ async def demo_barge_in_detection():
     print("\n=== Demo 3: Barge-in Detection ===")
 
     try:
-        from agentos.core.communication.voice.barge_in import (
+        from octopusos.core.communication.voice.barge_in import (
             BargeInDetector,
             BargeInConfig,
         )
@@ -163,7 +163,7 @@ async def demo_tts_cancellation():
     print("\n=== Demo 4: TTS Cancellation (Barge-In) ===")
 
     try:
-        from agentos.core.communication.voice.tts.mock_provider import MockTTSProvider
+        from octopusos.core.communication.voice.tts.mock_provider import MockTTSProvider
 
         provider = MockTTSProvider(chunk_duration_ms=100)
 
@@ -267,8 +267,8 @@ async def main():
     print("Demo Complete!")
     print("=" * 60)
     print("\nFor full WebSocket integration, see:")
-    print("  - /Users/pangge/PycharmProjects/AgentOS/agentos/webui/api/voice.py")
-    print("  - /Users/pangge/PycharmProjects/AgentOS/VOICE_TTS_BARGEIN_IMPLEMENTATION_REPORT.md")
+    print("  - /Users/pangge/PycharmProjects/OctopusOS/octopusos/webui/api/voice.py")
+    print("  - /Users/pangge/PycharmProjects/OctopusOS/VOICE_TTS_BARGEIN_IMPLEMENTATION_REPORT.md")
 
 
 if __name__ == "__main__":

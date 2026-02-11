@@ -18,7 +18,7 @@ GATES_FAILED=0
 
 # Gate A1: FTS5 Available性
 echo "[Gate A1] FTS5 Availability Check"
-if uv run python -c "from agentos.core.project_kb import ProjectKBService; kb = ProjectKBService(); print('✓ FTS5 available')" 2>/dev/null; then
+if uv run python -c "from octopusos.core.project_kb import ProjectKBService; kb = ProjectKBService(); print('✓ FTS5 available')" 2>/dev/null; then
     ((GATES_PASSED++))
 else
     echo "✗ FTS5 not available"
@@ -28,7 +28,7 @@ echo ""
 
 # Gate A2: 迁移幂等
 echo "[Gate A2] Migration Idempotence"
-if uv run python -c "from agentos.core.project_kb import ProjectKBService; kb = ProjectKBService(); kb.indexer.ensure_schema(); kb.indexer.ensure_schema(); print('✓ Migrations are idempotent')" 2>/dev/null; then
+if uv run python -c "from octopusos.core.project_kb import ProjectKBService; kb = ProjectKBService(); kb.indexer.ensure_schema(); kb.indexer.ensure_schema(); print('✓ Migrations are idempotent')" 2>/dev/null; then
     ((GATES_PASSED++))
 else
     echo "✗ Migration failed"
@@ -58,16 +58,16 @@ if [ ! -f "$TEST_FILE" ]; then
     echo "Created test file: $TEST_FILE"
     
     # 索引
-    uv run python -c "from agentos.core.project_kb import ProjectKBService; kb = ProjectKBService(); kb.refresh()" 2>/dev/null
+    uv run python -c "from octopusos.core.project_kb import ProjectKBService; kb = ProjectKBService(); kb.refresh()" 2>/dev/null
     
     # 删除
     rm "$TEST_FILE"
     
     # 重新索引
-    uv run python -c "from agentos.core.project_kb import ProjectKBService; kb = ProjectKBService(); kb.refresh()" 2>/dev/null
+    uv run python -c "from octopusos.core.project_kb import ProjectKBService; kb = ProjectKBService(); kb.refresh()" 2>/dev/null
     
     # 验证不再存在
-    SEARCH_RESULT=$(uv run python -c "from agentos.core.project_kb import ProjectKBService; kb = ProjectKBService(); results = kb.search('Test Delete'); print(len(results))" 2>/dev/null || echo "0")
+    SEARCH_RESULT=$(uv run python -c "from octopusos.core.project_kb import ProjectKBService; kb = ProjectKBService(); results = kb.search('Test Delete'); print(len(results))" 2>/dev/null || echo "0")
     
     if [ "$SEARCH_RESULT" = "0" ]; then
         echo "✓ Deleted files properly cleaned up"
@@ -139,7 +139,7 @@ echo ""
 # Gate D12: Evidence 格式
 echo "[Gate D12] Evidence Format Stability"
 EVIDENCE=$(uv run python -c "
-from agentos.core.project_kb import ProjectKBService
+from octopusos.core.project_kb import ProjectKBService
 kb = ProjectKBService()
 results = kb.search('test', top_k=1)
 if results:

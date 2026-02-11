@@ -22,9 +22,9 @@ from datetime import datetime, timezone
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from agentos.core.infra.git_client import GitClientFactory
-from agentos.core.executor.rollback import RollbackManager
-from agentos.core.executor.run_tape import RunTape
+from octopusos.core.infra.git_client import GitClientFactory
+from octopusos.core.executor.rollback import RollbackManager
+from octopusos.core.executor.run_tape import RunTape
 
 
 def create_test_exec_request(output_dir: Path) -> Path:
@@ -156,7 +156,7 @@ def gate_r4_rollback_proof_runtime(repo_root: Path) -> tuple[bool, str]:
         
         # 3) 运行 executor 成功执行 6 steps
         cmd = [
-            "uv", "run", "agentos", "exec", "run",
+            "uv", "run", "octopusos", "exec", "run",
             "--request", str(req_file),
             "--policy", str(policy_allow),
             "--repo", str(test_repo),

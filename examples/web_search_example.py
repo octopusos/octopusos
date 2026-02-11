@@ -6,7 +6,7 @@ to perform searches and process results.
 
 import asyncio
 import json
-from agentos.core.communication.connectors.web_search import (
+from octopusos.core.communication.connectors.web_search import (
     WebSearchConnector,
     WebSearchError,
     RateLimitError,

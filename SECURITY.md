@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-AgentOS is currently in **early-stage development**.
+OctopusOS is currently in **early-stage development**.
 
 Only the **latest release on the default branch** is supported for security reporting.  
 Older releases and development snapshots may not receive security fixes.
@@ -11,7 +11,7 @@ Older releases and development snapshots may not receive security fixes.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in AgentOS, **please do not open a public issue**.
+If you discover a security vulnerability in OctopusOS, **please do not open a public issue**.
 
 Instead, report it privately using one of the following methods:
 
@@ -42,7 +42,7 @@ Please allow time for investigation and remediation before public discussion.
 
 ## Security Scope
 
-AgentOS is designed to run **locally or in private environments**.
+OctopusOS is designed to run **locally or in private environments**.
 
 Out of scope:
 - Misconfiguration of user environments
@@ -60,20 +60,20 @@ In scope:
 
 ## Deployment Warnings
 
-⚠️ **Do not expose AgentOS directly to the public internet.**
+⚠️ **Do not expose OctopusOS directly to the public internet.**
 
-AgentOS does **not** include:
+OctopusOS does **not** include:
 - Authentication systems
 - Multi-tenant isolation
 - Hardened sandboxing guarantees
 
-If you deploy AgentOS in shared or network-accessible environments, you are responsible for additional security controls.
+If you deploy OctopusOS in shared or network-accessible environments, you are responsible for additional security controls.
 
 ---
 
 ## Security Philosophy
 
-AgentOS prioritizes:
+OctopusOS prioritizes:
 - Explicit execution boundaries
 - Observability over hidden behavior
 - Failsafe defaults over convenience
@@ -82,4 +82,4 @@ Security hardening improves incrementally as the project evolves.
 
 ---
 
-Thank you for helping keep AgentOS and its users safe.
+Thank you for helping keep OctopusOS and its users safe.

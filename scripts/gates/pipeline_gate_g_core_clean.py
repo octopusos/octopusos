@@ -5,7 +5,7 @@ Pipeline Gate P-G: Core Clean Proof (核心清洁证明)
 硬冻结：机器可验证的"零踩踏"证明
 
 检查：
-1. agentos/core/verify/schema_validator.py 不包含 "class SchemaValidator"
+1. octopusos/core/verify/schema_validator.py 不包含 "class SchemaValidator"
 2. 该文件的内容与基线一致（防止未来污染）
 
 这是防止"为了修一次pipeline又把core污染回去"的硬门禁
@@ -16,7 +16,7 @@ import hashlib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-SCHEMA_VALIDATOR_PATH = PROJECT_ROOT / "agentos" / "core" / "verify" / "schema_validator.py"
+SCHEMA_VALIDATOR_PATH = PROJECT_ROOT / "octopusos" / "core" / "verify" / "schema_validator.py"
 
 # 基线：core干净状态的SHA256（从HEAD~2获取，即9d39aec之前的状态）
 # 这个hash代表"只有函数式API，没有SchemaValidator类"的状态
@@ -52,7 +52,7 @@ def main():
         print("   ⚠️  Core has been polluted!")
         print()
         print("   Violation: Agent C踩踏了core")
-        print("   Solution: Run 'git checkout HEAD~2 -- agentos/core/verify/schema_validator.py'")
+        print("   Solution: Run 'git checkout HEAD~2 -- octopusos/core/verify/schema_validator.py'")
         return 1
     
     print("   ✅ No 'class SchemaValidator' found in core")

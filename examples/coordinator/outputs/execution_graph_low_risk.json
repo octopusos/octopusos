@@ -15,12 +15,12 @@
       "node_id": "node_action_001",
       "node_type": "action_proposal",
       "label": "Scan Python Files",
-      "description": "Scan agentos/utils/ module for public functions",
+      "description": "Scan octopusos/utils/ module for public functions",
       "command_ref": "scan_python_files",
       "effects": ["read"],
       "risk_level": "low",
       "evidence_refs": [
-        "scan://python_modules/agentos.utils"
+        "scan://python_modules/octopusos.utils"
       ]
     },
     {
@@ -39,8 +39,8 @@
       "effects": ["write"],
       "risk_level": "low",
       "evidence_refs": [
-        "scan://file/agentos/utils/format.py",
-        "scan://file/agentos/utils/validation.py"
+        "scan://file/octopusos/utils/format.py",
+        "scan://file/octopusos/utils/validation.py"
       ]
     },
     {

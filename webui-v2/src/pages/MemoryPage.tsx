@@ -16,67 +16,8 @@ import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
+import { httpClient } from '@platform/http'
 import type { GridColDef } from '@/ui'
-
-/**
- * Mock 数据（迁移阶段，6条记录）
- */
-const MOCK_MEMORY = [
-  {
-    id: 1,
-    content: 'User prefers code examples in Python',
-    source: 'conversation',
-    type: 'preference',
-    timestamp: '2026-02-01 14:30:00',
-    relevance: 0.95,
-    status: 'active',
-  },
-  {
-    id: 2,
-    content: 'Project structure follows clean architecture pattern',
-    source: 'codebase',
-    type: 'knowledge',
-    timestamp: '2026-02-01 15:45:00',
-    relevance: 0.88,
-    status: 'active',
-  },
-  {
-    id: 3,
-    content: 'Database connection timeout set to 30 seconds',
-    source: 'configuration',
-    type: 'fact',
-    timestamp: '2026-02-01 16:20:00',
-    relevance: 0.72,
-    status: 'active',
-  },
-  {
-    id: 4,
-    content: 'User Alice Chen is the lead developer',
-    source: 'conversation',
-    type: 'context',
-    timestamp: '2026-02-02 09:00:00',
-    relevance: 0.85,
-    status: 'active',
-  },
-  {
-    id: 5,
-    content: 'Deprecated API v1 endpoints should not be used',
-    source: 'documentation',
-    type: 'constraint',
-    timestamp: '2026-02-02 10:15:00',
-    relevance: 0.91,
-    status: 'archived',
-  },
-  {
-    id: 6,
-    content: 'Testing framework: Jest with React Testing Library',
-    source: 'codebase',
-    type: 'knowledge',
-    timestamp: '2026-02-02 11:30:00',
-    relevance: 0.79,
-    status: 'pending',
-  },
-]
 
 /**
  * MemoryPage 组件
@@ -93,7 +34,7 @@ export default function MemoryPage() {
   // State - Four States + Data
   // ===================================
   const [loading, setLoading] = useState(true)
-  const [memories, setMemories] = useState(MOCK_MEMORY)
+  const [memories, setMemories] = useState<any[]>([])
 
   // ===================================
   // State (Filter - 迁移阶段不触发过滤)
@@ -109,13 +50,16 @@ export default function MemoryPage() {
     const fetchMemories = async () => {
       setLoading(true)
       try {
-        // TODO: Replace with real API call
-        // const response = await memoryosService.getMemories()
-        // setMemories(response.data)
-        setMemories(MOCK_MEMORY)
+        const response = await httpClient.get<any>('/api/memory/entries')
+        const payload = response?.data ?? response
+        const records = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.entries)
+            ? payload.entries
+            : []
+        setMemories(records)
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to fetch memories'
-        toast.error(errorMsg)
+        setMemories([])
       } finally {
         setLoading(false)
       }
@@ -140,12 +84,18 @@ export default function MemoryPage() {
       onClick: async () => {
         setLoading(true)
         try {
-          // Real API refresh pending
-          setMemories(MOCK_MEMORY)
+          const response = await httpClient.get<any>('/api/memory/entries')
+          const payload = response?.data ?? response
+          const records = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.entries)
+              ? payload.entries
+              : []
+          setMemories(records)
           toast.success('Memories refreshed successfully')
         } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Failed to refresh'
-          toast.error(errorMsg)
+          setMemories([])
+          toast.error('Failed to refresh')
         } finally {
           setLoading(false)
         }
@@ -292,13 +242,13 @@ export default function MemoryPage() {
         />
       }
       emptyState={{
-        title: 'No memory found',
-        description: 'No memory entries have been created yet',
+        title: t(K.page.memory.emptyTitle),
+        description: t(K.page.memory.emptyDescription),
       }}
       pagination={{
         page: 0,
         pageSize: 25,
-        total: MOCK_MEMORY.length,
+        total: memories.length,
         onPageChange: () => {}, // 🔒 No-Interaction: 空函数
       }}
       onRowClick={(row) => {

@@ -32,60 +32,6 @@ interface HistoryRow {
 }
 
 /**
- * Mock 数据（迁移阶段，6条记录）
- */
-const MOCK_HISTORY: HistoryRow[] = [
-  {
-    id: 1,
-    operation: 'Create Task',
-    user: 'Alice Chen',
-    target: 'Task #123',
-    timestamp: '2026-02-02 09:30:00',
-    status: 'success',
-  },
-  {
-    id: 2,
-    operation: 'Update Project',
-    user: 'Bob Wang',
-    target: 'Project: AgentOS Core',
-    timestamp: '2026-02-02 09:45:15',
-    status: 'success',
-  },
-  {
-    id: 3,
-    operation: 'Delete Snippet',
-    user: 'Carol Liu',
-    target: 'Snippet: auth-helper',
-    timestamp: '2026-02-02 10:00:30',
-    status: 'success',
-  },
-  {
-    id: 4,
-    operation: 'Deploy Extension',
-    user: 'David Zhang',
-    target: 'Extension: github-mcp',
-    timestamp: '2026-02-02 10:15:45',
-    status: 'failed',
-  },
-  {
-    id: 5,
-    operation: 'Import Model',
-    user: 'Eve Li',
-    target: 'Model: llama2:7b',
-    timestamp: '2026-02-02 10:30:00',
-    status: 'success',
-  },
-  {
-    id: 6,
-    operation: 'Update Settings',
-    user: 'Frank Wu',
-    target: 'System Settings',
-    timestamp: '2026-02-02 10:45:15',
-    status: 'pending',
-  },
-]
-
-/**
  * HistoryPage 组件
  *
  * 📊 Pattern: TablePage（FilterBar + Table + Pagination）
@@ -120,7 +66,7 @@ export default function HistoryPage() {
       setLoading(true)
       try {
         // Ready for real API integration
-        // const response = await agentosService.getHistory()
+        // const response = await octopusosService.getHistory()
         // setHistory(response.data)
 
         // Return empty dataset (no mock delay)
@@ -211,7 +157,7 @@ export default function HistoryPage() {
     <>
       <TableShell
         loading={loading}
-        rows={MOCK_HISTORY}
+        rows={history}
         columns={columns}
         filterBar={
         <FilterBar

@@ -17,7 +17,7 @@ except ImportError:
     print("❌ jsonschema not installed. Run: uv add jsonschema")
     sys.exit(1)
 
-SCHEMA_DIR = Path("agentos/schemas/coordinator")
+SCHEMA_DIR = Path("octopusos/schemas/coordinator")
 FIXTURES_DIR = Path("fixtures/coordinator/invalid")
 
 INVALID_FIXTURES = [

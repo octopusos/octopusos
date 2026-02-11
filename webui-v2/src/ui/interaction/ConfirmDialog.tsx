@@ -66,6 +66,8 @@ export interface ConfirmDialogProps {
    * 按钮颜色（默认 'error' 用于危险操作）
    */
   color?: 'error' | 'warning' | 'primary'
+  cancelButtonTestId?: string
+  confirmButtonTestId?: string
 }
 
 /**
@@ -103,6 +105,8 @@ export function ConfirmDialog({
   onConfirm,
   loading = false,
   color = 'error',
+  cancelButtonTestId,
+  confirmButtonTestId,
 }: ConfirmDialogProps) {
   // ===================================
   // 🔒 修复策略4B：确保Dialog打开时获得焦点
@@ -168,12 +172,14 @@ export function ConfirmDialog({
       {/* 操作按钮 */}
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button
+          data-testid={cancelButtonTestId}
           onClick={onClose}
           disabled={loading}
         >
           {cancelText}
         </Button>
         <Button
+          data-testid={confirmButtonTestId}
           onClick={handleConfirm}
           variant="contained"
           color={color}

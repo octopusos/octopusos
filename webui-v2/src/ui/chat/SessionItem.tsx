@@ -72,6 +72,7 @@ export function SessionItem({
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
+            minWidth: 0,
             mb: 0.5,
           }}
         >
@@ -80,6 +81,8 @@ export function SessionItem({
             sx={{
               fontWeight: isActive ? 600 : 500,
               flex: 1,
+              minWidth: 0,
+              display: 'block',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -105,6 +108,7 @@ export function SessionItem({
             alignItems: 'center',
             justifyContent: 'space-between',
             width: '100%',
+            minWidth: 0,
           }}
         >
           <Typography
@@ -112,6 +116,8 @@ export function SessionItem({
             color="text.secondary"
             sx={{
               flex: 1,
+              minWidth: 0,
+              display: 'block',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',

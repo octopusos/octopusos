@@ -7,7 +7,7 @@ v0.9.4 Gate E: DB Path Isolation (冻结级 - 临时 DB 自举)
 - 初始化 schema (v0.5 content tables)
 - 注册最小内容集合 (1 workflow + 1 agent + 1 command)
 - IntentBuilder 可以在该 DB 上工作
-- 完全不依赖 ~/.agentos
+- 完全不依赖 ~/.octopusos
 """
 
 import json
@@ -36,7 +36,7 @@ def init_temp_db(db_path: Path) -> bool:
         
         # 读取 v0.5 schema
         project_root = Path(__file__).parent.parent.parent
-        schema_file = project_root / "agentos" / "store" / "schema_v05.sql"
+        schema_file = project_root / "octopusos" / "store" / "schema_v05.sql"
         
         if not schema_file.exists():
             print(f"   ❌ Schema file not found: {schema_file}")
@@ -159,7 +159,7 @@ def test_registry_query(db_path: Path) -> bool:
         if str(project_root) not in sys.path:
             sys.path.insert(0, str(project_root))
         
-        from agentos.core.content.registry import ContentRegistry
+        from octopusos.core.content.registry import ContentRegistry
         
         # 创建 registry 实例（指向临时 DB，传 Path 对象）
         registry = ContentRegistry(db_path=db_path)
@@ -190,8 +190,8 @@ def test_builder_with_temp_db(db_path: Path) -> bool:
         if str(project_root) not in sys.path:
             sys.path.insert(0, str(project_root))
         
-        from agentos.core.content.registry import ContentRegistry
-        from agentos.core.intent_builder.builder import IntentBuilder
+        from octopusos.core.content.registry import ContentRegistry
+        from octopusos.core.intent_builder.builder import IntentBuilder
         
         # 创建 registry（传 Path 对象）
         registry = ContentRegistry(db_path=db_path)
@@ -272,7 +272,7 @@ def main():
         print("   - Registered minimal content (1 workflow, 1 agent, 1 command)")
         print("   - Registry can query the temp DB")
         print("   - IntentBuilder can work with the temp DB")
-        print("   - No dependency on ~/.agentos")
+        print("   - No dependency on ~/.octopusos")
         return True
     
     except Exception as e:

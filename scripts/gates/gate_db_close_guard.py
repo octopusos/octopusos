@@ -20,14 +20,14 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Set
 
 # Root directory for scanning
-ROOT_DIR = Path(__file__).parent.parent.parent / "agentos"
+ROOT_DIR = Path(__file__).parent.parent.parent / "octopusos"
 
 # Directories to scan
 SCAN_DIRS = [
-    "agentos/store",
-    "agentos/router",
-    "agentos/core/supervisor",
-    "agentos/webui/api",
+    "octopusos/store",
+    "octopusos/router",
+    "octopusos/core/supervisor",
+    "octopusos/webui/api",
 ]
 
 # Directories to exclude from scanning
@@ -283,13 +283,13 @@ def print_report(violations: Dict[Path, List[Violation]], show_fix: bool = False
                 if "self.db_path" in "\n".join(line for _, line in violation.context_lines):
                     print("    - This appears to be in a custom db_path scope")
                     print("    - If using get_db(), use transaction() context manager:")
-                    print("      from agentos.core.db.registry_db import transaction")
+                    print("      from octopusos.core.db.registry_db import transaction")
                     print("      with transaction() as conn:")
                     print("          # ... do work")
                     print("          # NO conn.close() needed!")
                 else:
                     print("    - Replace with transaction() context manager:")
-                    print("      from agentos.core.db.registry_db import transaction")
+                    print("      from octopusos.core.db.registry_db import transaction")
                     print("      with transaction() as conn:")
                     print("          cursor = conn.cursor()")
                     print("          # ... do work")
@@ -308,7 +308,7 @@ def print_report(violations: Dict[Path, List[Violation]], show_fix: bool = False
     print("Instead, use one of these patterns:")
     print()
     print("1. Use transaction() context manager (RECOMMENDED):")
-    print("   from agentos.core.db.registry_db import transaction")
+    print("   from octopusos.core.db.registry_db import transaction")
     print("   with transaction() as conn:")
     print("       cursor = conn.cursor()")
     print("       # ... do work")

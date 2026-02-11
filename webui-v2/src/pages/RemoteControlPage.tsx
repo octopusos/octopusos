@@ -27,9 +27,9 @@ import { DetailDrawer, ConfirmDialog } from '@/ui/interaction'
 import { RefreshIcon, CodeIcon } from '@/ui/icons'
 import type { GridColDef } from '@/ui'
 import {
-  networkosService,
+  systemService,
   type RemoteConnectionDetail,
-} from '@/services/networkos.service'
+} from '@services'
 
 // ===================================
 // Types
@@ -50,10 +50,10 @@ interface RemoteConnectionRow {
  *
  * 📊 Pattern: TablePage（FilterBar + Table + DetailDrawer + Dialogs）
  * 🔌 API:
- *   - GET /api/remote/connections → networkosService.listRemoteConnections()
- *   - GET /api/remote/connections/:id → networkosService.getRemoteConnection()
- *   - POST /api/remote/connections/:id/execute → networkosService.executeRemoteCommand()
- *   - DELETE /api/remote/connections/:id → networkosService.terminateRemoteConnection()
+ *   - GET /api/remote/connections → systemService.listRemoteConnectionsApiRemoteConnectionsGet()
+ *   - GET /api/remote/connections/:id → systemService.getRemoteConnectionApiRemoteConnectionsConnectionIdGet()
+ *   - POST /api/remote/connections/:id/execute → systemService.executeRemoteConnectionApiRemoteConnectionsConnectionIdExecutePost()
+ *   - DELETE /api/remote/connections/:id → systemService.deleteRemoteConnectionApiRemoteConnectionsConnectionIdDelete()
  */
 export default function RemoteControlPage() {
   const { t } = useTextTranslation()
@@ -106,13 +106,13 @@ export default function RemoteControlPage() {
   const fetchConnections = async () => {
     try {
       setLoading(true)
-      const response = await networkosService.listRemoteConnections({
+      const response = await systemService.listRemoteConnectionsApiRemoteConnectionsGet({
         status: statusFilter === 'all' ? undefined : statusFilter,
         page,
         limit: pageSize,
       })
 
-      const rows: RemoteConnectionRow[] = response.connections.map((conn) => ({
+      const rows: RemoteConnectionRow[] = response.connections.map((conn: any) => ({
         id: conn.conn_id,
         conn_id: conn.conn_id,
         remote_node: conn.remote_node,
@@ -136,7 +136,7 @@ export default function RemoteControlPage() {
 
   const fetchConnectionDetail = async (connId: string) => {
     try {
-      const response = await networkosService.getRemoteConnection(connId)
+      const response = await systemService.getRemoteConnectionApiRemoteConnectionsConnectionIdGet(connId)
       setConnectionDetail(response.connection)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t('page.remoteControl.loadFailed')
@@ -184,7 +184,7 @@ export default function RemoteControlPage() {
 
     try {
       setExecuting(true)
-      const response = await networkosService.executeRemoteCommand(executeConnId, {
+      const response = await systemService.executeRemoteConnectionApiRemoteConnectionsConnectionIdExecutePost(executeConnId, {
         command: commandInput.trim(),
       })
 
@@ -224,7 +224,7 @@ export default function RemoteControlPage() {
     if (!terminateConnId) return
 
     try {
-      await networkosService.terminateRemoteConnection(terminateConnId)
+      await systemService.deleteRemoteConnectionApiRemoteConnectionsConnectionIdDelete(terminateConnId)
       toast.success(t('page.remoteControl.terminateSuccess'))
       handleCloseTerminateDialog()
 

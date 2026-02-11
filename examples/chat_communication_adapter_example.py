@@ -5,7 +5,7 @@ into Chat slash commands for web search and fetch operations.
 """
 
 import asyncio
-from agentos.core.chat.communication_adapter import CommunicationAdapter
+from octopusos.core.chat.communication_adapter import CommunicationAdapter
 
 
 async def example_search_command():

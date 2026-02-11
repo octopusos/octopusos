@@ -24,7 +24,7 @@ export interface DraftData {
 }
 
 class DraftService {
-  private readonly STORAGE_KEY = 'agentos_chat_draft'
+  private readonly STORAGE_KEY = 'octopusos_chat_draft'
   private readonly DEBOUNCE_MS = 300
   private readonly MAX_AGE_MS = 24 * 60 * 60 * 1000 // 24 hours
   private saveTimer: number | null = null

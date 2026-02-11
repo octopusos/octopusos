@@ -2,7 +2,7 @@
 Example: Using Capability Registry and Audit System
 
 This example demonstrates common usage patterns for the Capability Registry
-and Audit System in AgentOS.
+and Audit System in OctopusOS.
 """
 
 import sys
@@ -12,8 +12,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agentos.core.capability_registry import get_capability_registry
-from agentos.core.audit import (
+from octopusos.core.capability_registry import get_capability_registry
+from octopusos.core.audit import (
     log_audit_event,
     get_audit_events,
     SNIPPET_CREATED,
@@ -296,8 +296,8 @@ def main():
     print("All examples completed successfully!")
     print("="*60)
     print("\nNext steps:")
-    print("1. Integrate with Preview API (agentos/webui/api/preview.py)")
-    print("2. Integrate with Snippets API (agentos/webui/api/snippets.py)")
+    print("1. Integrate with Preview API (octopusos/webui/api/preview.py)")
+    print("2. Integrate with Snippets API (octopusos/webui/api/snippets.py)")
     print("3. Add frontend UI for preset selection")
     print("4. Implement task materialization")
     print()

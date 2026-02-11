@@ -12,8 +12,8 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [],
       "modules": [],
@@ -135,7 +135,7 @@
   },
   "audit": {
     "created_by": "security_automation",
-    "source": "agentos",
+    "source": "octopusos",
     "checksum": "e68802473acdfc399e41488730b58cc7ee51537199e734cb1829006598bca60c"
   }
 }

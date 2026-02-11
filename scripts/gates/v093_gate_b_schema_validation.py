@@ -16,7 +16,7 @@ except ImportError:
     sys.exit(0)
 
 REPO_ROOT = Path(__file__).parent.parent.parent
-SCHEMAS_DIR = REPO_ROOT / "agentos" / "schemas" / "evaluator"
+SCHEMAS_DIR = REPO_ROOT / "octopusos" / "schemas" / "evaluator"
 EXAMPLES_DIR = REPO_ROOT / "examples" / "intents" / "evaluations"
 
 def main():

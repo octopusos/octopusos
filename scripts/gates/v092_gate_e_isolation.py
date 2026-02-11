@@ -41,9 +41,9 @@ def main():
         print("\nRunning CoordinatorEngine in isolated environment...")
 
         try:
-            from agentos.core.content.registry import ContentRegistry
-            from agentos.core.memory import MemoryService
-            from agentos.core.coordinator.engine import CoordinatorEngine
+            from octopusos.core.content.registry import ContentRegistry
+            from octopusos.core.memory import MemoryService
+            from octopusos.core.coordinator.engine import CoordinatorEngine
 
             # Initialize isolated registry and memory
             temp_db = temp_registry / "test.db"

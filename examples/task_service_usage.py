@@ -8,8 +8,8 @@ Created for Task #3: S3 - Enforce State Machine at core/task API
 """
 
 from pathlib import Path
-from agentos.core.task.service import TaskService
-from agentos.core.task.errors import InvalidTransitionError
+from octopusos.core.task.service import TaskService
+from octopusos.core.task.errors import InvalidTransitionError
 
 
 def example_successful_task_lifecycle():

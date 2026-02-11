@@ -14,8 +14,8 @@ Example:
 import sys
 from pathlib import Path
 
-from agentos.core.brain.store import SQLiteStore
-from agentos.core.brain.service import compute_coverage
+from octopusos.core.brain.store import SQLiteStore
+from octopusos.core.brain.service import compute_coverage
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
     if not Path(db_path).exists():
         print(f"❌ Database not found: {db_path}")
         print("\nPlease run BrainIndexJob first to build the knowledge graph:")
-        print("  python -c 'from agentos.core.brain.service import BrainIndexJob; BrainIndexJob.run()'")
+        print("  python -c 'from octopusos.core.brain.service import BrainIndexJob; BrainIndexJob.run()'")
         return 1
 
     print(f"📊 Computing BrainOS Coverage Metrics")

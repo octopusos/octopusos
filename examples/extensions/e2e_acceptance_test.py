@@ -14,7 +14,7 @@ Extension System 端到端验收测试 (PR-F)
     python e2e_acceptance_test.py
 
 前置条件：
-    - AgentOS server 正在运行 (http://localhost:8000)
+    - OctopusOS server 正在运行 (http://localhost:8000)
     - 扩展包已创建 (hello-extension.zip)
 """
 import argparse
@@ -393,7 +393,7 @@ def main():
     parser.add_argument(
         "--server",
         default="http://localhost:8000",
-        help="AgentOS server URL (default: http://localhost:8000)"
+        help="OctopusOS server URL (default: http://localhost:8000)"
     )
     parser.add_argument(
         "--extension",

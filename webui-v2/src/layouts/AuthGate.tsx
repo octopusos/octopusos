@@ -1,65 +1,50 @@
-import { ReactNode } from 'react'
-import { Box, Paper, Typography, Button } from '@mui/material'
-import { LockIcon } from '@/ui/icons'
+import { ReactNode, useEffect, useMemo, useRef } from 'react'
+import { useSnackbar } from 'notistack'
+import { getToken } from '@/platform/auth/adminToken'
+import { evaluateWriteAccess, getCachedRuntimeMode } from '@/platform/auth/writeAccess'
 
 interface AuthGateProps {
   children: ReactNode
 }
 
-/**
- * AuthGate - Authentication gate for protected routes
- *
- * Current implementation: Placeholder with minimal admin token check abstraction
- * Future: Will integrate with real authentication system
- *
- * Features:
- * - Checks for minimal auth state (placeholder)
- * - Shows unauthorized prompt if not authenticated
- * - Renders children if authenticated
- */
 export default function AuthGate({ children }: AuthGateProps) {
-  // Placeholder auth check - always returns true for now
-  // Future: Replace with actual auth state from context/store
-  const isAuthenticated = checkAuth()
+  const { enqueueSnackbar } = useSnackbar()
+  const warnedRef = useRef<string | null>(null)
 
-  if (!isAuthenticated) {
-    return (
-      <Box className="flex items-center justify-center min-h-screen bg-gray-100">
-        <Paper elevation={3} className="p-8 max-w-md text-center">
-          <LockIcon className="mx-auto mb-4" sx={{ fontSize: 64 }} color="action" />
-          <Typography variant="h5" className="mb-2">
-            Authentication Required
-          </Typography>
-          <Typography variant="body2" color="text.secondary" className="mb-6">
-            You need to be authenticated to access this resource.
-            Please configure your admin token.
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={() => {
-              // Placeholder: Future auth flow
-              console.log('Navigate to auth setup')
-            }}
-          >
-            Configure Access
-          </Button>
-        </Paper>
-      </Box>
-    )
-  }
+  const writeAccess = useMemo(
+    () => evaluateWriteAccess(getCachedRuntimeMode(), getToken()),
+    []
+  )
+
+  const warning = useMemo(() => {
+    if (writeAccess.reason === 'TOKEN_REQUIRED') {
+      return '当前模式需要 Admin Token 才能执行写操作。'
+    }
+    if (writeAccess.reason === 'MODE_READONLY') {
+      return '当前运行模式为只读，写操作已禁用。'
+    }
+    if (writeAccess.reason === 'MODE_UNKNOWN') {
+      return '未识别运行模式，已按只读策略保护写操作。'
+    }
+    return null
+  }, [writeAccess.reason])
+
+  useEffect(() => {
+    if (!warning) {
+      warnedRef.current = null
+      return
+    }
+    if (warnedRef.current === warning) {
+      return
+    }
+
+    warnedRef.current = warning
+    enqueueSnackbar(warning, {
+      variant: 'warning',
+      autoHideDuration: 4000,
+      preventDuplicate: true,
+    })
+  }, [warning, enqueueSnackbar])
 
   return <>{children}</>
-}
-
-/**
- * Placeholder auth check function
- * Future: Replace with real authentication logic
- */
-function checkAuth(): boolean {
-  // Placeholder: Always return true for demo purposes
-  // Real implementation would check:
-  // - Local storage for admin token
-  // - Session storage for active session
-  // - Context/Redux store for auth state
-  return true
 }

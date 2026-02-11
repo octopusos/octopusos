@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://octopusos.dev/schemas/content/content_base.schema.json",
+  "$version": "1.0.0",
+  "title": "ContentBase",
+  "description": "Base schema for all OctopusOS content types (agent, workflow, command, rule, policy, memory, fact)",
+  "type": "object",
+  "required": ["id", "type", "version", "metadata"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique content identifier",
+      "pattern": "^[a-z0-9][a-z0-9-_]*$",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "type": {
+      "type": "string",
+      "description": "Content type (must be registered in ContentTypeRegistry)",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "examples": ["agent", "workflow", "command", "rule", "policy", "memory", "fact"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "active", "deprecated", "frozen"],
+      "description": "Content lifecycle status",
+      "default": "draft"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Content metadata (lineage, timestamps, checksum)",
+      "required": ["created_at", "checksum"],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Content creation timestamp"
+        },
+        "checksum": {
+          "type": "string",
+          "description": "SHA-256 checksum of content (for integrity verification)",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "is_root": {
+          "type": "boolean",
+          "description": "If true, this is a root version (no parent). If false/absent, parent_version is required.",
+          "default": false
+        },
+        "parent_version": {
+          "type": "string",
+          "description": "Parent version (required if is_root=false)",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "change_reason": {
+          "type": "string",
+          "description": "WHY this version exists (required if parent_version is set)",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "author": {
+          "type": "string",
+          "description": "Content creator (human or agent)"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for categorization"
+        }
+      },
+      "additionalProperties": true,
+      "oneOf": [
+        {
+          "description": "Root version: must have is_root=true, no parent_version",
+          "properties": {
+            "is_root": {"const": true}
+          },
+          "not": {
+            "required": ["parent_version"]
+          }
+        },
+        {
+          "description": "Evolved version: must have parent_version and change_reason",
+          "required": ["parent_version", "change_reason"],
+          "properties": {
+            "is_root": {"const": false}
+          }
+        }
+      ]
+    },
+    "spec": {
+      "type": "object",
+      "description": "Content-specific specification (validated by type-specific schema)"
+    }
+  },
+  "additionalProperties": false
+}

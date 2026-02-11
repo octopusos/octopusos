@@ -1,16 +1,16 @@
 <div align="center">
 
-# AgentOS
+# OctopusOS
 
 **A Production-Grade AI Agent Operating System**
 
-[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/seacow-technology/agentos/releases/tag/v2.1.0)
+[![Version](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/seacow-technology/octopusos/releases/tag/v2.1.0)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-2234-success)](#testing)
 [![Python](https://img.shields.io/badge/python-3.13+-blue)](https://www.python.org)
 
 > ⚠️ **Public Repository Notice**
-> This is a **curated public snapshot** of AgentOS.
+> This is a **curated public snapshot** of OctopusOS.
 > The authoritative development source lives in a private repository.
 > This public repo is intended for **evaluation, experimentation, and community feedback**.
 
@@ -25,7 +25,7 @@
 
 ## 🌟 Overview
 
-**AgentOS** is a system-level, project-agnostic AI agent orchestration platform with **interruptible, resumable, verifiable, and auditable** execution. Unlike chat-centric tools that emphasize "full automation", AgentOS emphasizes **execution controllability** and **process traceability**.
+**OctopusOS** is a system-level, project-agnostic AI agent orchestration platform with **interruptible, resumable, verifiable, and auditable** execution. Unlike chat-centric tools that emphasize "full automation", OctopusOS emphasizes **execution controllability** and **process traceability**.
 
 ### Core Principles
 
@@ -42,13 +42,13 @@ Every operation is a **first-class task** with a deterministic lifecycle and evi
 
 ### Complete 7 OS Systems Architecture
 
-AgentOS v2.1.0 introduces **3 new operating systems**, completing the full 7-system architecture for comprehensive AI agent orchestration:
+OctopusOS v2.1.0 introduces **3 new operating systems**, completing the full 7-system architecture for comprehensive AI agent orchestration:
 
 <div align="center">
 
 ```mermaid
 graph TB
-    A[AgentOS Core] --> B[MemoryOS]
+    A[OctopusOS Core] --> B[MemoryOS]
     A --> C[BrainOS]
     A --> D[CommunicationOS]
     A --> E[NetworkOS]
@@ -86,7 +86,7 @@ graph TB
 - 🔐 Sandboxed runtime environment
 - 📊 10 files
 
-[📖 Read Full v2.1.0 Release Notes →](https://github.com/seacow-technology/agentos/releases/tag/v2.1.0)
+[📖 Read Full v2.1.0 Release Notes →](https://github.com/seacow-technology/octopusos/releases/tag/v2.1.0)
 
 ---
 
@@ -94,11 +94,11 @@ graph TB
 
 ### The 7 Operating Systems
 
-AgentOS is structured as **7 interconnected operating systems**, each responsible for a specific domain:
+OctopusOS is structured as **7 interconnected operating systems**, each responsible for a specific domain:
 
 | OS System | Purpose | Key Features |
 |-----------|---------|--------------|
-| **AgentOS** | Core orchestration | Task lifecycle, execution control, audit trail |
+| **OctopusOS** | Core orchestration | Task lifecycle, execution control, audit trail |
 | **MemoryOS** | Persistent memory | Cross-session memory, auto-extraction, scoped isolation |
 | **BrainOS** | Knowledge graph | Decision records, cognitive time, improvement proposals |
 | **CommunicationOS** | Multi-channel communication | Email, Slack, Discord, Telegram, SMS, WhatsApp |
@@ -140,61 +140,54 @@ AgentOS is structured as **7 interconnected operating systems**, each responsibl
 
 ### Installation
 
-#### Option 1: Using `uv` (Recommended)
+#### Windows (GA Installer)
 
-```bash
-# Clone the repository
-git clone https://github.com/seacow-technology/agentos.git
-cd agentos
+1. Download the latest Windows MSI from [Releases](https://github.com/seacow-technology/octopusos/releases).
+2. Install the MSI.
+3. Open a new PowerShell and run:
 
-# Install and run
-uv run agentos --help
-
-# Initialize database
-uv run agentos init
-
-# Start interactive CLI
-uv run agentos
+```powershell
+octopusos webui start
+octopusos webui status
+octopusos logs --tail --lines 50
+octopusos webui stop
 ```
 
-#### Option 2: Using `pip`
+#### macOS / Linux (Developer Setup for now)
+
+Packaged installer distribution for macOS/Linux is planned. Use developer setup currently.
 
 ```bash
 # Clone the repository
-git clone https://github.com/seacow-technology/agentos.git
-cd agentos
+git clone https://github.com/seacow-technology/octopusos.git
+cd octopusos
 
 # Create virtual environment
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install editable package
 pip install -e .
 
 # Optional: voice features (Python < 3.14)
 pip install -e '.[voice]'
 
-# Note: Python 3.14 currently lacks onnxruntime wheels, so voice features are unavailable on 3.14.
+# Verify and start daemon-managed WebUI
+octopusos doctor
+export OCTOPUSOS_ADMIN_TOKEN='your-token'  # Recommended: enable protected write operations in WebUI
+octopusos webui start
+octopusos webui status
+octopusos logs --tail --lines 50
 
-# Initialize database
-agentos init
-
-# Start CLI
-agentos
+# Stop WebUI
+octopusos webui stop
 ```
 
-#### Option 3: Quick Start Script
+#### Developer Setup (Source Workflow)
 
 ```bash
-# One-command setup (auto-configures environment)
+# One-command local setup helper
 ./run.sh doctor
-
-# Start WebUI (v2)
-cd webui-v2
-npm install
-npm run dev
-
-# Start CLI
 ./run.sh cli
 ```
 
@@ -202,16 +195,17 @@ npm run dev
 
 ```bash
 # 1. Verify installation
-agentos doctor
+octopusos doctor
 
-# 2. Start WebUI (recommended for first-time users)
-cd webui-v2
-npm install
-npm run dev
-# Open http://localhost:5173
+# 2. Configure Admin Token (recommended for write operations)
+export OCTOPUSOS_ADMIN_TOKEN='your-token'
 
-# 3. Or use interactive CLI
-agentos
+# 3. Start daemon-managed WebUI
+octopusos webui start
+octopusos webui status
+
+# 4. Or use interactive CLI
+octopusos
 ```
 
 ---
@@ -222,50 +216,55 @@ agentos
 
 ```bash
 # Create a new task
-agentos task create "Refactor API error handling"
+octopusos task create "Refactor API error handling"
 
 # List all tasks
-agentos task list
+octopusos task list
 
 # View task details
-agentos task show <task_id>
+octopusos task show <task_id>
 
 # Resume a paused task
-agentos task resume <task_id>
+octopusos task resume <task_id>
 ```
 
-### Example 2: WebUI Management (v2)
+### Example 2: WebUI Management (Daemon)
 
 ```bash
-# Start WebUI (v2 dev server)
-cd webui-v2
-npm install
-npm run dev
+# Start daemon in background
+octopusos webui start
 
-# Access governance dashboard (default dev port)
-open http://localhost:5173/governance
+# Check state and URL
+octopusos webui status
+
+# Tail runtime logs
+octopusos logs --tail --lines 50
+
+# Restart or stop
+octopusos webui restart
+octopusos webui stop
 ```
 
 ### Example 3: Project-Based Workflow
 
 ```bash
 # Create a project
-agentos project create "MyApp" --description "Web application"
+octopusos project create "MyApp" --description "Web application"
 
 # Add repository
-agentos repo add MyApp /path/to/repo --type git
+octopusos repo add MyApp /path/to/repo --type git
 
 # Create project-bound task
-agentos task create "Add user authentication" --project MyApp
+octopusos task create "Add user authentication" --project MyApp
 
 # View project tasks
-agentos project tasks MyApp
+octopusos project tasks MyApp
 ```
 
 ### Example 4: Memory Management
 
 ```python
-from agentos.memory import MemoryService
+from octopusos.memory import MemoryService
 
 memory = MemoryService()
 
@@ -280,7 +279,7 @@ memory.recall(scope="global", type="preferred_name")
 ### Example 5: CommunicationOS Integration
 
 ```python
-from agentos.communicationos import CommunicationService, ConnectorType
+from octopusos.communicationos import CommunicationService, ConnectorType
 
 comm = CommunicationService()
 
@@ -318,8 +317,8 @@ await comm.execute(
 
 ### OS System Documentation
 
-- [CommunicationOS Guide](agentos/communicationos/README.md)
-- [NetworkOS Guide](agentos/networkos/README.md)
+- [CommunicationOS Guide](octopusos/communicationos/README.md)
+- [NetworkOS Guide](octopusos/networkos/README.md)
 - [SkillOS Guide](docs/SKILLS_ADMIN_GUIDE.md)
 - [MemoryOS Guide](docs/MEMORY_INTEGRATION_COMPLETE_SUMMARY.md)
 - [BrainOS Guide](docs/brainos/README.md)
@@ -356,10 +355,10 @@ uv sync
 
 ```bash
 # Run database migrations
-agentos db migrate
+octopusos db migrate
 
 # Verify migration
-agentos db version
+octopusos db version
 # Expected: v57 or higher
 ```
 
@@ -382,7 +381,7 @@ SKILLOS_ENABLED=true
 
 ```bash
 # Run system check
-agentos doctor
+octopusos doctor
 
 # Expected output:
 # ✅ CommunicationOS: Available
@@ -398,20 +397,20 @@ agentos doctor
 
 1. **CommunicationOS**: Multi-channel messaging
    ```bash
-   agentos channel list
-   agentos channel setup slack
+   octopusos channel list
+   octopusos channel setup slack
    ```
 
 2. **NetworkOS**: Network service management
    ```bash
-   agentos network status
-   agentos network providers
+   octopusos network status
+   octopusos network providers
    ```
 
 3. **SkillOS**: Skill management
    ```bash
-   agentos skill list
-   agentos skill import /path/to/skill
+   octopusos skill list
+   octopusos skill import /path/to/skill
    ```
 
 ---
@@ -424,25 +423,25 @@ Create a `.env` file in the project root:
 
 ```bash
 # Runtime Mode
-AGENTOS_RUN_MODE=assisted  # interactive | assisted | autonomous
+OCTOPUSOS_RUN_MODE=assisted  # interactive | assisted | autonomous
 
 # WebUI Configuration
-AGENTOS_WEBUI_HOST=127.0.0.1
-AGENTOS_WEBUI_PORT=8080
+OCTOPUSOS_WEBUI_HOST=127.0.0.1
+OCTOPUSOS_WEBUI_PORT=8080
 
 # Database (SQLite default)
-AGENTOS_DB_PATH=store/registry.sqlite
+OCTOPUSOS_DB_PATH=store/registry.sqlite
 
 # PostgreSQL (optional - production)
 DATABASE_TYPE=postgresql
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
-DATABASE_NAME=agentos
-DATABASE_USER=agentos
+DATABASE_NAME=octopusos
+DATABASE_USER=octopusos
 DATABASE_PASSWORD=your_password
 
 # Logging
-AGENTOS_LOG_LEVEL=info  # debug | info | warning | error
+OCTOPUSOS_LOG_LEVEL=info  # debug | info | warning | error
 
 # OS Systems (all enabled by default in v2.1)
 COMMUNICATIONOS_ENABLED=true
@@ -457,11 +456,11 @@ SKILLOS_ENABLED=true
 Zero configuration required. Perfect for single-user scenarios.
 
 ```bash
-# Start AgentOS (CLI)
-agentos
+# Start OctopusOS (CLI)
+octopusos
 
 # Start WebUI v2
-cd webui-v2
+cd apps/webui
 npm install
 npm run dev
 ```
@@ -478,18 +477,18 @@ docker-compose up -d postgres
 export DATABASE_TYPE=postgresql
 export DATABASE_HOST=localhost
 export DATABASE_PORT=5432
-export DATABASE_NAME=agentos
-export DATABASE_USER=agentos
+export DATABASE_NAME=octopusos
+export DATABASE_USER=octopusos
 export DATABASE_PASSWORD=your_password
 
 # Run migrations
-agentos db migrate
+octopusos db migrate
 
-# Start AgentOS (CLI)
-agentos
+# Start OctopusOS (CLI)
+octopusos
 
 # Start WebUI v2
-cd webui-v2
+cd apps/webui
 npm install
 npm run dev
 ```
@@ -515,8 +514,13 @@ uv run pytest tests/integration/   # Integration tests
 uv run pytest tests/e2e/            # End-to-end tests
 
 # With coverage
-uv run pytest --cov=agentos tests/
+uv run pytest --cov=octopusos tests/
 ```
+
+### Mobile Acceptance (10 minutes)
+
+- `docs/mobile_acceptance.md` (checklist)
+- `scripts/mobile_smoke_test.sh` (one-command smoke + evidence output)
 
 ### Test Statistics
 
@@ -532,7 +536,7 @@ uv run pytest --cov=agentos tests/
 
 ### Security-First Design
 
-AgentOS is built with security as the foundation:
+OctopusOS is built with security as the foundation:
 
 #### 1. Default Chat-Only Mode
 - Execution **disabled by default**
@@ -574,7 +578,7 @@ User Request
 
 If you discover a security vulnerability, **do not open a public issue**.
 
-Please email: **security@agentos.dev**
+Please email: **security@octopusos.dev**
 
 ---
 
@@ -586,8 +590,8 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 
 ```bash
 # Clone repository
-git clone https://github.com/seacow-technology/agentos.git
-cd agentos
+git clone https://github.com/seacow-technology/octopusos.git
+cd octopusos
 
 # Install development dependencies
 pip install -e ".[dev]"
@@ -623,6 +627,8 @@ ruff format .
 - **Python**: 3.13+
 - **Architecture**: Stable with 7 OS systems
 
+Release requires Business Journeys streak evidence. See: `docs/release/journeys_streak_recovery.md`.
+
 ### Roadmap
 
 - [ ] **v2.2**: Multi-user collaboration features
@@ -634,8 +640,8 @@ ruff format .
 
 ## 📞 Community & Support
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/seacow-technology/agentos/issues)
-- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/seacow-technology/agentos/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/seacow-technology/octopusos/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/seacow-technology/octopusos/discussions)
 - 💬 **Community Chat**: Coming soon
 - 📧 **Email**: Coming soon
 - 🌐 **Website**: Coming soon
@@ -644,7 +650,7 @@ ruff format .
 
 ## 📜 License
 
-AgentOS is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
+OctopusOS is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
 
 ```
 Copyright (c) 2025 Seacow Technology
@@ -660,7 +666,7 @@ copies of the Software.
 
 ## 🙏 Acknowledgments
 
-AgentOS is built on the shoulders of giants:
+OctopusOS is built on the shoulders of giants:
 
 - **Python** - Core language
 - **FastAPI** - WebUI backend
@@ -675,6 +681,6 @@ AgentOS is built on the shoulders of giants:
 
 **Built with ❤️ for controllable, traceable, and human-in-the-loop AI engineering.**
 
-[⬆ Back to Top](#agentos)
+[⬆ Back to Top](#octopusos)
 
 </div>

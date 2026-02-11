@@ -1,3 +1,4 @@
+import { useCallback, useRef } from 'react'
 import { DataGrid, GridColDef, GridRowsProp, GridPaginationModel, GridRowSelectionModel, GridCallbackDetails } from '@mui/x-data-grid'
 import { Box } from '@mui/material'
 import { EmptyState } from '../../../components/EmptyState'
@@ -214,6 +215,27 @@ export function AppTable({
   hideFooterPagination = false,
   hideFooterSelectedRowCount = false,
 }: AppTableProps) {
+  const autoRowIdMapRef = useRef(new WeakMap<object, string>())
+  const autoRowIdSeqRef = useRef(0)
+
+  const getFallbackRowId = useCallback((row: any) => {
+    if (row?.id !== undefined && row?.id !== null) return row.id
+    if (row?.event_id !== undefined && row?.event_id !== null) return row.event_id
+    if (row?.uuid !== undefined && row?.uuid !== null) return row.uuid
+    if (row?.key !== undefined && row?.key !== null) return row.key
+
+    if (row && typeof row === 'object') {
+      const existing = autoRowIdMapRef.current.get(row as object)
+      if (existing) return existing
+      autoRowIdSeqRef.current += 1
+      const generated = `auto-row-${autoRowIdSeqRef.current}`
+      autoRowIdMapRef.current.set(row as object, generated)
+      return generated
+    }
+
+    return String(row)
+  }, [])
+
   // 处理 pageSize 便捷属性（向后兼容）
   const finalPaginationModel = paginationModel || (pageSize ? { pageSize, page: 0 } : undefined)
   // 显示加载状态
@@ -292,6 +314,7 @@ export function AppTable({
       <DataGrid
         rows={rows}
         columns={columns}
+        getRowId={getFallbackRowId}
         rowHeight={rowHeight}
         checkboxSelection={checkboxSelection}
         rowSelectionModel={rowSelectionModel}

@@ -12,16 +12,16 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
         "migrations/add_user_roles_table.sql",
-        "agentos/models/user.py"
+        "octopusos/models/user.py"
       ],
       "modules": [
-        "agentos.models",
-        "agentos.db"
+        "octopusos.models",
+        "octopusos.db"
       ],
       "areas": [
         "backend",
@@ -151,7 +151,7 @@
       "mode": "files",
       "paths": [
         "migrations/add_user_roles_table.sql",
-        "agentos/models/user.py"
+        "octopusos/models/user.py"
       ]
     }
   },

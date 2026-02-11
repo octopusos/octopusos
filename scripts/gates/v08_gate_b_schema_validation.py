@@ -15,10 +15,10 @@ from pathlib import Path
 
 import yaml
 
-# Add agentos to path
+# Add octopusos to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.content.schema_loader import ContentSchemaLoader
+from octopusos.core.content.schema_loader import ContentSchemaLoader
 
 
 def validate_all_commands() -> tuple[int, int, list[str]]:

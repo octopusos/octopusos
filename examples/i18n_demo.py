@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-AgentOS i18n 使用示例
+OctopusOS i18n 使用示例
 
-演示如何在 AgentOS 中使用国际化功能
+演示如何在 OctopusOS 中使用国际化功能
 """
 
-from agentos.i18n import t, set_language, get_available_languages, get_language
+from octopusos.i18n import t, set_language, get_available_languages, get_language
 
 
 def demo_basic_translation():
@@ -64,7 +64,7 @@ def demo_settings_integration():
     print("4. 配置集成演示")
     print("=" * 60)
     
-    from agentos.config import load_settings, save_settings
+    from octopusos.config import load_settings, save_settings
     
     # 加载设置
     settings = load_settings()
@@ -103,8 +103,8 @@ def demo_fallback_behavior():
 def main():
     """主函数"""
     print("\n" + "=" * 60)
-    print("AgentOS i18n 功能演示")
-    print("AgentOS i18n Feature Demo")
+    print("OctopusOS i18n 功能演示")
+    print("OctopusOS i18n Feature Demo")
     print("=" * 60)
     
     demo_basic_translation()

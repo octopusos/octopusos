@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "octopusos://schemas/executor/sandbox_policy.schema.json",
+  "title": "Sandbox Policy (v0.11.1)",
+  "description": "Execution sandbox policy with allowlist and limits",
+  "type": "object",
+  "required": ["policy_id", "schema_version", "allowlist", "allowed_git_operations"],
+  "properties": {
+    "policy_id": {"type": "string"},
+    "schema_version": {"type": "string", "const": "0.11.1"},
+    "allowed_git_operations": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["git_add", "git_commit"]},
+      "description": "Git operations that are always allowed in sandbox"
+    },
+    "allowlist": {
+      "type": "object",
+      "properties": {
+        "file_operations": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["write_file", "update_file", "patch_file", "delete_file", "mkdir"]}
+        },
+        "commands": {
+          "type": "array",
+          "items": {"type": "object", "required": ["id", "executable"], "properties": {"id": {"type": "string"}, "executable": {"type": "string"}, "allowed_args": {"type": "array"}}}
+        },
+        "paths": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Allowed paths for file operations"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_file_size_mb": {"type": "number"},
+        "max_files": {"type": "integer"},
+        "timeout_seconds": {"type": "integer"}
+      }
+    }
+  }
+}

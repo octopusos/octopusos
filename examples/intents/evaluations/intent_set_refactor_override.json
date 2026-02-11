@@ -8,7 +8,7 @@
     "intent_refactor_api_v2"
   ],
   "context": {
-    "project_id": "agentos",
+    "project_id": "octopusos",
     "env": "local",
     "tags": ["api", "refactor", "conflict"]
   },

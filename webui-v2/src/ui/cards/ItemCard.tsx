@@ -42,6 +42,7 @@ export interface ItemCardAction {
   onClick: () => void
   variant?: 'text' | 'outlined' | 'contained'
   disabled?: boolean
+  testId?: string
   /**
    * 图标（可选）- 提供时将渲染为 IconButton
    */
@@ -69,6 +70,11 @@ export interface ItemCardProps {
   meta?: ItemCardMeta[]
 
   /**
+   * Meta 行间距（默认 0.5 = 4px）
+   */
+  metaRowSpacing?: number
+
+  /**
    * Tags 标签（可选）
    */
   tags?: string[]
@@ -92,6 +98,11 @@ export interface ItemCardProps {
    * 自定义页脚内容（可选）
    */
   footer?: React.ReactNode
+
+  /**
+   * 测试 ID（可选）
+   */
+  testId?: string
 }
 
 // ===================================
@@ -114,14 +125,17 @@ export function ItemCard({
   title,
   description,
   meta,
+  metaRowSpacing = 0.5,
   tags,
   actions,
   onClick,
   icon,
   footer,
+  testId,
 }: ItemCardProps) {
   return (
     <Card
+      data-testid={testId}
       sx={{
         height: '100%',
         display: 'flex',
@@ -182,7 +196,7 @@ export function ItemCard({
                 sx={{
                   display: 'flex',
                   justifyContent: 'space-between',
-                  mb: 0.5,
+                  mb: metaRowSpacing,
                 }}
               >
                 <Typography variant="caption" color="text.secondary">
@@ -217,6 +231,7 @@ export function ItemCard({
                 const iconButton = (
                   <IconButton
                     key={action.key}
+                    data-testid={action.testId}
                     onClick={(e) => {
                       e.stopPropagation()
                       action.onClick()
@@ -243,6 +258,7 @@ export function ItemCard({
               return (
                 <Button
                   key={action.key}
+                  data-testid={action.testId}
                   variant={action.variant ?? 'text'}
                   onClick={(e) => {
                     e.stopPropagation()

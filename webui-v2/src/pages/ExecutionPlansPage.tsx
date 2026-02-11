@@ -22,6 +22,8 @@ import { toast } from '@/ui/feedback'
 import { DetailDrawer, DeleteConfirmDialog } from '@/ui/interaction'
 import type { GridColDef } from '@/ui'
 import { executionPlansApi, type ExecutionPlan } from '@/api/execution-plans'
+import { useIsReadOnly } from '@/ui/guards/useIsReadOnly'
+import { WriteActionGuard } from '@/ui/guards/WriteActionGuard'
 
 // ===================================
 // Types
@@ -90,6 +92,7 @@ export default function ExecutionPlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<ExecutionPlanRow | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const isReadOnly = useIsReadOnly()
 
   // ===================================
   // Page Header (v2.4 API)
@@ -106,13 +109,14 @@ export default function ExecutionPlansPage() {
       variant: 'outlined',
       onClick: () => loadPlans(),
     },
-    {
-      key: 'create',
-      label: t(K.page.executionPlans.createPlan),
-      variant: 'contained',
-      disabled: true,
-      onClick: () => {},
-    },
+    ...(isReadOnly
+      ? []
+      : [{
+          key: 'create',
+          label: t(K.page.executionPlans.createPlan),
+          variant: 'contained' as const,
+          onClick: () => {},
+        }]),
   ])
 
   // ===================================
@@ -337,29 +341,31 @@ export default function ExecutionPlansPage() {
         onClose={() => setDrawerOpen(false)}
         title={selectedPlan?.name || ''}
         actions={
-          <>
-            <Tooltip title={t(K.page.executionPlans.notImplemented)}>
-              <span>
-                <Button
-                  variant="outlined"
-                  disabled
-                >
-                  {t(K.common.edit)}
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip title={t(K.page.executionPlans.notImplemented)}>
-              <span>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  disabled
-                >
-                  {t(K.common.delete)}
-                </Button>
-              </span>
-            </Tooltip>
-          </>
+          <WriteActionGuard>
+            <>
+              <Tooltip title={t(K.page.executionPlans.notImplemented)}>
+                <span>
+                  <Button
+                    variant="outlined"
+                    disabled
+                  >
+                    {t(K.common.edit)}
+                  </Button>
+                </span>
+              </Tooltip>
+              <Tooltip title={t(K.page.executionPlans.notImplemented)}>
+                <span>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    disabled
+                  >
+                    {t(K.common.delete)}
+                  </Button>
+                </span>
+              </Tooltip>
+            </>
+          </WriteActionGuard>
         }
       >
         {selectedPlan && (

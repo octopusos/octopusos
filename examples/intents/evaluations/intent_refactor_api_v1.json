@@ -12,14 +12,14 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
-        "agentos/api/routes.py"
+        "octopusos/api/routes.py"
       ],
       "modules": [
-        "agentos.api"
+        "octopusos.api"
       ],
       "areas": [
         "backend"
@@ -64,7 +64,7 @@
       ],
       "risk_level": "medium",
       "evidence_refs": [
-        "scan://file/agentos/api/routes.py"
+        "scan://file/octopusos/api/routes.py"
       ]
     }
   ],
@@ -89,7 +89,7 @@
     "max_cost_usd": 3.0
   },
   "evidence_refs": [
-    "scan://file/agentos/api/routes.py"
+    "scan://file/octopusos/api/routes.py"
   ],
   "constraints": {
     "execution": "forbidden",
@@ -98,7 +98,7 @@
     "lock_scope": {
       "mode": "files",
       "paths": [
-        "agentos/api/routes.py"
+        "octopusos/api/routes.py"
       ]
     }
   },

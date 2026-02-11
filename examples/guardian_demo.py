@@ -14,7 +14,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.guardian import GuardianService, GuardianPolicy, get_policy_registry
+from octopusos.core.guardian import GuardianService, GuardianPolicy, get_policy_registry
 
 
 def demo_basic_usage():
@@ -234,7 +234,7 @@ def demo_error_handling():
 
 def initialize_database():
     """初始化数据库（确保 guardian_reviews 表存在）"""
-    from agentos.store import get_db_path
+    from octopusos.store import get_db_path
     import sqlite3
 
     db_path = get_db_path()
@@ -304,9 +304,9 @@ def main():
         print("✅ All demos completed successfully!")
         print("=" * 60)
         print("\nNext steps:")
-        print("  - Read full documentation: agentos/core/guardian/README.md")
-        print("  - Read quick start guide: agentos/core/guardian/QUICKSTART.md")
-        print("  - Explore API endpoints: agentos/webui/api/guardian.py")
+        print("  - Read full documentation: octopusos/core/guardian/README.md")
+        print("  - Read quick start guide: octopusos/core/guardian/QUICKSTART.md")
+        print("  - Explore API endpoints: octopusos/webui/api/guardian.py")
         print("  - Run tests: pytest tests/unit/guardian/ -v")
         print()
 

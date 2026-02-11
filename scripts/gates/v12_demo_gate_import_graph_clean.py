@@ -25,9 +25,9 @@ DEMO_ENTRY_POINT = "scripts/demo/run_landing_demo.py"
 
 # 禁止触达的模块路径前缀
 FORBIDDEN_MODULE_PREFIXES = [
-    "agentos.core.container",
-    "agentos.core.rollback",
-    "agentos.ext.tools"
+    "octopusos.core.container",
+    "octopusos.core.rollback",
+    "octopusos.ext.tools"
 ]
 
 
@@ -61,10 +61,10 @@ class ImportGraphAnalyzer:
     
     def resolve_module_path(self, module_name: str) -> Path | None:
         """将模块名转换为文件路径"""
-        if not module_name.startswith("agentos"):
+        if not module_name.startswith("octopusos"):
             return None
         
-        # agentos.core.executor -> agentos/core/executor.py 或 agentos/core/executor/__init__.py
+        # octopusos.core.executor -> octopusos/core/executor.py 或 octopusos/core/executor/__init__.py
         parts = module_name.split(".")
         
         # 尝试 .py 文件
@@ -104,9 +104,9 @@ class ImportGraphAnalyzer:
             imports = self.analyze_file(current_file)
             self.import_graph[current_key] = imports
             
-            # 递归分析 agentos 内部模块
+            # 递归分析 octopusos 内部模块
             for imp in imports:
-                if imp.startswith("agentos"):
+                if imp.startswith("octopusos"):
                     module_path = self.resolve_module_path(imp)
                     if module_path and module_path not in to_visit:
                         to_visit.append(module_path)
@@ -150,7 +150,7 @@ def test_runtime_subprocess_blocked() -> Dict:
         with patch("subprocess.run", side_effect=RuntimeError("subprocess blocked")):
             with patch("subprocess.Popen", side_effect=RuntimeError("subprocess blocked")):
                 # 导入 executor_engine
-                from agentos.core.executor.executor_engine import ExecutorEngine
+                from octopusos.core.executor.executor_engine import ExecutorEngine
                 
                 result["status"] = "pass"
                 result["reason"] = "ExecutorEngine import 成功，未触发 subprocess"

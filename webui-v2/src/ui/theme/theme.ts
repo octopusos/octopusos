@@ -1,9 +1,9 @@
 import { createTheme, ThemeOptions, alpha } from '@mui/material/styles'
 import { tokens } from '../tokens/tokens'
-import { agentosTokens, getAgentOSTokens } from '../tokens/agentosTokens'
+import { octopusosTokens, getOctopusOSTokens } from '../tokens/octopusosTokens'
 
 /**
- * AgentOS Theme Configuration
+ * OctopusOS Theme Configuration
  *
  * 🎯 Modern Control Surface Theme
  *
@@ -12,7 +12,7 @@ import { agentosTokens, getAgentOSTokens } from '../tokens/agentosTokens'
  * - Dark Mode: Surface brightness gradients, borders instead of shadows (structural integrity)
  *
  * ⚠️ DO NOT override these values in components
- * If you need customization, modify agentosTokens.ts
+ * If you need customization, modify octopusosTokens.ts
  */
 
 // ===================================
@@ -119,14 +119,14 @@ const typography = {
 // ===================================
 // Light Mode Palette
 // ===================================
-const lightTokens = getAgentOSTokens('light')
+const lightTokens = getOctopusOSTokens('light')
 
 const lightPalette = {
   mode: 'light' as const,
   primary: {
-    main: agentosTokens.brand.primary,
-    dark: agentosTokens.brand.primaryDark,
-    light: agentosTokens.brand.primaryLight,
+    main: octopusosTokens.brand.primary,
+    dark: octopusosTokens.brand.primaryDark,
+    light: octopusosTokens.brand.primaryLight,
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -170,22 +170,22 @@ const lightPalette = {
   },
   divider: lightTokens.divider,
   // ===================================
-  // ✅ AgentOS Tokens (MUI 推荐扩展点)
+  // ✅ OctopusOS Tokens (MUI 推荐扩展点)
   // ===================================
-  agentos: lightTokens as any,
+  octopusos: lightTokens as any,
 }
 
 // ===================================
 // Dark Mode Palette
 // ===================================
-const darkTokens = getAgentOSTokens('dark')
+const darkTokens = getOctopusOSTokens('dark')
 
 const darkPalette = {
   mode: 'dark' as const,
   primary: {
-    main: agentosTokens.brand.primary,
-    dark: agentosTokens.brand.primaryDark,
-    light: agentosTokens.brand.primaryLight,
+    main: octopusosTokens.brand.primary,
+    dark: octopusosTokens.brand.primaryDark,
+    light: octopusosTokens.brand.primaryLight,
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -229,16 +229,16 @@ const darkPalette = {
   },
   divider: darkTokens.divider,
   // ===================================
-  // ✅ AgentOS Tokens (MUI 推荐扩展点)
+  // ✅ OctopusOS Tokens (MUI 推荐扩展点)
   // ===================================
-  agentos: darkTokens as any,
+  octopusos: darkTokens as any,
 }
 
 // ===================================
 // Shape Configuration
 // ===================================
 const shape = {
-  borderRadius: agentosTokens.shape.radius.md, // 8px default (unified)
+  borderRadius: octopusosTokens.shape.radius.md, // 8px default (unified)
 }
 
 // ===================================
@@ -252,7 +252,7 @@ const spacing = 8
 
 // Helper to create custom theme palette
 const createCustomPalette = (themeName: 'github' | 'google' | 'macos' | 'dracula' | 'nord' | 'monokai') => {
-  const tokens = getAgentOSTokens(themeName)
+  const tokens = getOctopusOSTokens(themeName)
   const isDark = themeName === 'dracula' || themeName === 'nord' || themeName === 'monokai'
   const mode = isDark ? 'dark' : 'light'
 
@@ -296,7 +296,7 @@ const createCustomPalette = (themeName: 'github' | 'google' | 'macos' | 'dracula
       disabled: tokens.text.disabled,
     },
     divider: tokens.divider,
-    agentos: tokens as any,
+    octopusos: tokens as any,
   }
 }
 
@@ -313,7 +313,7 @@ const monokaiPalette = createCustomPalette('monokai')
 type ThemeMode = 'light' | 'dark' | 'github' | 'google' | 'macos' | 'dracula' | 'nord' | 'monokai'
 
 const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
-  const modeTokens = getAgentOSTokens(mode)
+  const modeTokens = getOctopusOSTokens(mode)
 
   // Determine if theme is light or dark
   const darkThemes: ThemeMode[] = ['dark', 'dracula', 'nord', 'monokai']
@@ -395,7 +395,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
               : {
                   // Dark: border + subtle highlight
                   border: `1px solid ${modeTokens.border.subtle}`,
-                  boxShadow: mode === 'dark' ? agentosTokens.surfaceHighlight.dark : 'none',
+                  boxShadow: mode === 'dark' ? octopusosTokens.surfaceHighlight.dark : 'none',
                 }),
           },
         },
@@ -407,7 +407,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
           root: {
             backgroundColor: modeTokens.bg.paper,
             border: `1px solid ${modeTokens.border.subtle}`,
-            borderRadius: agentosTokens.shape.radius.md,
+            borderRadius: octopusosTokens.shape.radius.md,
             // Light: soft shadow, Dark: no shadow
             boxShadow: isLight ? modeTokens.elevation.soft : 'none',
             ...(isLight
@@ -423,7 +423,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
                     right: 0,
                     height: 1,
                     background: 'rgba(255,255,255,0.04)',
-                    borderRadius: `${agentosTokens.shape.radius.md}px ${agentosTokens.shape.radius.md}px 0 0`,
+                    borderRadius: `${octopusosTokens.shape.radius.md}px ${octopusosTokens.shape.radius.md}px 0 0`,
                   },
                 }),
           },
@@ -434,9 +434,9 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
       MuiCardContent: {
         styleOverrides: {
           root: {
-            padding: agentosTokens.spacing.cardPadding,
+            padding: octopusosTokens.spacing.cardPadding,
             '&:last-child': {
-              paddingBottom: agentosTokens.spacing.cardPadding,
+              paddingBottom: octopusosTokens.spacing.cardPadding,
             },
           },
         },
@@ -482,7 +482,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
         styleOverrides: {
           root: {
             textTransform: 'none',
-            borderRadius: agentosTokens.shape.radius.sm,
+            borderRadius: octopusosTokens.shape.radius.sm,
           },
           // Outlined buttons - ensure visibility in light mode
           outlined: isLight
@@ -491,8 +491,8 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
                 borderColor: modeTokens.border.strong,
                 '&:hover': {
                   borderWidth: '1.5px',
-                  borderColor: agentosTokens.brand.primary,
-                  backgroundColor: alpha(agentosTokens.brand.primary, 0.04),
+                  borderColor: octopusosTokens.brand.primary,
+                  backgroundColor: alpha(octopusosTokens.brand.primary, 0.04),
                 },
               }
             : {},
@@ -500,7 +500,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
           text: isLight
             ? {
                 '&:hover': {
-                  backgroundColor: alpha(agentosTokens.brand.primary, 0.08),
+                  backgroundColor: alpha(octopusosTokens.brand.primary, 0.08),
                 },
               }
             : {},
@@ -511,7 +511,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
       MuiChip: {
         styleOverrides: {
           root: {
-            borderRadius: agentosTokens.shape.radius.sm,
+            borderRadius: octopusosTokens.shape.radius.sm,
             border: `1px solid ${modeTokens.border.subtle}`,
             backgroundColor: isLight
               ? 'rgba(0,0,0,0.03)'
@@ -558,7 +558,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
           paper: {
             backgroundColor: modeTokens.bg.elevated,
             border: `1px solid ${modeTokens.border.subtle}`,
-            borderRadius: agentosTokens.shape.radius.lg,
+            borderRadius: octopusosTokens.shape.radius.lg,
             boxShadow: isLight ? modeTokens.elevation.high : 'none',
             backgroundImage: 'none',
           },
@@ -581,7 +581,7 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
               borderWidth: isLight ? '1.5px' : '1px',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: alpha(agentosTokens.brand.primary, 0.65),
+              borderColor: alpha(octopusosTokens.brand.primary, 0.65),
               borderWidth: 2,
             },
           },
@@ -592,15 +592,15 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: agentosTokens.shape.radius.sm,
+            borderRadius: octopusosTokens.shape.radius.sm,
             '&.Mui-selected': {
               backgroundColor: isLight
-                ? alpha(agentosTokens.brand.primary, 0.08)
-                : alpha(agentosTokens.brand.primary, 0.16),
+                ? alpha(octopusosTokens.brand.primary, 0.08)
+                : alpha(octopusosTokens.brand.primary, 0.16),
               '&:hover': {
                 backgroundColor: isLight
-                  ? alpha(agentosTokens.brand.primary, 0.12)
-                  : alpha(agentosTokens.brand.primary, 0.20),
+                  ? alpha(octopusosTokens.brand.primary, 0.12)
+                  : alpha(octopusosTokens.brand.primary, 0.20),
               },
             },
           },
@@ -623,51 +623,51 @@ const createThemeOptions = (mode: ThemeMode): ThemeOptions => {
 // Create Themes
 // ===================================
 
-// Augment MUI Palette with AgentOS tokens
+// Augment MUI Palette with OctopusOS tokens
 declare module '@mui/material/styles' {
   interface Palette {
-    agentos: ReturnType<typeof getAgentOSTokens>
+    octopusos: ReturnType<typeof getOctopusOSTokens>
   }
   interface PaletteOptions {
-    agentos?: ReturnType<typeof getAgentOSTokens>
+    octopusos?: ReturnType<typeof getOctopusOSTokens>
   }
 }
 
 // Create light theme
 export const lightTheme = createTheme(createThemeOptions('light'))
 // ⚠️ MUI's createPalette() filters out unknown properties
-// Must manually add agentos tokens after createTheme()
-lightTheme.palette.agentos = getAgentOSTokens('light')
+// Must manually add octopusos tokens after createTheme()
+lightTheme.palette.octopusos = getOctopusOSTokens('light')
 
 // Create dark theme
 export const darkTheme = createTheme(createThemeOptions('dark'))
 // ⚠️ MUI's createPalette() filters out unknown properties
-// Must manually add agentos tokens after createTheme()
-darkTheme.palette.agentos = getAgentOSTokens('dark')
+// Must manually add octopusos tokens after createTheme()
+darkTheme.palette.octopusos = getOctopusOSTokens('dark')
 
 // Create GitHub theme
 export const githubTheme = createTheme(createThemeOptions('github'))
-githubTheme.palette.agentos = getAgentOSTokens('github')
+githubTheme.palette.octopusos = getOctopusOSTokens('github')
 
 // Create Google theme
 export const googleTheme = createTheme(createThemeOptions('google'))
-googleTheme.palette.agentos = getAgentOSTokens('google')
+googleTheme.palette.octopusos = getOctopusOSTokens('google')
 
 // Create macOS theme
 export const macosTheme = createTheme(createThemeOptions('macos'))
-macosTheme.palette.agentos = getAgentOSTokens('macos')
+macosTheme.palette.octopusos = getOctopusOSTokens('macos')
 
 // Create Dracula theme
 export const draculaTheme = createTheme(createThemeOptions('dracula'))
-draculaTheme.palette.agentos = getAgentOSTokens('dracula')
+draculaTheme.palette.octopusos = getOctopusOSTokens('dracula')
 
 // Create Nord theme
 export const nordTheme = createTheme(createThemeOptions('nord'))
-nordTheme.palette.agentos = getAgentOSTokens('nord')
+nordTheme.palette.octopusos = getOctopusOSTokens('nord')
 
 // Create Monokai theme
 export const monokaiTheme = createTheme(createThemeOptions('monokai'))
-monokaiTheme.palette.agentos = getAgentOSTokens('monokai')
+monokaiTheme.palette.octopusos = getOctopusOSTokens('monokai')
 
 // Export default theme (light mode)
 export default lightTheme

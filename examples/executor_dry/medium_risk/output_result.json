@@ -68,7 +68,7 @@
         ],
         "risk_level": "medium",
         "evidence_refs": [
-          "scan://file/agentos/api/routes/notifications.py",
+          "scan://file/octopusos/api/routes/notifications.py",
           "api_spec://notifications_endpoint"
         ]
       },
@@ -83,7 +83,7 @@
         ],
         "risk_level": "medium",
         "evidence_refs": [
-          "scan://file/agentos/services/notification_service.py",
+          "scan://file/octopusos/services/notification_service.py",
           "design://notification_service_spec"
         ]
       },
@@ -98,7 +98,7 @@
         ],
         "risk_level": "low",
         "evidence_refs": [
-          "scan://file/agentos/models/notification.py"
+          "scan://file/octopusos/models/notification.py"
         ]
       },
       {
@@ -263,13 +263,13 @@
     "created_at": "2026-01-25T10:21:08.877381Z",
     "files": [
       {
-        "path": "agentos/api/routes/notifications.py",
+        "path": "octopusos/api/routes/notifications.py",
         "action": "modify",
-        "rationale": "Modify agentos/api/routes/notifications.py to: Implement user notification API with proper testing coverage",
+        "rationale": "Modify octopusos/api/routes/notifications.py to: Implement user notification API with proper testing coverage",
         "risk": "medium",
         "evidence_refs": [
-          "intent://intent_example_medium_risk/scope/targets/files/agentos/api/routes/notifications.py",
-          "scan://file/agentos/api/routes/notifications.py",
+          "intent://intent_example_medium_risk/scope/targets/files/octopusos/api/routes/notifications.py",
+          "scan://file/octopusos/api/routes/notifications.py",
           "api_spec://notifications_endpoint"
         ],
         "lock_intent": {
@@ -280,13 +280,13 @@
         "estimated_impact": "moderate"
       },
       {
-        "path": "agentos/services/notification_service.py",
+        "path": "octopusos/services/notification_service.py",
         "action": "modify",
-        "rationale": "Modify agentos/services/notification_service.py to: Implement user notification API with proper testing coverage",
+        "rationale": "Modify octopusos/services/notification_service.py to: Implement user notification API with proper testing coverage",
         "risk": "medium",
         "evidence_refs": [
-          "scan://file/agentos/services/notification_service.py",
-          "intent://intent_example_medium_risk/scope/targets/files/agentos/services/notification_service.py",
+          "scan://file/octopusos/services/notification_service.py",
+          "intent://intent_example_medium_risk/scope/targets/files/octopusos/services/notification_service.py",
           "design://notification_service_spec"
         ],
         "lock_intent": {
@@ -297,13 +297,13 @@
         "estimated_impact": "moderate"
       },
       {
-        "path": "agentos/models/notification.py",
+        "path": "octopusos/models/notification.py",
         "action": "modify",
-        "rationale": "Modify agentos/models/notification.py to: Implement user notification API with proper testing coverage",
+        "rationale": "Modify octopusos/models/notification.py to: Implement user notification API with proper testing coverage",
         "risk": "medium",
         "evidence_refs": [
-          "scan://file/agentos/models/notification.py",
-          "intent://intent_example_medium_risk/scope/targets/files/agentos/models/notification.py"
+          "scan://file/octopusos/models/notification.py",
+          "intent://intent_example_medium_risk/scope/targets/files/octopusos/models/notification.py"
         ],
         "lock_intent": {
           "mode": "exclusive",
@@ -347,9 +347,9 @@
     ],
     "estimated_diffs": [
       {
-        "file_path": "agentos/api/routes/notifications.py",
+        "file_path": "octopusos/api/routes/notifications.py",
         "diff_hash_placeholder": "placeholder_784883465a0203ea",
-        "intent_summary": "Changes to agentos/api/routes/notifications.py for: Implement user notification API with proper testing coverage",
+        "intent_summary": "Changes to octopusos/api/routes/notifications.py for: Implement user notification API with proper testing coverage",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -357,9 +357,9 @@
         }
       },
       {
-        "file_path": "agentos/services/notification_service.py",
+        "file_path": "octopusos/services/notification_service.py",
         "diff_hash_placeholder": "placeholder_0f4e5488a5dabc41",
-        "intent_summary": "Changes to agentos/services/notification_service.py for: Implement user notification API with proper testing coverage",
+        "intent_summary": "Changes to octopusos/services/notification_service.py for: Implement user notification API with proper testing coverage",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -367,9 +367,9 @@
         }
       },
       {
-        "file_path": "agentos/models/notification.py",
+        "file_path": "octopusos/models/notification.py",
         "diff_hash_placeholder": "placeholder_8d17ff4f5ba85dab",
-        "intent_summary": "Changes to agentos/models/notification.py for: Implement user notification API with proper testing coverage",
+        "intent_summary": "Changes to octopusos/models/notification.py for: Implement user notification API with proper testing coverage",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -413,25 +413,25 @@
     "commits": [
       {
         "commit_id": "commit_0001",
-        "title": "feat(agentos): update 3 file(s)",
-        "scope": "agentos",
+        "title": "feat(octopusos): update 3 file(s)",
+        "scope": "octopusos",
         "files": [
-          "agentos/api/routes/notifications.py",
-          "agentos/services/notification_service.py",
-          "agentos/models/notification.py"
+          "octopusos/api/routes/notifications.py",
+          "octopusos/services/notification_service.py",
+          "octopusos/models/notification.py"
         ],
-        "rationale": "Grouped 3 files from agentos directory",
+        "rationale": "Grouped 3 files from octopusos directory",
         "depends_on": [],
         "risk": "medium",
         "evidence_refs": [
-          "intent://intent_example_medium_risk/scope/targets/files/agentos/api/routes/notifications.py",
-          "scan://file/agentos/api/routes/notifications.py",
-          "intent://intent_example_medium_risk/scope/targets/files/agentos/services/notification_service.py",
-          "scan://file/agentos/services/notification_service.py",
+          "intent://intent_example_medium_risk/scope/targets/files/octopusos/api/routes/notifications.py",
+          "scan://file/octopusos/api/routes/notifications.py",
+          "intent://intent_example_medium_risk/scope/targets/files/octopusos/services/notification_service.py",
+          "scan://file/octopusos/services/notification_service.py",
           "api_spec://notifications_endpoint",
           "design://notification_service_spec",
-          "intent://intent_example_medium_risk/scope/targets/files/agentos/models/notification.py",
-          "scan://file/agentos/models/notification.py"
+          "intent://intent_example_medium_risk/scope/targets/files/octopusos/models/notification.py",
+          "scan://file/octopusos/models/notification.py"
         ],
         "rollback_strategy": "forward_fix",
         "estimated_review_time": "thorough",
@@ -519,16 +519,16 @@
       "decision": "Planned changes for 5 files",
       "rationale": "Files from intent scope.targets.files",
       "evidence_refs": [
-        "scan://file/agentos/api/routes/notifications.py",
+        "scan://file/octopusos/api/routes/notifications.py",
         "doc://architecture/api_patterns.md",
         "scan://file/tests/unit/test_notification_service.py",
         "test://coverage_requirements",
         "scan://file/tests/integration/test_notifications_api.py",
-        "scan://file/agentos/services/notification_service.py",
+        "scan://file/octopusos/services/notification_service.py",
         "api_spec://notifications_endpoint",
         "design://notification_service_spec",
         "doc://api/notifications_spec.md",
-        "scan://file/agentos/models/notification.py"
+        "scan://file/octopusos/models/notification.py"
       ]
     },
     {

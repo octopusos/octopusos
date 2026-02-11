@@ -7,7 +7,7 @@
  * - ✅ Text System: t(K.page.publisherTrust.xxx) for all text (G7-G8)
  * - ✅ Layout: usePageHeader + usePageActions (G10-G11)
  * - ✅ TableShell Pattern: TableShell for publisher list
- * - ✅ API Integration: networkosService.listPublishers + DetailDrawer
+ * - ✅ API Integration: networkosService.listPublishersApiMarketplacePublishersGet + DetailDrawer
  * - ✅ State Management: Loading, Success, Error, Empty states
  */
 
@@ -37,7 +37,7 @@ import {
   networkosService,
   type Publisher,
   type PublisherDetail,
-} from '@/services/networkos.service'
+} from '@services'
 
 // Constants for MUI prop values
 const SIZE_SMALL = 'small' as const
@@ -66,12 +66,12 @@ export default function PublisherTrustView() {
     setLoading(true)
     setError(null)
     try {
-      const response = await networkosService.listPublishers({
+      const response = await networkosService.listPublishersApiMarketplacePublishersGet({
         sort_by: sortBy,
         order,
       })
       // Add id field for DataGrid (using publisher_id)
-      const publishersWithId = (response.publishers || []).map(pub => ({
+      const publishersWithId = (response.publishers || []).map((pub: any) => ({
         ...pub,
         id: pub.publisher_id,
       }))
@@ -95,7 +95,7 @@ export default function PublisherTrustView() {
   // ===================================
   const handleViewPublisher = async (publisher: Publisher) => {
     try {
-      const response = await networkosService.getPublisher(publisher.publisher_id)
+      const response = await networkosService.getPublisherApiMarketplacePublishersPublisherIdGet(publisher.publisher_id)
       setSelectedPublisher(response.publisher)
       setDetailDrawerOpen(true)
     } catch (err) {
@@ -114,7 +114,7 @@ export default function PublisherTrustView() {
   // ===================================
   const handleAdjustTrust = async (publisherId: string) => {
     try {
-      await networkosService.updatePublisherTrust(publisherId)
+      await networkosService.patchPublisherTrustApiMarketplacePublishersPublisherIdTrustPatch(publisherId)
       toast.success(t(K.page.publisherTrust.updateSuccess))
       // Refresh list
       await loadPublishers()

@@ -10,7 +10,7 @@ Run this script multiple times to see caching in action.
 """
 
 import time
-from agentos.core.idempotency import LLMOutputCache, ToolLedger, IdempotencyStore
+from octopusos.core.idempotency import LLMOutputCache, ToolLedger, IdempotencyStore
 
 
 def mock_llm_call(prompt: str, tokens: int = 100) -> dict:

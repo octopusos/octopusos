@@ -2,7 +2,7 @@
  * BudgetConfigPage - 预算配置与监控
  *
  * Phase 6.1: V1 API Alignment
- * - API: systemService.listBudgetConfigs() -> GET /api/budget/global (V1 singleton)
+ * - API: systemService.getBudgetGlobalApiBudgetGlobalGet() -> GET /api/budget/global (V1 singleton)
  * - Displays global budget config as single card
  * - Edit form matches V1 structure: max_tokens, auto_derive, allocation breakdown
  * - States: Loading/Success/Error/Empty
@@ -19,7 +19,7 @@ import { DialogForm } from '@/ui/interaction'
 import { TextField, Checkbox, FormControlLabel, Alert, Box, Typography } from '@/ui'
 import { Grid } from '@mui/material'
 import { systemService } from '@/services'
-import type { BudgetConfig } from '@/services/system.service'
+import type { BudgetConfig } from '@services'
 
 /**
  * BudgetConfigPage 组件
@@ -85,7 +85,7 @@ export default function BudgetConfigPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await systemService.listBudgetConfigs()
+      const response = await systemService.getBudgetGlobalApiBudgetGlobalGet()
       setBudgetConfigs(response.configs || [])
     } catch (err: any) {
       console.error('Failed to load budget configs:', err)
@@ -233,7 +233,7 @@ export default function BudgetConfigPage() {
         generation_max_tokens: generationMaxTokens ? parseInt(generationMaxTokens) : undefined,
       }
 
-      await systemService.updateBudgetConfig(selectedConfig.id, updateData)
+      await systemService.putBudgetGlobalApiBudgetGlobalPut(selectedConfig.id, updateData)
 
       setEditDialogOpen(false)
       setSelectedConfig(null)

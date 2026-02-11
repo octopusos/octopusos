@@ -87,3 +87,17 @@ export class TimeoutError extends ApiError {
     super(message, 'TIMEOUT_ERROR', 408, details);
   }
 }
+
+/**
+ * Contract capability errors (operation not present in snapshot)
+ */
+export class ContractOperationUnavailableError extends ApiError {
+  constructor(method: string, path: string, details?: unknown) {
+    super(
+      `Contract operation unavailable: ${method.toUpperCase()} ${path}`,
+      'CONTRACT_OPERATION_UNAVAILABLE',
+      400,
+      details
+    );
+  }
+}

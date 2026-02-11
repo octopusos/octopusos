@@ -8,7 +8,7 @@
 
 ## 概述
 
-MemoryOS 是从 AgentOS v0.3 中独立出来的记忆管理系统，具备完整的 CLI 和 API 能力。
+MemoryOS 是从 OctopusOS v0.3 中独立出来的记忆管理系统，具备完整的 CLI 和 API 能力。
 
 ---
 
@@ -16,10 +16,10 @@ MemoryOS 是从 AgentOS v0.3 中独立出来的记忆管理系统，具备完整
 
 ### 安装
 
-MemoryOS 已集成在 AgentOS 项目中：
+MemoryOS 已集成在 OctopusOS 项目中：
 
 ```bash
-cd AgentOS
+cd OctopusOS
 uv sync
 ```
 
@@ -224,6 +224,18 @@ memories = client.query(query)
 
 ---
 
+## Session Corpus Source (RAG)
+
+To index append-only Codex session markdown files as a filesystem corpus, see:
+
+- `/Users/pangge/PycharmProjects/AgentOS/os/octopusos/memory/sources/filesystem_sessions.example.yaml`
+
+Recommended corpus root:
+
+- `/Users/pangge/PycharmProjects/AgentOS/recordings/sessions`
+
+---
+
 ## 架构
 
 ### 抽象接口
@@ -337,15 +349,15 @@ class MemoryStore(ABC):
 
 ---
 
-## 与 AgentOS 集成
+## 与 OctopusOS 集成
 
-### AgentOS 使用 MemoryOS
+### OctopusOS 使用 MemoryOS
 
 ```python
 from memoryos.backends.sqlite_store import SqliteMemoryStore
 from memoryos.core.client import MemoryClient
 
-# AgentOS 通过 MemoryClient 访问
+# OctopusOS 通过 MemoryClient 访问
 store = SqliteMemoryStore()
 memory_client = MemoryClient(store)
 
@@ -463,6 +475,6 @@ database is locked
 
 ---
 
-**维护**: AgentOS 架构团队  
+**维护**: OctopusOS 架构团队  
 **最后更新**: 2026-01-25  
 **状态**: ✅ 生产就绪

@@ -2,7 +2,7 @@
  * LeadScansPage - Lead Scan 历史页面
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getLeadScans()
+ * ✅ API: networkosService.listLeadScansApiLeadScansGet()
  * ✅ States: loading, error, empty, success
  * 
  * 🔒 No-Interaction Contract:
@@ -15,7 +15,7 @@ import { TextField, Select, MenuItem } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
-import { agentosService } from '@/services'
+import { networkosService } from '@services'
 import type { GridColDef } from '@/ui'
 
 /**
@@ -52,7 +52,7 @@ export default function LeadScansPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const response = await agentosService.getLeadScans()
+        const response = await networkosService.listLeadScansApiLeadScansGet()
         setData(response?.data || [])
       } catch (err) {
         console.error('Failed to fetch lead scans:', err)

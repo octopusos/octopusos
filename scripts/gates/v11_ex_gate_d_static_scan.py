@@ -58,7 +58,7 @@ def main():
     print()
     
     # 扫描Executor模块
-    executor_dir = PROJECT_ROOT / "agentos/core/executor"
+    executor_dir = PROJECT_ROOT / "octopusos/core/executor"
     
     if not executor_dir.exists():
         print("✗ Executor directory not found")

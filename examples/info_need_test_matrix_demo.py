@@ -12,7 +12,7 @@ from typing import List, Dict
 from collections import Counter
 
 # Assuming you have implemented InfoNeedClassifier
-# from agentos.core.chat.guards.info_need_classifier import InfoNeedClassifier
+# from octopusos.core.chat.guards.info_need_classifier import InfoNeedClassifier
 
 
 def load_test_matrix() -> Dict:
@@ -229,7 +229,7 @@ def load_test_cases():
 @pytest.mark.parametrize("test_case", load_test_cases())
 def test_info_need_classification(test_case):
     """Test classifier against all matrix cases"""
-    from agentos.core.chat.guards.info_need_classifier import InfoNeedClassifier
+    from octopusos.core.chat.guards.info_need_classifier import InfoNeedClassifier
 
     classifier = InfoNeedClassifier()
     result = classifier.classify(test_case['question'])
@@ -245,7 +245,7 @@ def test_info_need_classification(test_case):
 @pytest.mark.parametrize("test_case", load_test_cases())
 def test_classification_confidence(test_case):
     """Test that confidence levels are reasonable"""
-    from agentos.core.chat.guards.info_need_classifier import InfoNeedClassifier
+    from octopusos.core.chat.guards.info_need_classifier import InfoNeedClassifier
 
     classifier = InfoNeedClassifier()
     result = classifier.classify(test_case['question'])

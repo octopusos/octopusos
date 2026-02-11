@@ -15,7 +15,7 @@
       "supersedes": []
     },
     "scope": {
-      "project_id": "agentos",
+      "project_id": "octopusos",
       "repo_root": ".",
       "targets": {
         "files": [],
@@ -87,7 +87,7 @@
     },
     "audit": {
       "created_by": "intent_builder_v0.9.4",
-      "source": "agentos",
+      "source": "octopusos",
       "checksum": "2a74080b6ed63121926963dbbf09bf7dafc56407db6dc455b635aa8f225bcd9d"
     }
   },

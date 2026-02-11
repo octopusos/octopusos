@@ -28,63 +28,6 @@ interface ProvenanceRow {
   description: string
 }
 
-const MOCK_PROVENANCE: ProvenanceRow[] = [
-  {
-    id: 1,
-    source: 'Local Repository',
-    timestamp: '2026-02-03 08:00:00',
-    hash: 'a3f9d2e1c8b7',
-    verified: 'verified',
-    chainLength: 5,
-    description: 'Source code from main repository commit #42abc',
-  },
-  {
-    id: 2,
-    source: 'GitHub API',
-    timestamp: '2026-02-03 08:15:30',
-    hash: 'b7c4e5f2a1d9',
-    verified: 'verified',
-    chainLength: 3,
-    description: 'Issue metadata retrieved via GitHub REST API',
-  },
-  {
-    id: 3,
-    source: 'User Upload',
-    timestamp: '2026-02-03 08:45:12',
-    hash: 'c1d8e9f3b2a4',
-    verified: 'pending',
-    chainLength: 1,
-    description: 'Document uploaded by user admin@example.com',
-  },
-  {
-    id: 4,
-    source: 'External API',
-    timestamp: '2026-02-03 09:12:45',
-    hash: 'd5e6f7a8b9c0',
-    verified: 'verified',
-    chainLength: 7,
-    description: 'Weather data from OpenWeatherMap API',
-  },
-  {
-    id: 5,
-    source: 'Knowledge Base',
-    timestamp: '2026-02-03 09:30:22',
-    hash: 'e2f3g4h5i6j7',
-    verified: 'verified',
-    chainLength: 4,
-    description: 'Documentation extracted from knowledge graph',
-  },
-  {
-    id: 6,
-    source: 'ML Model Output',
-    timestamp: '2026-02-03 09:50:00',
-    hash: 'f9g8h7i6j5k4',
-    verified: 'unverified',
-    chainLength: 2,
-    description: 'Generated content from llama2:7b model',
-  },
-]
-
 /**
  * ProvenancePage 组件
  *
@@ -104,7 +47,7 @@ export default function ProvenancePage() {
   const [appliedSearchQuery, setAppliedSearchQuery] = useState('')
   const [appliedStatusFilter, setAppliedStatusFilter] = useState('all')
   const [loading, setLoading] = useState(true)
-  const [provenanceData, setProvenanceData] = useState(MOCK_PROVENANCE)
+  const [provenanceData, setProvenanceData] = useState<ProvenanceRow[]>([])
 
   // Pagination state
   const [page, setPage] = useState(0)
@@ -115,6 +58,12 @@ export default function ProvenancePage() {
   // ===================================
   const [selectedProvenance, setSelectedProvenance] = useState<ProvenanceRow | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const loadProvenance = async () => {
+    setLoading(true)
+    setProvenanceData([])
+    setLoading(false)
+  }
 
   // ===================================
   // Page Header (v2.4 API)
@@ -129,43 +78,12 @@ export default function ProvenancePage() {
       key: 'refresh',
       label: t(K.common.refresh),
       variant: 'outlined',
-      onClick: async () => {
-        setLoading(true)
-        try {
-          // API skeleton
-          // const response = await networkosService.getProvenance()
-          // setProvenanceData(response.data)
-          
-          setProvenanceData(MOCK_PROVENANCE)
-        } catch (error) {
-          console.error('Failed to refresh provenance data:', error)
-        } finally {
-          setLoading(false)
-        }
-      },
+      onClick: async () => loadProvenance(),
     },
   ])
 
-  // Data fetching with API skeleton
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        // API skeleton - ready for real implementation
-        // const response = await networkosService.getProvenance()
-        // setProvenanceData(response.data)
-
-        // Fallback to mock data until API is available
-        
-        setProvenanceData(MOCK_PROVENANCE)
-      } catch (error) {
-        console.error('Failed to load provenance data:', error)
-        setProvenanceData([])
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
+    void loadProvenance()
   }, [])
 
   // ===================================
@@ -208,7 +126,7 @@ export default function ProvenancePage() {
     }
 
     return result
-  }, [appliedSearchQuery, appliedStatusFilter])
+  }, [appliedSearchQuery, appliedStatusFilter, provenanceData])
 
   const paginatedData = useMemo(() => {
     const startIndex = page * pageSize

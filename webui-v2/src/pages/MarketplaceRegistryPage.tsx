@@ -33,7 +33,7 @@ import { toast } from '@/ui/feedback'
 import {
   networkosService,
   type MarketplaceCapability,
-} from '@/services/networkos.service'
+} from '@services'
 
 // ===================================
 // Component
@@ -70,7 +70,7 @@ export default function MarketplaceRegistryPage() {
   const loadCapabilities = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await networkosService.listMarketplaceCapabilities({
+      const response = await networkosService.listMarketplaceCapabilitiesApiMarketplaceCapabilitiesGet({
         review_status: reviewStatusFilter === 'all' ? undefined : reviewStatusFilter,
         page,
         limit: pageSize,
@@ -97,7 +97,7 @@ export default function MarketplaceRegistryPage() {
     if (!selectedCapability) return
 
     try {
-      await networkosService.approveCapability(selectedCapability.id)
+      await networkosService.approveMarketplaceCapabilityApiMarketplaceCapabilitiesCapabilityIdApprovePost(selectedCapability.id)
       toast.success(t(K.page.marketplaceRegistry.approveSuccess))
       setApproveDialogOpen(false)
       setDrawerOpen(false)
@@ -116,7 +116,7 @@ export default function MarketplaceRegistryPage() {
     }
 
     try {
-      await networkosService.rejectCapability(selectedCapability.id, {
+      await networkosService.rejectMarketplaceCapabilityApiMarketplaceCapabilitiesCapabilityIdRejectPost(selectedCapability.id, {
         reason: rejectReason,
       })
       toast.success(t(K.page.marketplaceRegistry.rejectSuccess))
@@ -160,7 +160,7 @@ export default function MarketplaceRegistryPage() {
   // ===================================
   const handleRowClick = async (row: MarketplaceCapability) => {
     try {
-      const response = await networkosService.getMarketplaceCapability(row.id)
+      const response = await networkosService.getMarketplaceCapabilityApiMarketplaceCapabilitiesCapabilityIdGet(row.id)
       setSelectedCapability(response.capability)
       setDrawerOpen(true)
     } catch (error) {

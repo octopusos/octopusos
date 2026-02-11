@@ -23,7 +23,7 @@ Evidence:
     - outputs/gates/tl_r2_okind_n1/reports/gate_results.json
 
 Usage:
-    AGENTOS_GATE_MODE=1 python scripts/gates/tl_r2_okind_n1.py
+    OCTOPUSOS_GATE_MODE=1 python scripts/gates/tl_r2_okind_n1.py
 """
 
 import sys
@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import (
+from octopusos.ext.tools import (
     LMStudioAdapter,
     ToolTask,
     DiffVerifier,

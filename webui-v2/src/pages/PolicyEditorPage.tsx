@@ -17,9 +17,9 @@ import { TableShell, FilterBar, TextField, Select, MenuItem } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { DialogForm, DeleteConfirmDialog } from '@/ui/interaction'
 import { toast } from '@/ui/feedback'
-import { networkosService } from '@/services/networkos.service'
+import { networkosService } from '@services'
 import type { GridColDef } from '@/ui'
-import type { ExecutionPolicy } from '@/services/networkos.service'
+import type { ExecutionPolicy } from '@services'
 
 // ===================================
 // Constants
@@ -103,7 +103,7 @@ export default function PolicyEditorPage() {
   const loadPolicies = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await networkosService.listExecutionPolicies()
+      const response = await networkosService.listExecutionPoliciesApiExecutionPoliciesGet()
       const rows = response.policies.map(policyToRow)
       setPolicies(rows)
     } catch (error) {
@@ -188,7 +188,7 @@ export default function PolicyEditorPage() {
     try {
       if (selectedPolicy) {
         // Update existing policy
-        await networkosService.updateExecutionPolicy(selectedPolicy.id, {
+        await networkosService.updateExecutionPolicyApiExecutionPoliciesPolicyIdPut(selectedPolicy.id, {
           name: policyName,
           policy_type: policyType,
           rules: parsedRules,
@@ -201,7 +201,7 @@ export default function PolicyEditorPage() {
           setValidationError(t(K.page.policyEditor.policyNameRequired))
           return
         }
-        await networkosService.createExecutionPolicy({
+        await networkosService.createExecutionPolicyApiExecutionPoliciesPost({
           name: policyName,
           policy_type: policyType,
           rules: parsedRules,
@@ -225,7 +225,7 @@ export default function PolicyEditorPage() {
 
     // Phase 6 API Integration - Delete
     try {
-      await networkosService.deleteExecutionPolicy(selectedPolicy.id)
+      await networkosService.deleteExecutionPolicyApiExecutionPoliciesPolicyIdDelete(selectedPolicy.id)
       toast.success(t(K.page.policyEditor.deleteSuccess))
       setDeleteDialogOpen(false)
       setEditorOpen(false)

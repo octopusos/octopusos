@@ -8,7 +8,7 @@
 export * from './common'
 
 // 7 OS Modules
-export * as AgentOS from './agentos'
+export * as OctopusOS from './octopusos'
 export * as MemoryOS from './memoryos'
 export * as BrainOS from './brainos'
 export * as SkillOS from './skillos'

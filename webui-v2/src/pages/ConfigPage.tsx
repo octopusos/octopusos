@@ -5,19 +5,21 @@
  * - ✅ Text System: 使用 t('xxx')（G7-G8）
  * - ✅ Layout: usePageHeader + usePageActions（G10-G11）
  * - ✅ Dashboard Contract: DashboardGrid + StatCard/MetricCard
- * - ✅ API Integration: agentosService.getConfig()
+ * - ✅ API Integration: octopusosService.getConfig()
  * - ✅ Four States: Loading/Error/Empty/Success
  * - ✅ Unified Exit: 不自定义布局，使用 Dashboard 封装
  */
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { usePageHeader, usePageActions } from '@/ui/layout'
-import { DashboardGrid, StatCard, MetricCard, LoadingState, Box } from '@/ui'
+import { DashboardGrid, StatCard, MetricCard, LoadingState } from '@/ui'
 import { SettingsIcon, CheckCircleIcon, LayersIcon } from '@/ui/icons'
 import { useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { systemService, type Config, type ConfigEntry } from '@services'
-import { ConfigEntriesContent } from './ConfigEntriesPage'
+import { Box } from '@mui/material'
+import { type Config, type ConfigEntry } from '@services'
+import { systemService } from '@services/system.service'
+import { useNavigate } from 'react-router-dom'
 
 /**
  * ConfigPage 组件
@@ -30,6 +32,7 @@ export default function ConfigPage() {
   // i18n Hook - Subscribe to language changes
   // ===================================
   const { t } = useTextTranslation()
+  const navigate = useNavigate()
 
   // ===================================
   // State - Four States
@@ -40,32 +43,33 @@ export default function ConfigPage() {
   const [entries, setEntries] = useState<ConfigEntry[]>([])
   const [entriesTotal, setEntriesTotal] = useState(0)
 
+  const fetchConfig = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [configResp, entriesResp] = await Promise.all([
+        systemService.getConfig(),
+        systemService.listConfigEntries({ page: 1, limit: 500 }),
+      ])
+      setConfig(configResp.config || {})
+      const nextEntries = entriesResp.entries || []
+      setEntries(nextEntries)
+      setEntriesTotal(entriesResp.total ?? nextEntries.length)
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch config'
+      setError(errorMsg)
+      toast.error(errorMsg)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // ===================================
   // Data Fetching - API Integration
   // ===================================
   useEffect(() => {
-    const fetchConfig = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const [configResponse, entriesResponse] = await Promise.all([
-          systemService.getConfig(),
-          systemService.listConfigEntries({ page: 1, limit: 200 }),
-        ])
-        setConfig(configResponse.config)
-        setEntries(entriesResponse.entries || [])
-        setEntriesTotal(entriesResponse.total || 0)
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Failed to fetch config'
-        setError(errorMsg)
-        toast.error(errorMsg)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchConfig()
-  }, [])
+  }, [fetchConfig])
 
   // ===================================
   // Page Header (v2.4 API)
@@ -81,25 +85,15 @@ export default function ConfigPage() {
       label: t('common.refresh'),
       variant: 'outlined',
       onClick: async () => {
-        setLoading(true)
-        setError(null)
-        try {
-          const [configResponse, entriesResponse] = await Promise.all([
-            systemService.getConfig(),
-            systemService.listConfigEntries({ page: 1, limit: 200 }),
-          ])
-          setConfig(configResponse.config)
-          setEntries(entriesResponse.entries || [])
-          setEntriesTotal(entriesResponse.total || 0)
-          toast.success(t('common.success'))
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Failed to refresh'
-          setError(errorMsg)
-          toast.error(errorMsg)
-        } finally {
-          setLoading(false)
-        }
+        await fetchConfig()
+        toast.success(t('common.success'))
       },
+    },
+    {
+      key: 'open-config-entries',
+      label: t('page.config.editSettings'),
+      variant: 'contained',
+      onClick: () => navigate('/config-entries'),
     },
   ])
 
@@ -111,14 +105,43 @@ export default function ConfigPage() {
     }))
   }, [config])
 
+  const summarizeStructuredValue = (input: unknown): string => {
+    if (Array.isArray(input)) {
+      return `Array(${input.length})`
+    }
+    if (input && typeof input === 'object') {
+      const keys = Object.keys(input as Record<string, unknown>)
+      const preview = keys.slice(0, 3).join(', ')
+      return preview ? `Object(${keys.length} keys): ${preview}` : `Object(${keys.length} keys)`
+    }
+    return String(input)
+  }
+
+  const truncate = (text: string, max = 80) => {
+    return text.length > max ? `${text.slice(0, max - 3)}...` : text
+  }
+
   const formatConfigValue = (value: unknown) => {
     if (value === null || value === undefined) return 'N/A'
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    if (typeof value === 'number' || typeof value === 'boolean') {
       return String(value)
     }
+    if (typeof value === 'string') {
+      const raw = value.trim()
+      try {
+        const parsed = JSON.parse(raw)
+        if (typeof parsed === 'string') return truncate(parsed)
+        if (typeof parsed === 'number' || typeof parsed === 'boolean') return String(parsed)
+        return truncate(summarizeStructuredValue(parsed))
+      } catch {
+        return truncate(raw)
+      }
+    }
+    if (typeof value === 'object') {
+      return truncate(summarizeStructuredValue(value))
+    }
     try {
-      const text = JSON.stringify(value)
-      return text.length > 80 ? `${text.slice(0, 77)}...` : text
+      return truncate(String(value))
     } catch {
       return 'N/A'
     }
@@ -200,29 +223,25 @@ export default function ConfigPage() {
   return (
     <>
       <DashboardGrid columns={3} gap={16}>
-        {/* Row 1: Stat Cards */}
         {stats.map((stat, index) => (
           <StatCard
-            key={index}
+            key={`stat-${index}`}
             title={stat.title}
             value={stat.value}
             icon={stat.icon}
           />
         ))}
+      </DashboardGrid>
 
-        {/* Row 2: Metric Cards */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2, mt: 2 }}>
         {metrics.map((metric, index) => (
           <MetricCard
-            key={index}
+            key={`metric-${index}`}
             title={metric.title}
             description={metric.description}
             metrics={metric.metrics}
           />
         ))}
-      </DashboardGrid>
-
-      <Box sx={{ mt: 3 }}>
-        <ConfigEntriesContent readOnly />
       </Box>
     </>
   )

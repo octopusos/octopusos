@@ -5,11 +5,11 @@ This script demonstrates how to use the metadata-based priority scoring
 system to rank search results without semantic analysis.
 """
 
-from agentos.core.communication.priority import (
+from octopusos.core.communication.priority import (
     calculate_priority_score,
     SearchResultWithPriority,
 )
-from agentos.core.communication.config import load_trusted_sources
+from octopusos.core.communication.config import load_trusted_sources
 
 
 def main():

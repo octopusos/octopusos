@@ -8,7 +8,7 @@
     "intent_analyze_api_security"
   ],
   "context": {
-    "project_id": "agentos",
+    "project_id": "octopusos",
     "env": "local",
     "tags": ["api", "analysis", "readonly"]
   },

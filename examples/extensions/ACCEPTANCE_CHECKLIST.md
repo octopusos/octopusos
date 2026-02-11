@@ -1,6 +1,6 @@
 # Extension System Acceptance Checklist (PR-F)
 
-Complete acceptance criteria for the AgentOS Extension System.
+Complete acceptance criteria for the OctopusOS Extension System.
 
 ## Overview
 
@@ -18,7 +18,7 @@ This checklist verifies that all features from PR-A through PR-E work together c
 
 - [ ] ✅ Python 3.11+ installed
 - [ ] ✅ All dependencies installed (`pip install -r requirements.txt`)
-- [ ] ✅ Database initialized (`python3 -m agentos.store init_db`)
+- [ ] ✅ Database initialized (`python3 -m octopusos.store init_db`)
 - [ ] ✅ Server can start successfully
 - [ ] ✅ Server health endpoint responds (`curl http://localhost:8000/health`)
 
@@ -47,8 +47,8 @@ This checklist verifies that all features from PR-A through PR-E work together c
 
 **Test:**
 ```python
-from agentos.core.extensions.registry import ExtensionRegistry
-from agentos.core.extensions.models import ExtensionManifest
+from octopusos.core.extensions.registry import ExtensionRegistry
+from octopusos.core.extensions.models import ExtensionManifest
 
 registry = ExtensionRegistry()
 
@@ -80,7 +80,7 @@ assert ext.enabled == True
 
 **Test:**
 ```python
-from agentos.core.extensions.validator import ExtensionValidator
+from octopusos.core.extensions.validator import ExtensionValidator
 
 validator = ExtensionValidator()
 
@@ -107,7 +107,7 @@ assert len(result.errors) > 0
 
 **Test:**
 ```python
-from agentos.core.extensions.installer import ZipInstaller
+from octopusos.core.extensions.installer import ZipInstaller
 from pathlib import Path
 
 installer = ZipInstaller(extensions_dir=Path("store/extensions"))
@@ -137,7 +137,7 @@ assert install_dir.exists()
 
 **Test:**
 ```python
-from agentos.core.extensions.engine import ExtensionInstallEngine
+from octopusos.core.extensions.engine import ExtensionInstallEngine
 
 engine = ExtensionInstallEngine()
 
@@ -363,7 +363,7 @@ assert result.success == True
 
 **Test:**
 ```python
-from agentos.core.extensions.router import SlashCommandRouter
+from octopusos.core.extensions.router import SlashCommandRouter
 
 router = SlashCommandRouter()
 
@@ -371,9 +371,9 @@ router = SlashCommandRouter()
 router.register_command("/hello", handler_fn, extension_id="demo.hello")
 
 # Route command
-result = router.route("/hello AgentOS")
+result = router.route("/hello OctopusOS")
 assert result.success == True
-assert "Hello, AgentOS" in result.output
+assert "Hello, OctopusOS" in result.output
 ```
 
 ### Command Discovery
@@ -403,7 +403,7 @@ assert "/hello" in [cmd.name for cmd in commands]
 
 **Test:**
 ```python
-from agentos.core.extensions.runner import CapabilityRunner
+from octopusos.core.extensions.runner import CapabilityRunner
 
 runner = CapabilityRunner()
 
@@ -411,11 +411,11 @@ runner = CapabilityRunner()
 result = runner.execute(
     extension_id="demo.hello",
     capability_name="hello",
-    params={"name": "AgentOS"}
+    params={"name": "OctopusOS"}
 )
 
 assert result.success == True
-assert "Hello, AgentOS" in result.output
+assert "Hello, OctopusOS" in result.output
 ```
 
 ### Permission Checks
@@ -428,7 +428,7 @@ assert "Hello, AgentOS" in result.output
 ### Sandboxing and Security
 
 - [ ] ✅ Executes in controlled environment (Core-executed steps only)
-- [ ] ✅ Default installation to user directory (.agentos/tools), no sudo
+- [ ] ✅ Default installation to user directory (.octopusos/tools), no sudo
 - [ ] ✅ System-level operations prompt user for manual action
 - [ ] ✅ Enforces timeouts
 - [ ] ✅ Prevents privilege escalation
@@ -456,7 +456,7 @@ Steps:
 2. ✅ Open `/chat` page
 3. ✅ Type `/hello`
 4. ✅ See greeting response
-5. ✅ Type `/hello AgentOS`
+5. ✅ Type `/hello OctopusOS`
 6. ✅ See personalized greeting
 
 ### Scenario 3: Disable and Re-enable

@@ -20,15 +20,15 @@ import sys
 import json
 from typing import Dict, List
 
-from agentos.core.chat.info_need_classifier import InfoNeedClassifier
-from agentos.core.chat.models.info_need import InfoNeedType, DecisionAction, ConfidenceLevel
+from octopusos.core.chat.info_need_classifier import InfoNeedClassifier
+from octopusos.core.chat.models.info_need import InfoNeedType, DecisionAction, ConfidenceLevel
 
 
 # Demo questions organized by expected classification type
 DEMO_QUESTIONS: Dict[str, List[str]] = {
     "LOCAL_DETERMINISTIC": [
         "Does the InfoNeedClassifier class exist in this project?",
-        "Show me all Python files in the agentos/core/chat directory",
+        "Show me all Python files in the octopusos/core/chat directory",
         "What methods does the ChatEngine class have?",
         "Count how many test files exist",
         "Where is the configuration file located?",

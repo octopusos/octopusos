@@ -1,6 +1,6 @@
 # Capability Manifest Examples
 
-This directory contains example capability manifests for the AgentOS Marketplace.
+This directory contains example capability manifests for the OctopusOS Marketplace.
 
 ## Directory Structure
 

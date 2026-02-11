@@ -12,7 +12,7 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.project_kb.service import ProjectKBService
+from octopusos.core.project_kb.service import ProjectKBService
 
 
 def check_performance_threshold():

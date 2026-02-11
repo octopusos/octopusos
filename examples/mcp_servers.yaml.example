@@ -1,8 +1,8 @@
-# AgentOS MCP Servers Configuration Example
-# Copy to ~/.agentos/mcp_servers.yaml and customize
+# OctopusOS MCP Servers Configuration Example
+# Copy to ~/.octopusos/mcp_servers.yaml and customize
 #
 # This file configures MCP (Model Context Protocol) servers that provide
-# additional tools to AgentOS. Each server runs as a separate process
+# additional tools to OctopusOS. Each server runs as a separate process
 # communicating via stdio.
 
 mcp_servers:

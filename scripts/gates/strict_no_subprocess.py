@@ -2,12 +2,12 @@
 """
 Gate: Strict No Subprocess (全局扫描)
 
-严格模式：扫描整个 agentos/ 目录，0 subprocess。
+严格模式：扫描整个 octopusos/ 目录，0 subprocess。
 
 豁免：
-- agentos/core/infra/container_client.py（容器引擎边界）
-- agentos/core/infra/tool_executor.py（外部工具边界）
-- agentos/core/executor/container_sandbox.py 的 fallback 执行（注释标记）
+- octopusos/core/infra/container_client.py（容器引擎边界）
+- octopusos/core/infra/tool_executor.py（外部工具边界）
+- octopusos/core/executor/container_sandbox.py 的 fallback 执行（注释标记）
 """
 
 import ast
@@ -29,8 +29,8 @@ FORBIDDEN_SYMBOLS = {
 
 # 系统边界文件（允许 subprocess）
 EXEMPTED_FILES = {
-    "agentos/core/infra/container_client.py",  # 容器引擎适配层
-    "agentos/core/infra/tool_executor.py",      # 外部工具适配层
+    "octopusos/core/infra/container_client.py",  # 容器引擎适配层
+    "octopusos/core/infra/tool_executor.py",      # 外部工具适配层
 }
 
 
@@ -113,12 +113,12 @@ def main():
     repo_root = Path.cwd()
     
     print("🔒 Gate: Strict No Subprocess (全局扫描)")
-    print("   Scope: 整个 agentos/ 目录（严格模式）")
+    print("   Scope: 整个 octopusos/ 目录（严格模式）")
     print("=" * 60)
     
-    # 扫描整个 agentos 目录
-    agentos_dir = repo_root / "agentos"
-    all_py_files = list(agentos_dir.rglob("*.py"))
+    # 扫描整个 octopusos 目录
+    octopusos_dir = repo_root / "octopusos"
+    all_py_files = list(octopusos_dir.rglob("*.py"))
     
     print(f"📁 扫描范围: {len(all_py_files)} Python 文件")
     print(f"   豁免文件: {len(EXEMPTED_FILES)} 个（系统边界）\n")
@@ -140,7 +140,7 @@ def main():
     
     scan_result = {
         "gate": "strict_no_subprocess",
-        "scope": "全局 agentos/ 目录",
+        "scope": "全局 octopusos/ 目录",
         "scanned_files": len(all_py_files),
         "exempted_files": list(EXEMPTED_FILES),
         "violations_count": len(all_violations),

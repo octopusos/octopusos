@@ -11,8 +11,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from agentos.providers.providers_config import ProvidersConfigManager
-from agentos.providers import platform_utils
+from octopusos.providers.providers_config import ProvidersConfigManager
+from octopusos.providers import platform_utils
 
 
 def print_section(title):

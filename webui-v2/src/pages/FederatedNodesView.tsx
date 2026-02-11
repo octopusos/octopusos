@@ -2,7 +2,7 @@
  * FederatedNodesView - Federated Nodes Management
  *
  * Phase 6: Real API Integration
- * 使用 networkosService.listFederatedNodes()
+ * 使用 networkosService.listFederationNodesApiFederationNodesGet()
  * CardCollectionWrap + StatusCard
  *
  * Features:
@@ -26,13 +26,13 @@ import { Button, Chip } from '@/ui'
 import { Box, Typography } from '@mui/material'
 import { CloudIcon, RefreshIcon, LinkIcon, CheckCircleIcon } from '@/ui/icons'
 import { networkosService } from '@/services'
-import type { FederatedNode } from '@/services/networkos.service'
+import type { FederatedNode } from '@services'
 
 /**
  * FederatedNodesView Component
  *
  * Pattern: CardGridPage with API Integration
- * - Uses networkosService.listFederatedNodes()
+ * - Uses networkosService.listFederationNodesApiFederationNodesGet()
  * - CardCollectionWrap + StatusCard display
  * - DetailDrawer for node details
  */
@@ -59,7 +59,7 @@ export default function FederatedNodesView() {
     try {
       setLoading(true)
       setError(null)
-      const response = await networkosService.listFederatedNodes()
+      const response = await networkosService.listFederationNodesApiFederationNodesGet()
       setNodes(response.nodes || [])
       if (response.nodes && response.nodes.length > 0) {
         toast.success(t(K.page.federatedNodes.loadSuccess))
@@ -110,7 +110,7 @@ export default function FederatedNodesView() {
   const handleConnect = async (node: FederatedNode) => {
     try {
       setActionLoading(true)
-      await networkosService.connectNode(node.id, { address: node.address })
+      await networkosService.connectFederationNodeApiFederationNodesNodeIdConnectPost(node.id, { address: node.address })
       toast.success(t(K.page.federatedNodes.connectSuccess))
       await loadData()
       // Update selected node if drawer is open
@@ -131,7 +131,7 @@ export default function FederatedNodesView() {
   const handleDisconnect = async (node: FederatedNode) => {
     try {
       setActionLoading(true)
-      await networkosService.disconnectNode(node.id)
+      await networkosService.disconnectFederationNodeApiFederationNodesNodeIdDisconnectPost(node.id)
       toast.success(t(K.page.federatedNodes.disconnectSuccess))
       await loadData()
       // Update selected node if drawer is open

@@ -2,7 +2,7 @@
  * MessagesPage - 消息列表
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getMessages()
+ * ✅ API: systemService.listMessagesApiMessagesGet()
  * ✅ States: loading, error, empty, success
  * 
  * 🔒 No-Interaction Contract:
@@ -15,7 +15,7 @@ import { TextField, Select, MenuItem, Chip } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { DeleteIcon, DownloadIcon } from '@/ui/icons'
-import { agentosService } from '@/services'
+import { systemService } from '@services'
 import { useTextTranslation, K } from '@/ui/text'
 import type { GridColDef } from '@/ui'
 
@@ -62,8 +62,9 @@ export default function MessagesPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const response = await agentosService.getMessages()
-        setData(response.data)
+        const response = await systemService.listMessagesApiMessagesGet()
+        const rows = Array.isArray(response?.data) ? response.data : []
+        setData(rows)
       } catch (err) {
         console.error('Failed to fetch messages:', err)
         setData([])

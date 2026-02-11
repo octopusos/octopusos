@@ -9,8 +9,8 @@ This example demonstrates:
 4. Validation and error handling
 """
 
-from agentos.core.chat.service import ChatService
-from agentos.core.chat.models import ConversationMode
+from octopusos.core.chat.service import ChatService
+from octopusos.core.chat.models import ConversationMode
 
 
 def main():

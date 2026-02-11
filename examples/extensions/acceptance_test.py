@@ -23,10 +23,10 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock
 
-# Add AgentOS to path
+# Add OctopusOS to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.extensions.engine import (
+from octopusos.core.extensions.engine import (
     ExtensionInstallEngine,
     StepType,
     InstallErrorCode,
@@ -238,7 +238,7 @@ steps:
     type: exec.shell
     command: |
       echo "PATH=$PATH"
-      echo "AGENTOS_EXTENSION_ID=$AGENTOS_EXTENSION_ID"
+      echo "OCTOPUSOS_EXTENSION_ID=$OCTOPUSOS_EXTENSION_ID"
       pwd
 """
 

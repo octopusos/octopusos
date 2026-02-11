@@ -19,7 +19,7 @@ def test_bypass_allowlist():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import Allowlist
+        from octopusos.core.executor import Allowlist
         
         allowlist = Allowlist()
         
@@ -46,7 +46,7 @@ def test_path_escape():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import Sandbox
+        from octopusos.core.executor import Sandbox
         import tempfile
         
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -83,7 +83,7 @@ def test_concurrent_lock():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import ExecutionLock
+        from octopusos.core.executor import ExecutionLock
         import tempfile
         
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -121,7 +121,7 @@ def test_review_gate():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import ReviewGate
+        from octopusos.core.executor import ReviewGate
         import tempfile
         
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -162,7 +162,7 @@ def test_audit_logging():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import AuditLogger
+        from octopusos.core.executor import AuditLogger
         import tempfile
         
         with tempfile.TemporaryDirectory() as tmpdir:

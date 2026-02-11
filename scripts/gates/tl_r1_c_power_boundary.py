@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import (
+from octopusos.ext.tools import (
     ClaudeCliAdapter,
     ToolTask,
     ToolResult
@@ -49,7 +49,7 @@ class TLR1CGate:
             # 初始化 git repo
             subprocess.run(["git", "init"], cwd=self.repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "TL-R1-C Gate"], cwd=self.repo_path, check=True)
-            subprocess.run(["git", "config", "user.email", "gate@agentos.dev"], cwd=self.repo_path, check=True)
+            subprocess.run(["git", "config", "user.email", "gate@octopusos.dev"], cwd=self.repo_path, check=True)
             
             # 创建测试文件
             (self.repo_path / "test.txt").write_text("Initial content")

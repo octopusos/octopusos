@@ -2,7 +2,7 @@
  * TriggersPage - 触发器管理
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getTriggers()
+ * ✅ API: systemService.listTriggersApiTriggersGet()
  * ✅ States: loading, error, empty, success
  * ✅ Button functionality: Edit, Delete, View Detail
  * ✅ Error handling & validation
@@ -17,7 +17,7 @@ import { CardCollectionWrap } from '@/ui/cards/CardCollectionWrap'
 import { ItemCard } from '@/ui/cards/ItemCard'
 import { EmptyState, Grid, TextField, MenuItem, Typography, Box, Button } from '@/ui'
 import { K, useText } from '@/ui/text'
-import { agentosService, type Trigger } from '@/services'
+import { systemService, type Trigger } from '@services'
 import { DialogForm } from '@/ui/interaction/DialogForm'
 import { ConfirmDialog } from '@/ui/interaction/ConfirmDialog'
 import { DetailDrawer } from '@/ui/interaction/DetailDrawer'
@@ -68,10 +68,12 @@ export default function TriggersPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await agentosService.getTriggers()
-      setTriggers(response.data)
+      const response = await systemService.listTriggersApiTriggersGet()
+      const rows = Array.isArray(response?.data) ? response.data : []
+      setTriggers(rows)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch triggers')
+      setTriggers([])
     } finally {
       setLoading(false)
     }
@@ -134,7 +136,7 @@ export default function TriggersPage() {
 
     try {
       // Mock API call - simulate update
-      // In real implementation: await agentosService.updateTrigger(selectedTrigger.id, formData)
+      // In real implementation: await octopusosService.updateTrigger(selectedTrigger.id, formData)
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Update local state
@@ -176,7 +178,7 @@ export default function TriggersPage() {
 
     try {
       // Mock API call - simulate delete
-      // In real implementation: await agentosService.deleteTrigger(selectedTrigger.id)
+      // In real implementation: await octopusosService.deleteTrigger(selectedTrigger.id)
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Remove from local state

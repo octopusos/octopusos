@@ -1,15 +1,15 @@
-Create a modern landing page for AgentOS with the following structure:
+Create a modern landing page for OctopusOS with the following structure:
 
 ## Required Sections (in order):
 
 1. **Hero Section**
-   - Main heading: "AgentOS - The Operating System for AI Agents"
+   - Main heading: "OctopusOS - The Operating System for AI Agents"
    - Subheading: "Frozen plans, controlled execution, and verifiable results"
    - Two CTA buttons: "Get Started" (primary) and "View Demo" (secondary)
    - Modern gradient background
 
 2. **Features Section**
-   - Title: "Why AgentOS?"
+   - Title: "Why OctopusOS?"
    - 4 feature cards with icons:
      a) Intent Builder: "Natural language to executable plans"
      b) Frozen Plans: "Immutable execution blueprints with full traceability"
@@ -29,9 +29,9 @@ Create a modern landing page for AgentOS with the following structure:
      c) "Integrate external AI tools safely"
 
 5. **Footer**
-   - GitHub repo link: https://github.com/yourusername/agentos
+   - GitHub repo link: https://github.com/yourusername/octopusos
    - Documentation link placeholder
-   - Copyright © 2026 AgentOS
+   - Copyright © 2026 OctopusOS
    - MIT License
 
 ## Technical Requirements:

@@ -11,8 +11,8 @@ Usage:
 """
 
 import uuid
-from agentos.core.knowledge.source_repo import KnowledgeSourceRepo
-from agentos.core.time import utc_now_ms
+from octopusos.core.knowledge.source_repo import KnowledgeSourceRepo
+from octopusos.core.time import utc_now_ms
 
 
 def demo_basic_status_updates():

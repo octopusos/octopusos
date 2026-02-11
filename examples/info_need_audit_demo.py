@@ -12,7 +12,7 @@ import asyncio
 import json
 from datetime import datetime
 
-from agentos.core.audit import (
+from octopusos.core.audit import (
     log_info_need_classification,
     log_info_need_outcome,
     get_info_need_classification_events,
@@ -21,7 +21,7 @@ from agentos.core.audit import (
     INFO_NEED_CLASSIFICATION,
     INFO_NEED_OUTCOME,
 )
-from agentos.core.chat.info_need_classifier import InfoNeedClassifier
+from octopusos.core.chat.info_need_classifier import InfoNeedClassifier
 
 
 async def demo_basic_classification():
@@ -341,8 +341,8 @@ async def main():
     print("  4. Audit logging is non-blocking and never breaks main flow")
     print("  5. All events are queryable via session, decision, or message_id")
     print("\nFor more details, see:")
-    print("  - agentos/core/audit.py (audit functions)")
-    print("  - agentos/core/chat/info_need_classifier.py (integration)")
+    print("  - octopusos/core/audit.py (audit functions)")
+    print("  - octopusos/core/chat/info_need_classifier.py (integration)")
     print("  - tests/unit/core/test_info_need_audit.py (test examples)")
     print()
 

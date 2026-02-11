@@ -9,20 +9,47 @@
  * - ✅ Unified Exit: 不自定义布局，使用 AppChatShell 封装
  */
 
-import { useState, useCallback, useEffect, useRef, startTransition } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef, startTransition } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { AppChatShell, type ChatMessageType, type ChatSession } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { DetailDrawer, ConfirmDialog } from '@/ui/interaction'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip } from '@/ui'
+import { DetailDrawer, ConfirmDialog, usePromptDialog } from '@/ui/interaction'
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, TextField } from '@/ui'
 import { Box, Typography } from '@mui/material'
 import { MessageIcon, PlayIcon as PlayArrowIcon, CheckCircleIcon, SettingsIcon } from '@/ui/icons'
 import { useWebSocket } from '@/hooks/useWebSocket'
-import { agentosService } from '@/services/agentos.service'
+import { useSessionState } from '@/hooks/useSessionState'
+import { systemService } from '@services'
+import { providersApi } from '@/api/providers'
 import { HealthWarningBanner } from '@/components/HealthWarningBanner'
 import { httpClient } from '@platform/http'
 import { useDraftProtection } from '@/hooks/useDraftProtection'
+import { getChatPreset, type ChatPresetId } from '@/features/chat/presets/chat_presets'
+
+type ConversationMode = 'chat' | 'discussion' | 'plan' | 'development' | 'task'
+type ExecutionPhase = 'planning' | 'execution'
+type ReplyWaitStage = 'pending' | 'slow' | 'verySlow'
+
+const DEFAULT_CONVERSATION_MODE: ConversationMode = 'chat'
+const DEFAULT_EXECUTION_PHASE: ExecutionPhase = 'planning'
+const REPLY_RECOVERY_TIMEOUT_MS = 120000
+
+function normalizeConversationMode(value: unknown): ConversationMode {
+  const allowed: ConversationMode[] = ['chat', 'discussion', 'plan', 'development', 'task']
+  return typeof value === 'string' && allowed.includes(value as ConversationMode)
+    ? (value as ConversationMode)
+    : DEFAULT_CONVERSATION_MODE
+}
+
+function normalizeExecutionPhase(value: unknown): ExecutionPhase {
+  return value === 'execution' ? 'execution' : 'planning'
+}
+
+function deriveExecutionPhaseByMode(mode: ConversationMode, phase: ExecutionPhase): ExecutionPhase {
+  return mode === 'development' || mode === 'task' ? phase : 'planning'
+}
 
 export default function ChatPage() {
   // ===================================
@@ -37,13 +64,40 @@ export default function ChatPage() {
   const [sessionsLoading, setSessionsLoading] = useState(true)
   const [messagesLoading, setMessagesLoading] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string>('')
-  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [sessions, setSessions] = useState<Array<ChatSession & { metadata?: Record<string, any> }>>([])
   const [messages, setMessages] = useState<ChatMessageType[]>([])
   const [streamingMessage, setStreamingMessage] = useState<string>('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [awaitingReply, setAwaitingReply] = useState(false)
+  const [replyWaitStage, setReplyWaitStage] = useState<ReplyWaitStage>('pending')
+  const [currentRunId, setCurrentRunId] = useState<string>('')
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingMessage, setEditingMessage] = useState<ChatMessageType | null>(null)
+  const [editingText, setEditingText] = useState('')
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const isE2eBootstrap = useMemo(() => {
+    const query = new URLSearchParams(location.search)
+    return query.get('e2e') === '1'
+  }, [location.search])
+
+  const currentSession = useMemo(() => {
+    if (!currentSessionId) return null
+    return sessions.find((session) => session.id === currentSessionId) || null
+  }, [currentSessionId, sessions])
+  const { sessionState, refreshSessionState } = useSessionState(currentSessionId)
+
+  const presetTag = useMemo(() => {
+    const presetId = currentSession?.metadata?.preset_id as ChatPresetId | undefined
+    if (!presetId || presetId === 'free') return null
+    const preset = getChatPreset(presetId)
+    return preset?.title ?? null
+  }, [currentSession])
 
   // 🎯 产品级功能：Draft 保护（输入框内容）
   const [inputValue, setInputValue] = useState<string>('')
+  const [inputFocused, setInputFocused] = useState(false)
 
   // 🎯 产品级功能：自动保存 + 崩溃恢复
   const { clearDraft } = useDraftProtection(
@@ -52,15 +106,34 @@ export default function ChatPage() {
     (restoredContent) => {
       setInputValue(restoredContent)
       console.log('[ChatPage] ✅ Draft restored from crash recovery')
-    }
+    },
+    async ({ preview, contentLength }) => {
+      return confirmDialog({
+        title: t('page.chat.draftRestoreTitle'),
+        message: t('page.chat.draftRestoreMessage', { contentLength, preview }),
+        confirmText: t('page.chat.draftRestoreConfirm'),
+        cancelText: t('page.chat.draftRestoreDiscard'),
+        color: 'warning',
+        testId: 'chat-draft-restore-dialog',
+      })
+    },
   )
 
   // ✅ Use ref to track streaming message for stable callback reference
   const streamingMessageRef = useRef<string>('')
+  const slowReplyTimerRef = useRef<number | null>(null)
+  const verySlowReplyTimerRef = useRef<number | null>(null)
 
   // ✅ P1: Optimization - Buffer for batching delta updates
   const bufferRef = useRef<string>('')
   const rafRef = useRef<number | null>(null)
+  const pendingEditCommandsRef = useRef<Record<string, { targetId: string; newContent: string }>>({})
+  const pendingToolResultsRef = useRef<Record<string, Record<string, unknown>>>({})
+  const pendingReplyStartedAtRef = useRef<number | null>(null)
+  const e2eBootstrapDoneRef = useRef(false)
+  const interruptedToastShownRef = useRef<Record<string, boolean>>({})
+  // Route switch safety: use this to ignore late async responses from old sessions.
+  const currentSessionIdRef = useRef<string>('')
 
   // Dialog & Drawer States
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
@@ -78,8 +151,13 @@ export default function ChatPage() {
 
   // Model Selection States
   const [mode, setMode] = useState<'local' | 'cloud'>('local')
-  const [provider, setProvider] = useState('llama.cpp')
+  const [provider, setProvider] = useState('')
   const [model, setModel] = useState('')  // ✅ Start with empty, will be set when models load
+  const [conversationMode, setConversationMode] = useState<ConversationMode>(DEFAULT_CONVERSATION_MODE)
+  const [executionPhase, setExecutionPhase] = useState<ExecutionPhase>(DEFAULT_EXECUTION_PHASE)
+  const [phaseConfirmOpen, setPhaseConfirmOpen] = useState(false)
+  const [pendingPhase, setPendingPhase] = useState<ExecutionPhase | null>(null)
+  const { confirm: confirmDialog, dialog: promptDialog } = usePromptDialog()
 
   // Computed values
   const sessionCountLabel = `${sessions.length} ${t(K.page.chat.conversationCount)}`
@@ -92,33 +170,84 @@ export default function ChatPage() {
     setStreamingMessage(bufferRef.current)
   }, [])
 
+  const clearReplyWaitTimers = useCallback(() => {
+    if (slowReplyTimerRef.current !== null) {
+      clearTimeout(slowReplyTimerRef.current)
+      slowReplyTimerRef.current = null
+    }
+    if (verySlowReplyTimerRef.current !== null) {
+      clearTimeout(verySlowReplyTimerRef.current)
+      verySlowReplyTimerRef.current = null
+    }
+  }, [])
+
+  const startReplyWaitTimers = useCallback(() => {
+    clearReplyWaitTimers()
+    setReplyWaitStage('pending')
+    slowReplyTimerRef.current = window.setTimeout(() => {
+      setReplyWaitStage('slow')
+    }, 3000)
+    verySlowReplyTimerRef.current = window.setTimeout(() => {
+      setReplyWaitStage('verySlow')
+    }, 12000)
+  }, [clearReplyWaitTimers])
+
+  const clearAwaitingReply = useCallback(() => {
+    setAwaitingReply(false)
+    setReplyWaitStage('pending')
+    clearReplyWaitTimers()
+    pendingReplyStartedAtRef.current = null
+  }, [clearReplyWaitTimers])
+
   // ===================================
   // P0-1: WebSocket Integration
   // ===================================
-  const { isConnected, isConnecting, error: wsError, sendMessage: wsSendMessage, connect } = useWebSocket({
+  const {
+    isConnected,
+    isConnecting,
+    error: wsError,
+    sendMessage: wsSendMessage,
+    sendControlStop: wsSendControlStop,
+    sendEditResend: wsSendEditResend,
+    connect
+  } = useWebSocket({
     sessionId: currentSessionId,
-    onMessage: useCallback((msg: { type: string; content: string; message_id?: string; messageId?: string; metadata?: Record<string, unknown> }) => {
+    onMessage: useCallback((msg: { type: string; content?: string; delta?: string; message_id?: string; messageId?: string; metadata?: Record<string, unknown>; run_id?: string; runId?: string; seq?: number; command_id?: string; commandId?: string; status?: string; reason?: string; target_message_id?: string; new_message_id?: string; by_command_id?: string; result_type?: string; location?: string; provider?: string; payload?: Record<string, unknown> }) => {
       // console.log('[ChatPage] 📨 WebSocket message received:', msg)
 
       // ✅ Backend returns message_id (snake_case), normalize to messageId
       const messageId = msg.message_id || msg.messageId
+      const runId = msg.run_id || msg.runId
+      const chunk = msg.delta ?? msg.content ?? ''
 
       if (msg.type === 'message.start') {
+        setEditSubmitting(false)
+        if (runId) {
+          setCurrentRunId(runId)
+          delete pendingToolResultsRef.current[runId]
+        }
         // console.log('[ChatPage] 🎬 Stream start')
         // ✅ Stream start - initialize streaming state
         streamingMessageRef.current = ''
         bufferRef.current = ''
         setStreamingMessage('')
         setIsStreaming(true)
+        if (pendingReplyStartedAtRef.current === null) {
+          pendingReplyStartedAtRef.current = Date.now()
+        }
         // Cancel any pending RAF
         if (rafRef.current !== null) {
           cancelAnimationFrame(rafRef.current)
           rafRef.current = null
         }
       } else if (msg.type === 'message.delta') {
+        if (currentRunId && runId && runId !== currentRunId) {
+          return
+        }
         // console.log('[ChatPage] 📝 Stream delta, content length:', msg.content.length)
         // ✅ P1: Optimization - Accumulate to buffer and schedule RAF flush
-        streamingMessageRef.current += msg.content
+        clearAwaitingReply()
+        streamingMessageRef.current += chunk
         bufferRef.current = streamingMessageRef.current
 
         // Schedule RAF flush if not already scheduled
@@ -127,6 +256,9 @@ export default function ChatPage() {
         }
         setIsStreaming(true)
       } else if (msg.type === 'message.end') {
+        if (currentRunId && runId && runId !== currentRunId) {
+          return
+        }
         // ✅ Stream complete - finalize message
         // Use ref to get latest streaming content, fallback to msg.content if no streaming happened
         const finalContent = streamingMessageRef.current || msg.content || ''
@@ -134,13 +266,21 @@ export default function ChatPage() {
         // console.log('[ChatPage] 🏁 Final content:', finalContent)
         // console.log('[ChatPage] 💾 Saving message to state...')
 
+        const toolResult = runId ? pendingToolResultsRef.current[runId] : undefined
+        const cleanToolResult = toolResult
+          ? Object.fromEntries(Object.entries(toolResult).filter(([k]) => k !== '__seq'))
+          : undefined
+        if (runId) {
+          delete pendingToolResultsRef.current[runId]
+        }
+
         setMessages((prev) => {
           const newMessage = {
             id: messageId || `msg-${Date.now()}`,
             role: 'assistant' as const,
             content: finalContent,
             timestamp: new Date().toISOString(),
-            metadata: msg.metadata,
+            metadata: { ...(msg.metadata || {}), ...(cleanToolResult || {}), run_id: runId },
           }
           // console.log('[ChatPage] 💾 Previous messages count:', prev.length)
           // console.log('[ChatPage] 💾 New message:', newMessage)
@@ -165,19 +305,108 @@ export default function ChatPage() {
         bufferRef.current = ''
         setStreamingMessage('')
         setIsStreaming(false)
+        setCurrentRunId('')
+        clearAwaitingReply()
         // Cancel any pending RAF
         if (rafRef.current !== null) {
           cancelAnimationFrame(rafRef.current)
           rafRef.current = null
         }
+      } else if (msg.type === 'message.tool_result') {
+        if (runId) {
+          const nextSeq = Number(msg.seq || 0)
+          const currentSeq = Number((pendingToolResultsRef.current[runId] as any)?.__seq || 0)
+          if (nextSeq < currentSeq) {
+            return
+          }
+          pendingToolResultsRef.current[runId] = {
+            result_type: msg.result_type,
+            location: msg.location,
+            provider: msg.provider,
+            payload: msg.payload,
+            __seq: nextSeq,
+          }
+        }
+      } else if (msg.type === 'message.cancelled') {
+        setEditSubmitting(false)
+        if (currentRunId && runId && runId !== currentRunId) {
+          return
+        }
+        setIsStreaming(false)
+        setStreamingMessage('')
+        streamingMessageRef.current = ''
+        bufferRef.current = ''
+        setCurrentRunId('')
+        if (runId) {
+          delete pendingToolResultsRef.current[runId]
+        }
+        clearAwaitingReply()
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
+        }
+        toast.info(t(K.page.chat.generationStopped))
+      } else if (msg.type === 'control.ack') {
+        if (msg.status === 'rejected') {
+          setEditSubmitting(false)
+          toast.warning(msg.reason || 'Control command rejected')
+        }
+      } else if (msg.type === 'resume.status') {
+        const status = String((msg as any).status || '')
+        if (status === 'required_retry') {
+          setIsStreaming(false)
+          setCurrentRunId('')
+          clearAwaitingReply()
+          void refreshSessionState()
+          toast.warning(t(K.page.chat.replyVerySlow))
+        }
+      } else if (msg.type === 'message.superseded') {
+        const targetId = msg.target_message_id || ''
+        const newMessageId = msg.new_message_id || `msg-${Date.now()}`
+        const cmd = msg.by_command_id ? pendingEditCommandsRef.current[msg.by_command_id] : null
+        const newContent = cmd?.newContent || ''
+
+        setMessages((prev) => {
+          const marked = prev.map((m) => (
+            m.id === targetId
+              ? { ...m, metadata: { ...(m.metadata || {}), status: 'superseded' } }
+              : m
+          ))
+          if (!newContent) return marked
+          return [
+            ...marked,
+            {
+              id: newMessageId,
+              role: 'user',
+              content: newContent,
+              timestamp: new Date().toISOString(),
+              metadata: {
+                status: 'active',
+                revision: Number((msg as any).revision || 1),
+                parent_message_id: targetId,
+              },
+            },
+          ]
+        })
+        if (msg.by_command_id) {
+          delete pendingEditCommandsRef.current[msg.by_command_id]
+        }
+      } else if (msg.type === 'run.started') {
+        setEditSubmitting(false)
+        if (runId) {
+          setCurrentRunId(runId)
+        }
       } else if (msg.type === 'message.error' || msg.type === 'error') {
+        setEditSubmitting(false)
         console.error('[ChatPage] ❌ Message error:', msg.content)
         // ✅ Error message
         toast.error(msg.content || t(K.page.chat.connectionError))
+        clearAwaitingReply()
         streamingMessageRef.current = ''
         bufferRef.current = ''
         setIsStreaming(false)
         setStreamingMessage('')
+        setCurrentRunId('')
         // Cancel any pending RAF
         if (rafRef.current !== null) {
           cancelAnimationFrame(rafRef.current)
@@ -190,10 +419,10 @@ export default function ChatPage() {
         // ✅ Unknown message types - log but don't show error
         console.debug(`[ChatPage] ❓ Unhandled message type: ${msg.type}`, msg)
       }
-    }, [t, currentSessionId, flushStreamingMessage]),
+    }, [t, currentSessionId, flushStreamingMessage, clearAwaitingReply, currentRunId, refreshSessionState]),
     onConnect: useCallback(() => {
-      // console.log('WebSocket connected')
-    }, []),
+      void refreshSessionState()
+    }, [refreshSessionState]),
     onDisconnect: useCallback(() => {
       // console.log('WebSocket disconnected')
     }, []),
@@ -207,8 +436,9 @@ export default function ChatPage() {
   useEffect(() => {
     if (wsError) {
       toast.error(wsError)
+      clearAwaitingReply()
     }
-  }, [wsError])
+  }, [wsError, clearAwaitingReply])
 
   // Connect WebSocket when currentSessionId is available
   useEffect(() => {
@@ -220,6 +450,12 @@ export default function ChatPage() {
     // connect 函数会在 sessionId 改变时重新创建，但我们只想在 sessionId 改变时连接
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId])
+
+  useEffect(() => {
+    return () => {
+      clearReplyWaitTimers()
+    }
+  }, [clearReplyWaitTimers])
 
   // ===================================
   // P0: WebSocket Lifecycle Enhancement
@@ -268,7 +504,7 @@ export default function ChatPage() {
     setSessionsLoading(true)
     try {
       // Backend returns array directly: Session[]
-      const sessions = await agentosService.listSessions()
+      const sessions = await systemService.listSessionsApiSessionsGet()
       // console.log('[ChatPage] 📂 API returned sessions count:', sessions.length)
 
       // 🚀 为每个 session 并发加载最后一条消息
@@ -279,7 +515,7 @@ export default function ChatPage() {
           // 如果后端没有返回 lastMessage，尝试加载消息列表获取最后一条
           if (!lastMessage) {
             try {
-              const response = await agentosService.getSessionMessages(session.id)
+              const response = await systemService.listMessagesApiSessionsSessionIdMessagesGet(session.id)
               const messagesArray = Array.isArray(response) ? response : (response?.messages || [])
 
               if (messagesArray.length > 0) {
@@ -299,6 +535,7 @@ export default function ChatPage() {
             lastMessage,
             timestamp: session.created_at,
             unreadCount: session.unread_count || session.unreadCount || 0,
+            metadata: session.metadata,
           } as ChatSession
         })
       )
@@ -325,12 +562,46 @@ export default function ChatPage() {
     }
   }, [currentSessionId])
 
+  const persistSessionMetadata = useCallback(async (updates: Record<string, unknown>) => {
+    if (!currentSessionId) return
+
+    const currentMetadata = (currentSession?.metadata || {}) as Record<string, unknown>
+    const mergedMetadata = {
+      ...currentMetadata,
+      ...updates,
+    }
+    const nextMode = normalizeConversationMode(mergedMetadata.conversation_mode)
+    const nextPhase = deriveExecutionPhaseByMode(
+      nextMode,
+      normalizeExecutionPhase(mergedMetadata.execution_phase)
+    )
+    const nextMetadata = {
+      ...mergedMetadata,
+      conversation_mode: nextMode,
+      execution_phase: nextPhase,
+    }
+
+    try {
+      await httpClient.put(`/api/sessions/${currentSessionId}`, { metadata: nextMetadata })
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === currentSessionId
+            ? { ...session, metadata: nextMetadata }
+            : session
+        )
+      )
+    } catch (error) {
+      console.error('[ChatPage] Failed to persist session metadata:', error)
+      toast.error('Failed to save conversation settings')
+    }
+  }, [currentSessionId, currentSession?.metadata])
+
   // ✅ Initialize CSRF token and load sessions on mount
   useEffect(() => {
     const initializeApp = async () => {
       // First, ensure CSRF token is available
       try {
-        await agentosService.ensureCSRFToken()
+        await systemService.listSessionsApiSessionsGet({ limit: 1, offset: 0 })
         // console.log('[ChatPage] ✅ CSRF token initialized')
       } catch (err) {
         console.error('[ChatPage] Failed to initialize CSRF token:', err)
@@ -347,37 +618,134 @@ export default function ChatPage() {
   // ===================================
   // P0-3: Session Creation API
   // ===================================
-  const handleNewConversation = useCallback(async () => {
+  const handleNewConversation = useCallback(async (presetId?: ChatPresetId) => {
     setLoading(true)
     try {
+      const preset = getChatPreset(presetId ?? null)
+      const metadata = preset
+        ? {
+            preset_id: preset.id,
+            conversation_mode: DEFAULT_CONVERSATION_MODE,
+            execution_phase: DEFAULT_EXECUTION_PHASE,
+            preset_payload: preset.systemPrompt
+              ? {
+                  system_prompt: preset.systemPrompt,
+                  tone: preset.tone,
+                  scope: preset.scope,
+                  inherit_project: preset.inheritProject,
+                }
+              : undefined,
+          }
+        : {
+            conversation_mode: DEFAULT_CONVERSATION_MODE,
+            execution_phase: DEFAULT_EXECUTION_PHASE,
+          }
+
       // Backend returns SessionResponse directly, not wrapped in { session: ... }
-      const response = await agentosService.createSession({
+      const response = await systemService.createSessionApiSessionsPost({
         title: `New Chat - ${new Date().toLocaleString()}`,
-        metadata: {},
+        metadata,
       })
 
       // Handle both response formats for backward compatibility
       const sessionData = 'session' in response ? response.session : response
 
-      const newSession: ChatSession = {
+      const newSession: ChatSession & { metadata?: Record<string, any> } = {
         id: sessionData.id,
         title: sessionData.title || 'New Chat',
         lastMessage: '',
         timestamp: sessionData.created_at,
         unreadCount: 0,
+        metadata,
       }
 
       setSessions((prev) => [newSession, ...prev])
       setCurrentSessionId(newSession.id)
+      setConversationMode(DEFAULT_CONVERSATION_MODE)
+      setExecutionPhase(DEFAULT_EXECUTION_PHASE)
       setMessages([])
       toast.success(t(K.page.chat.newConversationSuccess))
     } catch (error) {
       console.error('Failed to create session:', error)
-      toast.error(t(K.page.chat.newConversationFailed))
+      if (isE2eBootstrap) {
+        const e2eSession: ChatSession & { metadata?: Record<string, any> } = {
+          id: `e2e-session-${Date.now()}`,
+          title: 'E2E Chat Session',
+          lastMessage: '',
+          timestamp: new Date().toISOString(),
+          unreadCount: 0,
+          metadata: {
+            conversation_mode: DEFAULT_CONVERSATION_MODE,
+            execution_phase: DEFAULT_EXECUTION_PHASE,
+            source: 'e2e_local_fallback',
+          },
+        }
+        setSessions((prev) => [e2eSession, ...prev])
+        setCurrentSessionId(e2eSession.id)
+        setConversationMode(DEFAULT_CONVERSATION_MODE)
+        setExecutionPhase(DEFAULT_EXECUTION_PHASE)
+        setMessages([])
+        console.warn('[ChatPage] E2E fallback session created due create-session API failure')
+      } else {
+        toast.error(t(K.page.chat.newConversationFailed))
+      }
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [isE2eBootstrap, t])
+
+  useEffect(() => {
+    const metadata = (currentSession?.metadata || {}) as Record<string, unknown>
+    const nextMode = normalizeConversationMode(metadata.conversation_mode)
+    const nextPhase = deriveExecutionPhaseByMode(
+      nextMode,
+      normalizeExecutionPhase(metadata.execution_phase)
+    )
+
+    setConversationMode(nextMode)
+    setExecutionPhase(nextPhase)
+  }, [currentSession?.id, currentSession?.metadata])
+
+  useEffect(() => {
+    const presetId = (location.state as { presetId?: ChatPresetId } | null)?.presetId
+    if (!presetId) return
+    handleNewConversation(presetId).finally(() => {
+      navigate('/chat', { replace: true, state: null })
+    })
+  }, [handleNewConversation, location.state, navigate])
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search)
+    const shouldCreate = query.get('new') === '1'
+    if (!isE2eBootstrap || e2eBootstrapDoneRef.current || sessionsLoading) return
+
+    const focusInput = () => {
+      window.setTimeout(() => {
+        const input = document.querySelector('[data-testid="chat-input"]') as HTMLElement | null
+        input?.focus()
+      }, 0)
+    }
+
+    if (currentSessionId) {
+      e2eBootstrapDoneRef.current = true
+      focusInput()
+      return
+    }
+
+    if (shouldCreate) {
+      e2eBootstrapDoneRef.current = true
+      void handleNewConversation().finally(() => {
+        focusInput()
+      })
+      return
+    }
+
+    if (sessions.length > 0) {
+      e2eBootstrapDoneRef.current = true
+      setCurrentSessionId(sessions[0].id)
+      focusInput()
+    }
+  }, [location.search, sessionsLoading, currentSessionId, sessions, handleNewConversation])
 
   // ===================================
   // P0-4: Single Session Deletion API
@@ -385,7 +753,7 @@ export default function ChatPage() {
   const handleSessionClear = useCallback(
     async (sessionId: string) => {
       try {
-        await agentosService.deleteSession(sessionId)
+        await systemService.deleteSessionApiSessionsSessionIdDelete(sessionId)
         setSessions((prev) => prev.filter((s) => s.id !== sessionId))
 
         // If deleted session was current, switch to another session
@@ -414,7 +782,7 @@ export default function ChatPage() {
   const handleClearAll = useCallback(async () => {
     setClearingAll(true)
     try {
-      await agentosService.deleteAllSessions()
+      await systemService.deleteAllSessionsApiSessionsDelete()
       setSessions([])
       setMessages([])
       setCurrentSessionId('')
@@ -437,8 +805,9 @@ export default function ChatPage() {
     setMessages([])  // Clear old messages
 
     try {
+      const sessionIdForRequest = sessionId
       // P0: Load message history from API
-      const response = await agentosService.getSessionMessages(sessionId)
+      const response = await systemService.listMessagesApiSessionsSessionIdMessagesGet(sessionIdForRequest)
       // console.log('[ChatPage] 📥 API Response:', response)
       // console.log('[ChatPage] 📥 Response.messages:', response?.messages)
 
@@ -453,7 +822,7 @@ export default function ChatPage() {
         content: msg.content || '',
         timestamp: msg.timestamp || new Date().toISOString(),
         metadata: msg.metadata,
-      }))
+      })).filter((msg: ChatMessageType) => msg.role !== 'tool')
       // console.log('[ChatPage] ✅ Loaded messages count:', loadedMessages.length)
       // console.log('[ChatPage] ✅ Loaded messages:', loadedMessages)
 
@@ -469,6 +838,9 @@ export default function ChatPage() {
           // })
         }
       })
+
+      // Route switch safety: ignore late responses for a session that's no longer active.
+      if (currentSessionIdRef.current !== sessionIdForRequest) return
 
       setMessages(loadedMessages)
 
@@ -491,22 +863,88 @@ export default function ChatPage() {
       }
     } catch (error) {
       console.error('[ChatPage] ❌ Failed to load messages for session:', error)
-      toast.error('Failed to load conversation history')
-      setMessages([])  // Clear on error
+      // Avoid spurious toasts/state changes if the user already switched sessions.
+      if (currentSessionIdRef.current === sessionId) {
+        toast.error('Failed to load conversation history')
+        setMessages([])  // Clear on error
+      }
     } finally {
       setMessagesLoading(false)
     }
   }, [])
+
+  const reconcilePendingReplyState = useCallback(async () => {
+    if (!currentSessionId || !awaitingReply || isStreaming) return
+
+    const startedAt = pendingReplyStartedAtRef.current
+    if (startedAt == null) return
+
+    try {
+      const response = await systemService.listMessagesApiSessionsSessionIdMessagesGet(currentSessionId)
+      const messagesArray = Array.isArray(response) ? response : ((response as any)?.messages || [])
+      const loadedMessages: ChatMessageType[] = messagesArray.map((msg: any) => ({
+        id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+        role: msg.role || 'assistant',
+        content: msg.content || '',
+        timestamp: msg.timestamp || new Date().toISOString(),
+        metadata: msg.metadata,
+      })).filter((msg: ChatMessageType) => msg.role !== 'tool')
+
+      const isCompletionForPendingRun = loadedMessages.some((m) => {
+        if (m.role !== 'assistant') return false
+        if (currentRunId) {
+          const runId = (m.metadata as any)?.run_id
+          if (runId && runId === currentRunId) return true
+        }
+        const ts = Date.parse(m.timestamp || '')
+        return Number.isFinite(ts) && ts >= startedAt
+      })
+
+      if (isCompletionForPendingRun) {
+        setMessages(loadedMessages)
+        setStreamingMessage('')
+        streamingMessageRef.current = ''
+        bufferRef.current = ''
+        setIsStreaming(false)
+        setCurrentRunId('')
+        clearAwaitingReply()
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
+        }
+        return
+      }
+
+      if (Date.now() - startedAt >= REPLY_RECOVERY_TIMEOUT_MS) {
+        setStreamingMessage('')
+        streamingMessageRef.current = ''
+        bufferRef.current = ''
+        setIsStreaming(false)
+        setCurrentRunId('')
+        clearAwaitingReply()
+        if (rafRef.current !== null) {
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
+        }
+        toast.warning(t(K.page.chat.replyVerySlow))
+      }
+    } catch {
+      // Reconcile is best-effort and should never break chat UI
+    }
+  }, [awaitingReply, clearAwaitingReply, currentRunId, currentSessionId, isStreaming, t])
 
   // ===================================
   // P0-2: Session Selection Handler
   // ===================================
   const handleSessionSelect = useCallback(
     (sessionId: string) => {
+      clearAwaitingReply()
+      setCurrentRunId('')
+      pendingEditCommandsRef.current = {}
       setCurrentSessionId(sessionId)
       // Messages will be loaded by useEffect watching currentSessionId
     },
-    []
+    [clearAwaitingReply]
   )
 
   // ===================================
@@ -521,6 +959,125 @@ export default function ChatPage() {
       // console.log('[ChatPage] 🔄 No currentSessionId, skipping load')
     }
   }, [currentSessionId, loadMessagesForSession])
+
+  useEffect(() => {
+    const currentState = String(sessionState?.state || '')
+    if (!currentSessionId || currentState !== 'interrupted') return
+    if (interruptedToastShownRef.current[currentSessionId]) return
+    interruptedToastShownRef.current[currentSessionId] = true
+    toast.warning(t(K.page.chat.replyVerySlow))
+  }, [sessionState?.state, currentSessionId, t])
+
+  const effectiveIsStreaming = isStreaming || sessionState?.state === 'streaming'
+  const sessionStateBanner = sessionState
+    ? (
+      <Box sx={{ px: 1, pt: 1 }}>
+        <Chip
+          data-testid="chat-session-state"
+          label={`session: ${sessionState.state}`}
+          color={sessionState.state === 'interrupted' ? 'warning' : 'default'}
+          size={'small' as const}
+          variant={'outlined' as const}
+        />
+      </Box>
+      )
+    : undefined
+
+  useEffect(() => {
+    if (!awaitingReply || isStreaming || !currentSessionId) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      void reconcilePendingReplyState()
+    }, 3000)
+
+    // Run once immediately to recover quickly after reconnect/event loss.
+    void reconcilePendingReplyState()
+
+    return () => {
+      clearInterval(timer)
+    }
+  }, [awaitingReply, isStreaming, currentSessionId, reconcilePendingReplyState])
+
+  // ===================================
+  // Gate-3: Session presence heartbeat (for chat injection guard)
+  // ===================================
+  useEffect(() => {
+    if (!currentSessionId) return
+    let cancelled = false
+    const sessionIdForEffect = currentSessionId
+
+    const touch = async () => {
+      try {
+        await httpClient.post(`/api/sessions/${sessionIdForEffect}/presence/touch`, {})
+      } catch {
+        // best-effort
+      }
+    }
+
+    void touch()
+    const timer = window.setInterval(() => {
+      if (cancelled) return
+      void touch()
+    }, 15_000)
+
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [currentSessionId])
+
+  // ===================================
+  // Gate-3: Background message refresh (captures injected system messages)
+  // ===================================
+  const lastMessagesSignatureRef = useRef<string>('')
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId
+  }, [currentSessionId])
+  useEffect(() => {
+    if (!currentSessionId) return
+    if (effectiveIsStreaming) return
+
+    let cancelled = false
+    const sessionIdForEffect = currentSessionId
+
+    const refresh = async () => {
+      try {
+        const response = await systemService.listMessagesApiSessionsSessionIdMessagesGet(sessionIdForEffect)
+        const messagesArray = Array.isArray(response) ? response : ((response as any)?.messages || [])
+        const loadedMessages: ChatMessageType[] = messagesArray.map((msg: any) => ({
+          id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+          role: msg.role || 'assistant',
+          content: msg.content || '',
+          timestamp: msg.timestamp || new Date().toISOString(),
+          metadata: msg.metadata,
+        })).filter((msg: ChatMessageType) => msg.role !== 'tool')
+
+        // Route switch safety: ignore late responses for a session that's no longer active.
+        if (cancelled || currentSessionIdRef.current !== sessionIdForEffect) return
+
+        const sig = `${loadedMessages.length}:${loadedMessages[loadedMessages.length - 1]?.id || ''}`
+        if (sig !== lastMessagesSignatureRef.current) {
+          lastMessagesSignatureRef.current = sig
+          setMessages(loadedMessages)
+        }
+      } catch {
+        // best-effort
+      }
+    }
+
+    void refresh()
+    const timer = window.setInterval(() => {
+      if (cancelled) return
+      void refresh()
+    }, 2500)
+
+    return () => {
+      cancelled = true
+      clearInterval(timer)
+    }
+  }, [currentSessionId, effectiveIsStreaming])
 
   // ===================================
   // P0-7: Session Search Handler
@@ -549,7 +1106,22 @@ export default function ChatPage() {
   const handleSendMessage = useCallback(
     async (text: string) => {
       if (!text.trim() || !isConnected) {
+        if (!isConnected) {
+          toast.error(t(K.page.chat.connectionError))
+        }
+        return false
+      }
+      if (!currentSessionId) {
+        toast.error(t(K.page.chat.connectionError))
+        return false
+      }
+      if (isConnecting) {
+        toast.warning(t(K.page.chat.connectionLost))
         return
+      }
+      if (isStreaming || awaitingReply) {
+        toast.warning(t(K.page.chat.waitForCurrentReply))
+        return false
       }
 
       // ✅ Optimistic Update: Add user message to UI immediately (不等待任何 API 响应)
@@ -581,50 +1153,158 @@ export default function ChatPage() {
       })
 
       // ✅ 后台异步检查健康状态（不阻塞消息发送）
-      agentosService.checkChatHealth()
-        .then(health => {
-          if (!health.is_healthy) {
+      systemService.daemonStatusApiDaemonStatusGet()
+        .then((health: any) => {
+          const healthy = Boolean(health?.running ?? health?.ok ?? true)
+          if (!healthy) {
             // 仅在健康检查失败时显示警告（不阻止消息发送）
             setHealthWarning({
               show: true,
-              issues: health.issues,
-              hints: health.hints || []
+              issues: ['Daemon not healthy'],
+              hints: []
             })
           }
         })
-        .catch(error => {
+        .catch((error: any) => {
           console.warn('[ChatPage] Background health check failed:', error)
           // 静默失败，不影响用户体验
         })
 
       // Send via WebSocket with metadata
+      const effectiveExecutionPhase = deriveExecutionPhaseByMode(conversationMode, executionPhase)
       const metadata = {
         model_type: mode,
         provider,
         model,
+        conversation_mode: conversationMode,
+        execution_phase: effectiveExecutionPhase,
       }
       // console.log('[ChatPage] 📤 Sending message via WebSocket:', { text, metadata })
 
       // ✅ 错误处理：WebSocket 发送失败时提示
       try {
-        wsSendMessage(text, metadata)
+        pendingReplyStartedAtRef.current = Date.now()
+        setAwaitingReply(true)
+        startReplyWaitTimers()
+        const sent = wsSendMessage(text, metadata)
+        if (!sent) {
+          clearAwaitingReply()
+          toast.error(t(K.page.chat.connectionError))
+          return false
+        }
 
         // 🎯 产品级功能：发送成功后清除草稿和输入框
         clearDraft()
         setInputValue('')
+        return true
       } catch (error) {
         console.error('[ChatPage] Failed to send message via WebSocket:', error)
+        clearAwaitingReply()
         toast.error(t(K.page.chat.connectionError))
+        return false
       }
     },
-    [isConnected, wsSendMessage, mode, provider, model, currentSessionId, t, clearDraft]
+    [isConnected, isConnecting, isStreaming, awaitingReply, wsSendMessage, mode, provider, model, conversationMode, executionPhase, currentSessionId, t, clearDraft, startReplyWaitTimers, clearAwaitingReply]
   )
+
+  const awaitingReplyMessage = useMemo(() => {
+    if (replyWaitStage === 'verySlow') return t(K.page.chat.replyVerySlow)
+    if (replyWaitStage === 'slow') return t(K.page.chat.replySlow)
+    return t(K.page.chat.replyPending)
+  }, [replyWaitStage, t])
+
+  const generateCommandId = useCallback((prefix: string) => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return `${prefix}_${crypto.randomUUID()}`
+    }
+    return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`
+  }, [])
+
+  const handleStopStreaming = useCallback(() => {
+    if (!currentRunId) return
+    const commandId = generateCommandId('c_stop')
+    const sent = wsSendControlStop(currentRunId, commandId, 'user_clicked_stop')
+    if (!sent) {
+      toast.error(t(K.page.chat.stopCommandFailed))
+    }
+  }, [currentRunId, generateCommandId, wsSendControlStop])
+
+  const handleEditMessage = useCallback((message: ChatMessageType) => {
+    if (message.role !== 'user') return
+    if (!message.id || message.id.startsWith('msg-')) {
+      toast.warning(t(K.page.chat.editNotPersisted))
+      return
+    }
+    setEditingMessage(message)
+    setEditingText(message.content)
+    setEditDialogOpen(true)
+  }, [])
+
+  const handleConfirmEditResend = useCallback(() => {
+    if (!editingMessage) return
+    const nextContent = editingText.trim()
+    if (!nextContent) {
+      toast.warning(t(K.page.chat.editEmpty))
+      return
+    }
+    const commandId = generateCommandId('c_edit')
+    const effectiveExecutionPhase = deriveExecutionPhaseByMode(conversationMode, executionPhase)
+    const sent = wsSendEditResend(
+      editingMessage.id,
+      nextContent,
+      commandId,
+      'typo_fix',
+      {
+        model_type: mode,
+        provider,
+        model,
+        conversation_mode: conversationMode,
+        execution_phase: effectiveExecutionPhase,
+      }
+    )
+    if (!sent) {
+      toast.error(t(K.page.chat.editCommandFailed))
+      return
+    }
+
+    pendingEditCommandsRef.current[commandId] = {
+      targetId: editingMessage.id,
+      newContent: nextContent,
+    }
+    setEditSubmitting(true)
+    setEditDialogOpen(false)
+    setEditingMessage(null)
+    setEditingText('')
+    pendingReplyStartedAtRef.current = Date.now()
+    setAwaitingReply(true)
+    startReplyWaitTimers()
+  }, [editingMessage, editingText, generateCommandId, wsSendEditResend, mode, provider, model, conversationMode, executionPhase, startReplyWaitTimers, t])
 
   // ===================================
   // Page Header (v2.4 API)
   // ===================================
   usePageHeader({
-    title: t(K.page.chat.title),
+    title: presetTag ? (
+      <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+        <Box component="span">{t(K.page.chat.title)}</Box>
+        <Box
+          component="span"
+          sx={{
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            px: 1,
+            py: 0.25,
+            borderRadius: 1,
+            bgcolor: 'action.hover',
+            color: 'text.secondary',
+          }}
+        >
+          {presetTag}
+        </Box>
+      </Box>
+    ) : (
+      t(K.page.chat.title)
+    ),
     subtitle: t(K.page.chat.subtitle),
   })
 
@@ -673,10 +1353,12 @@ export default function ChatPage() {
   // Helper: Load models for specific provider
   const loadModelsForProvider = useCallback(async (targetProvider: string) => {
     try {
-      const modelsResp = await agentosService.getProviderModels(targetProvider)
-      const loadedModels = modelsResp.models.map(m => m.id)
+      const modelsResp = await providersApi.getProviderModels(targetProvider)
+      const loadedModels = Array.isArray(modelsResp?.models)
+        ? modelsResp.models.map((m: any) => m.id || m.name || m.label).filter(Boolean)
+        : []
       setModels(loadedModels)
-      // console.log(`[ChatPage] Loaded models for ${targetProvider}:`, modelsResp.models.length)
+      // console.log(`[ChatPage] Loaded models for ${targetProvider}:`, loadedModels.length)
 
       // ✅ Auto-select first model if current model is not in the list
       if (loadedModels.length > 0 && !loadedModels.includes(model)) {
@@ -687,10 +1369,10 @@ export default function ChatPage() {
       console.error(`Failed to load models for ${targetProvider}:`, error)
       // Fallback: load installed models
       try {
-        const installedResp = await agentosService.getInstalledModels()
+        const installedResp = await systemService.listModelsApiModelsListGet()
         const providerModels = installedResp.models
-          .filter(m => m.provider === targetProvider)
-          .map(m => m.name)
+          .filter((m: any) => m.provider === targetProvider)
+          .map((m: any) => m.name)
         setModels(providerModels.length > 0 ? providerModels : [])
 
         // ✅ Auto-select first model from fallback list
@@ -708,28 +1390,24 @@ export default function ChatPage() {
 
   const loadProvidersAndModels = useCallback(async () => {
     try {
-      // ✅ P0: Trigger provider status probe first (to populate cache for health checks)
-      // This ensures ChatHealthChecker can find available providers
+      // Read-only warm-up for provider status cache.
       try {
-        await agentosService.getAllProvidersStatus()
-        // console.log('[ChatPage] ✅ Provider status probed successfully')
+        await providersApi.getProvidersStatus()
       } catch (statusError) {
-        console.warn('[ChatPage] ⚠️ Failed to probe provider status:', statusError)
-        // Continue anyway - getProviders() will still work
+        console.warn('[ChatPage] ⚠️ Failed to read provider status:', statusError)
       }
 
       // P0: Load providers from API
-      const providersResp = await agentosService.getProviders()
-
-      // ✅ Layer 1: Filter providers based on mode (v1 logic)
-      let filteredProviders: string[]
-      if (mode === 'local') {
-        // Local providers: ollama, lmstudio, llamacpp
-        filteredProviders = providersResp.local.map((p: any) => p.id)
-      } else {
-        // Cloud providers: openai, anthropic, bedrock, azure
-        filteredProviders = providersResp.cloud.map((p: any) => p.id)
+      const providersResp = await systemService.listProvidersApiProvidersGet()
+      if (!Array.isArray(providersResp.local) || !Array.isArray(providersResp.cloud)) {
+        throw new Error('Invalid providers response: expected { local: [], cloud: [] }')
       }
+
+      // New contract only: { local: [...], cloud: [...] }
+      const filteredProviders =
+        mode === 'local'
+          ? providersResp.local.map((p: any) => p.id).filter(Boolean)
+          : providersResp.cloud.map((p: any) => p.id).filter(Boolean)
 
       setProviders(filteredProviders)
       // console.log(`[ChatPage] Loaded ${mode} providers:`, filteredProviders)
@@ -761,13 +1439,6 @@ export default function ChatPage() {
     loadProvidersAndModels()
   }, [mode, loadProvidersAndModels])
 
-  // ✅ 初始化时加载提供商和模型
-  useEffect(() => {
-    // console.log('[ChatPage] 🚀 Initializing providers and models on mount')
-    loadProvidersAndModels()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Only run once on mount
-
   // ===================================
   // P2: Startup Health Check
   // ===================================
@@ -775,13 +1446,17 @@ export default function ChatPage() {
     // 启动时执行一次健康检查
     const performStartupHealthCheck = async () => {
       try {
-        const health = await agentosService.checkChatHealth()
-        if (!health.is_healthy) {
+        const health = await systemService.daemonStatusApiDaemonStatusGet()
+        const isHealthy = Boolean(health?.running ?? health?.ok ?? true)
+        const issues = isHealthy ? [] : ['Daemon not healthy']
+        const hints: string[] = []
+
+        if (!isHealthy) {
           console.warn('[ChatPage] ⚠️ Startup health check failed:', health.issues)
           setHealthWarning({
             show: true,
-            issues: health.issues,
-            hints: health.hints || []
+            issues,
+            hints,
           })
         } else {
           // console.log('[ChatPage] ✅ Startup health check passed')
@@ -802,13 +1477,14 @@ export default function ChatPage() {
     // 每30秒执行一次定时健康检查
     const healthCheckInterval = setInterval(async () => {
       try {
-        const health = await agentosService.checkChatHealth()
-        if (!health.is_healthy) {
-          console.warn('[ChatPage] ⚠️ Periodic health check failed:', health.issues)
+        const health = await systemService.daemonStatusApiDaemonStatusGet()
+        const isHealthy = Boolean(health?.running ?? health?.ok ?? true)
+        if (!isHealthy) {
+          console.warn('[ChatPage] ⚠️ Periodic health check failed')
           setHealthWarning({
             show: true,
-            issues: health.issues,
-            hints: health.hints || []
+            issues: ['Daemon not healthy'],
+            hints: []
           })
         }
       } catch (error) {
@@ -845,9 +1521,53 @@ export default function ChatPage() {
     setModel(newModel)
   }, [])
 
+  const handleConversationModeChange = useCallback(async (newMode: ConversationMode) => {
+    const normalizedMode = normalizeConversationMode(newMode)
+    const normalizedPhase = deriveExecutionPhaseByMode(normalizedMode, executionPhase)
+
+    setConversationMode(normalizedMode)
+    setExecutionPhase(normalizedPhase)
+    await persistSessionMetadata({
+      conversation_mode: normalizedMode,
+      execution_phase: normalizedPhase,
+    })
+  }, [executionPhase, persistSessionMetadata])
+
+  const applyExecutionPhaseChange = useCallback(async (nextPhase: ExecutionPhase) => {
+    const normalized = normalizeExecutionPhase(nextPhase)
+
+    if (conversationMode !== 'development' && conversationMode !== 'task' && normalized === 'execution') {
+      toast.warning('Execution phase is only available in development and task modes')
+      return
+    }
+
+    setExecutionPhase(normalized)
+    await persistSessionMetadata({ execution_phase: normalized })
+  }, [conversationMode, persistSessionMetadata])
+
+  const handleExecutionPhaseChange = useCallback((nextPhase: ExecutionPhase) => {
+    const normalized = normalizeExecutionPhase(nextPhase)
+    if (normalized === executionPhase) return
+
+    if (conversationMode !== 'development' && conversationMode !== 'task') {
+      void applyExecutionPhaseChange('planning')
+      return
+    }
+
+    if (normalized === 'execution') {
+      setPendingPhase('execution')
+      setPhaseConfirmOpen(true)
+      return
+    }
+
+    void applyExecutionPhaseChange(normalized)
+  }, [applyExecutionPhaseChange, executionPhase])
+
   // ===================================
   // Render: AppChatShell Pattern
   // ===================================
+  const uiDisabled = !currentSessionId
+
   // console.log('[ChatPage] 🎨 Rendering, messages count:', messages.length)
   // console.log('[ChatPage] 🎨 Current messages:', messages)
   // console.log('[ChatPage] 🎨 Current sessionId:', currentSessionId)
@@ -862,7 +1582,9 @@ export default function ChatPage() {
         messages={messages}
         loading={loading || sessionsLoading || messagesLoading}
         streamingMessage={streamingMessage}
-        isStreaming={isStreaming}
+        isStreaming={effectiveIsStreaming}
+        awaitingReply={awaitingReply}
+        awaitingReplyMessage={awaitingReplyMessage}
         onSessionSelect={handleSessionSelect}
         onSessionClear={handleSessionClear}
         onClearAll={() => {
@@ -870,10 +1592,14 @@ export default function ChatPage() {
         }}
         onSearchSessions={handleSearchSessions}
         onSendMessage={handleSendMessage}
+        onStopStreaming={handleStopStreaming}
+        onEditMessage={handleEditMessage}
         inputPlaceholder={t(K.page.chat.inputPlaceholder)}
-        disabled={!isConnected}
+        disabled={uiDisabled}
         inputValue={inputValue}
         onInputChange={setInputValue}
+        onInputFocusChange={setInputFocused}
+        suppressAutoFollow={inputFocused && Boolean(inputValue.trim())}
         emptyState={!currentSessionId ? {
           icon: <MessageIcon sx={{ fontSize: 64 }} />,
           message: t(K.page.chat.emptyDescription),
@@ -898,15 +1624,28 @@ export default function ChatPage() {
             // console.log('Empty clicked')
           },
         }}
+        contextSelection={{
+          conversationMode,
+          executionPhase,
+          onConversationModeChange: (newMode) => {
+            void handleConversationModeChange(newMode)
+          },
+          onExecutionPhaseChange: (newPhase) => {
+            handleExecutionPhaseChange(newPhase)
+          },
+        }}
         banner={
-          healthWarning && (
-            <HealthWarningBanner
-              open={healthWarning.show}
-              issues={healthWarning.issues}
-              hints={healthWarning.hints}
-              onClose={() => setHealthWarning(null)}
-            />
-          )
+          <>
+            {sessionStateBanner}
+            {healthWarning && (
+              <HealthWarningBanner
+                open={healthWarning.show}
+                issues={healthWarning.issues}
+                hints={healthWarning.hints}
+                onClose={() => setHealthWarning(null)}
+              />
+            )}
+          </>
         }
       />
 
@@ -922,6 +1661,68 @@ export default function ChatPage() {
         loading={clearingAll}
         color={'error' as const}
       />
+
+      <ConfirmDialog
+        open={phaseConfirmOpen}
+        onClose={() => {
+          setPhaseConfirmOpen(false)
+          setPendingPhase(null)
+        }}
+        title={t(K.page.chat.phaseSwitchTitle)}
+        message={t(K.page.chat.phaseSwitchMessage)}
+        confirmText={t(K.page.chat.phaseSwitchConfirm)}
+        cancelText={t(K.common.cancel)}
+        onConfirm={() => {
+          const nextPhase = pendingPhase ?? 'planning'
+          setPhaseConfirmOpen(false)
+          setPendingPhase(null)
+          void applyExecutionPhaseChange(nextPhase)
+        }}
+      />
+
+      <Dialog
+        open={editDialogOpen}
+        onClose={() => {
+          if (editSubmitting) return
+          setEditDialogOpen(false)
+          setEditingMessage(null)
+          setEditingText('')
+        }}
+        maxWidth={'sm' as const}
+        fullWidth
+      >
+        <DialogTitle>{t(K.page.chat.editDialogTitle)}</DialogTitle>
+        <DialogContent>
+          <TextField
+            multiline
+            minRows={4}
+            fullWidth
+            value={editingText}
+            onChange={(e) => setEditingText(e.target.value)}
+            disabled={editSubmitting}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setEditDialogOpen(false)
+              setEditingMessage(null)
+              setEditingText('')
+            }}
+            disabled={editSubmitting}
+          >
+            {t(K.common.cancel)}
+          </Button>
+          <Button
+            variant={'contained' as const}
+            onClick={handleConfirmEditResend}
+            disabled={editSubmitting || !editingText.trim()}
+          >
+            {t(K.page.chat.editDialogConfirm)}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Running Status Dialog */}
       <Dialog
@@ -1095,6 +1896,7 @@ export default function ChatPage() {
           </Box>
         </Box>
       </DetailDrawer>
+      {promptDialog}
     </>
   )
 }

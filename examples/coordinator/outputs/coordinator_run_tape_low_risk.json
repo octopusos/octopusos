@@ -56,13 +56,13 @@
           "guard_name": "memory_pack_available",
           "passed": true,
           "reason": "MemoryPack constructed with 5 relevant memories",
-          "evidence_refs": ["memory_pack://agentos/documentation"]
+          "evidence_refs": ["memory_pack://octopusos/documentation"]
         },
         {
           "guard_name": "factpack_available",
           "passed": true,
           "reason": "FactPack contains project structure and evidence",
-          "evidence_refs": ["factpack://agentos/scan_20260125"]
+          "evidence_refs": ["factpack://octopusos/scan_20260125"]
         }
       ],
       "outputs_produced": [
@@ -204,7 +204,7 @@
       "decision_type": "rule_adjudication",
       "timestamp": "2026-01-25T10:05:22Z",
       "inputs": {
-        "evidence_refs": ["scan://file/agentos/utils/format.py"],
+        "evidence_refs": ["scan://file/octopusos/utils/format.py"],
         "rule_refs": ["rule://require_evidence_for_write"]
       },
       "rationale": "Write operation to format.py requires evidence. Evidence provided via file scan reference.",
@@ -228,7 +228,7 @@
       "decision": "allow",
       "timestamp": "2026-01-25T10:05:22Z",
       "target": "modify_python_file command",
-      "evidence_used": ["scan://file/agentos/utils/format.py", "scan://file/agentos/utils/validation.py"],
+      "evidence_used": ["scan://file/octopusos/utils/format.py", "scan://file/octopusos/utils/validation.py"],
       "reason": "Both target files have evidence from FactPack scan"
     }
   ],

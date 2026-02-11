@@ -20,6 +20,8 @@ import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
 import { memoryosService } from '@services'
 import type { MemoryProposal } from '@services'
+import { useWriteGate } from '@/ui/guards/useWriteGate'
+import { WriteGateBanner } from '@/components/gates/WriteGateBanner'
 
 /**
  * Constants
@@ -115,6 +117,7 @@ export default function MemoryProposalsPage() {
   // i18n Hook - Subscribe to language changes
   // ===================================
   const { t } = useTextTranslation()
+  const writeGate = useWriteGate('FEATURE_MEMORY_PROPOSALS_REVIEW')
 
   // ===================================
   // Data State
@@ -165,7 +168,7 @@ export default function MemoryProposalsPage() {
         : statusFilter === FILTER_REJECTED ? 'rejected' as const
         : undefined
 
-      const response = await memoryosService.listMemoryProposals({
+      const response = await memoryosService.listProposalsApiMemoryProposalsGet({
         status: apiStatus,
         page: page + 1, // API uses 1-based indexing
         limit: pageSize,
@@ -177,7 +180,7 @@ export default function MemoryProposalsPage() {
 
       // Apply client-side search filter
       const filteredRows = searchQuery
-        ? rows.filter((row) =>
+        ? rows.filter((row: any) =>
             row.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             row.proposedBy.toLowerCase().includes(searchQuery.toLowerCase())
           )
@@ -187,13 +190,13 @@ export default function MemoryProposalsPage() {
       setTotal(response.total)
     } catch (error) {
       console.error('Failed to load memory proposals:', error)
-      toast.error('Failed to load proposals')
+      toast.error(t('page.memoryProposals.loadFailed'))
       setProposals([])
       setTotal(0)
     } finally {
       setLoading(false)
     }
-  }, [page, pageSize, statusFilter, searchQuery])
+  }, [page, pageSize, statusFilter, searchQuery, t])
 
   // Load proposals on mount and when filters change
   useEffect(() => {
@@ -219,7 +222,10 @@ export default function MemoryProposalsPage() {
       key: 'create',
       label: t(K.page.memoryProposals.createProposal),
       variant: 'contained',
-      onClick: () => setCreateDialogOpen(true),
+      onClick: () => {
+        if (!writeGate.allowed) return
+        setCreateDialogOpen(true)
+      },
     },
   ])
 
@@ -233,10 +239,14 @@ export default function MemoryProposalsPage() {
 
   const handleApprove = async () => {
     if (!selectedProposal) return
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
 
     setActionLoading(true)
     try {
-      await memoryosService.approveMemoryProposal(selectedProposal.id, {
+      await memoryosService.approveProposalApiMemoryProposalsProposalIdApprovePost(selectedProposal.id, {
         reason: 'Approved from Memory Proposals page',
       })
 
@@ -248,7 +258,7 @@ export default function MemoryProposalsPage() {
       await loadProposals()
     } catch (error) {
       console.error('Failed to approve proposal:', error)
-      toast.error('Failed to approve proposal')
+      toast.error(t('page.memoryProposals.approveFailed'))
     } finally {
       setActionLoading(false)
     }
@@ -256,10 +266,14 @@ export default function MemoryProposalsPage() {
 
   const handleReject = async () => {
     if (!selectedProposal) return
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
 
     setActionLoading(true)
     try {
-      await memoryosService.rejectMemoryProposal(selectedProposal.id, {
+      await memoryosService.rejectProposalApiMemoryProposalsProposalIdRejectPost(selectedProposal.id, {
         reason: 'Rejected from Memory Proposals page',
       })
 
@@ -271,7 +285,7 @@ export default function MemoryProposalsPage() {
       await loadProposals()
     } catch (error) {
       console.error('Failed to reject proposal:', error)
-      toast.error('Failed to reject proposal')
+      toast.error(t('page.memoryProposals.rejectFailed'))
     } finally {
       setActionLoading(false)
     }
@@ -291,25 +305,39 @@ export default function MemoryProposalsPage() {
   }
 
   const handleCreateProposal = async () => {
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
     // Validation
     if (!formKey.trim() || !formValue.trim()) {
-      toast.error('Key and Value are required')
+      toast.error(t('page.memoryProposals.validationKeyValueRequired'))
       return
     }
 
     setCreateLoading(true)
     try {
-      await memoryosService.createMemoryProposal({
-        agent_id: 'user', // TODO: Get from auth context
-        memory_item: {
-          key: formKey.trim(),
-          value: formValue.trim(),
-          namespace: formNamespace,
-        },
+      await memoryosService.proposeMemoryApiMemoryProposePost({
+        agent_id: 'chat_agent',
         reason: formReason.trim() || undefined,
+        memory_item: {
+          scope: 'global',
+          type: 'preference',
+          content: {
+            key: formKey.trim(),
+            value: formValue.trim(),
+          },
+          metadata: {
+            namespace: formNamespace,
+            title: formKey.trim(),
+            category: formNamespace,
+            proposed_by: 'chat_agent',
+            votes: 0,
+          },
+        },
       })
 
-      toast.success('Proposal created successfully')
+      toast.success(t('page.memoryProposals.createSuccess'))
       setCreateDialogOpen(false)
 
       // Reset form
@@ -322,7 +350,7 @@ export default function MemoryProposalsPage() {
       await loadProposals()
     } catch (error) {
       console.error('Failed to create proposal:', error)
-      toast.error('Failed to create proposal')
+      toast.error(t('page.memoryProposals.createFailed'))
     } finally {
       setCreateLoading(false)
     }
@@ -404,6 +432,11 @@ export default function MemoryProposalsPage() {
   // ===================================
   return (
     <>
+      <WriteGateBanner
+        featureKey="FEATURE_MEMORY_PROPOSALS_REVIEW"
+        reason={writeGate.reason}
+        missingOperations={writeGate.missingOperations}
+      />
       <TableShell
       loading={loading}
       rows={proposals}
@@ -484,7 +517,10 @@ export default function MemoryProposalsPage() {
         actions: [
           {
             label: t(K.page.memoryProposals.createProposal),
-            onClick: () => setCreateDialogOpen(true),
+            onClick: () => {
+              if (!writeGate.allowed) return
+              setCreateDialogOpen(true)
+            },
             variant: 'contained',
           },
         ],
@@ -518,7 +554,7 @@ export default function MemoryProposalsPage() {
               variant={BUTTON_VARIANT_CONTAINED}
               color={BUTTON_COLOR_SUCCESS}
               onClick={handleApprove}
-              disabled={actionLoading || selectedProposal?.status === STATUS_APPROVED}
+              disabled={actionLoading || selectedProposal?.status === STATUS_APPROVED || !writeGate.allowed}
             >
               {t(K.page.memoryProposals.approve)}
             </Button>
@@ -526,7 +562,7 @@ export default function MemoryProposalsPage() {
               variant={BUTTON_VARIANT_OUTLINED}
               color={BUTTON_COLOR_ERROR}
               onClick={handleReject}
-              disabled={actionLoading || selectedProposal?.status === STATUS_REJECTED}
+              disabled={actionLoading || selectedProposal?.status === STATUS_REJECTED || !writeGate.allowed}
             >
               {t(K.page.memoryProposals.reject)}
             </Button>
@@ -614,6 +650,12 @@ export default function MemoryProposalsPage() {
         <DialogTitle>{t(K.page.memoryProposals.createProposal)}</DialogTitle>
         <DialogContent>
           <Box sx={{ display: DISPLAY_FLEX, flexDirection: FLEX_DIRECTION_COLUMN, gap: 2, pt: 1 }}>
+            <WriteGateBanner
+              featureKey="FEATURE_MEMORY_PROPOSALS_REVIEW"
+              reason={writeGate.reason}
+              missingOperations={writeGate.missingOperations}
+              compact
+            />
             {/* Namespace */}
             <Select
               label={t(K.page.memoryProposals.formNamespace)}
@@ -670,7 +712,7 @@ export default function MemoryProposalsPage() {
           <Button
             onClick={handleCreateProposal}
             variant={BUTTON_VARIANT_CONTAINED}
-            disabled={createLoading || !formKey.trim() || !formValue.trim()}
+            disabled={createLoading || !formKey.trim() || !formValue.trim() || !writeGate.allowed}
           >
             {createLoading ? t(K.page.memoryProposals.creating) : t(K.common.create)}
           </Button>

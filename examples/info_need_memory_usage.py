@@ -9,9 +9,9 @@ Task #22: MemoryOS judgment history storage
 
 import asyncio
 from datetime import timedelta
-from agentos.core.chat.info_need_classifier import InfoNeedClassifier
-from agentos.core.memory.info_need_writer import InfoNeedMemoryWriter
-from agentos.core.memory.schema import InfoNeedJudgment
+from octopusos.core.chat.info_need_classifier import InfoNeedClassifier
+from octopusos.core.memory.info_need_writer import InfoNeedMemoryWriter
+from octopusos.core.memory.schema import InfoNeedJudgment
 
 
 async def example_1_basic_classification_with_memory():
@@ -324,5 +324,5 @@ async def main():
 
 if __name__ == "__main__":
     # Note: This requires a properly initialized database
-    # Run: agentos init (if not already done)
+    # Run: octopusos init (if not already done)
     asyncio.run(main())

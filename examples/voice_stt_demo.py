@@ -1,5 +1,5 @@
 """
-Demo script for AgentOS Voice STT integration.
+Demo script for OctopusOS Voice STT integration.
 
 This script demonstrates how to use the WhisperLocalSTT and VADDetector
 in a practical scenario.
@@ -34,7 +34,7 @@ async def demo_basic_stt():
     logger.info("Demo 1: Basic STT Usage")
     logger.info("=" * 60)
 
-    from agentos.core.communication.voice.stt import WhisperLocalSTT
+    from octopusos.core.communication.voice.stt import WhisperLocalSTT
 
     # Create STT instance
     stt = WhisperLocalSTT(model_name="base", device="cpu", language=None)
@@ -57,7 +57,7 @@ def demo_basic_vad():
     logger.info("Demo 2: Basic VAD Usage")
     logger.info("=" * 60)
 
-    from agentos.core.communication.voice.stt import VADDetector
+    from octopusos.core.communication.voice.stt import VADDetector
 
     # Create VAD instance
     vad = VADDetector(aggressiveness=2)
@@ -89,7 +89,7 @@ async def demo_voice_service():
     logger.info("Demo 3: VoiceService Integration")
     logger.info("=" * 60)
 
-    from agentos.core.communication.voice.service import VoiceService
+    from octopusos.core.communication.voice.service import VoiceService
 
     # Create service with explicit configuration
     service = VoiceService(
@@ -116,7 +116,7 @@ async def demo_streaming():
     logger.info("Demo 4: Streaming Transcription")
     logger.info("=" * 60)
 
-    from agentos.core.communication.voice.stt import WhisperLocalSTT
+    from octopusos.core.communication.voice.stt import WhisperLocalSTT
 
     stt = WhisperLocalSTT(model_name="base", device="cpu")
 
@@ -138,7 +138,7 @@ async def demo_streaming():
 
 async def main():
     """Run all demos."""
-    logger.info("AgentOS Voice STT Demo")
+    logger.info("OctopusOS Voice STT Demo")
     logger.info("")
 
     try:

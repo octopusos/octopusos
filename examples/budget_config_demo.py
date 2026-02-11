@@ -7,14 +7,14 @@ import json
 from pathlib import Path
 import tempfile
 
-from agentos.config.budget_config import (
+from octopusos.config.budget_config import (
     BudgetConfig,
     BudgetAllocation,
     BudgetConfigManager,
     load_budget_config,
     save_budget_config,
 )
-from agentos.schemas.project import Project, ProjectSettings
+from octopusos.schemas.project import Project, ProjectSettings
 
 
 def demo_basic_usage():

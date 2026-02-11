@@ -8,7 +8,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 def test_adapter_verification():
     global EXIT_CODE
-    from agentos.ext.tools import ClaudeCliAdapter
+    from octopusos.ext.tools import ClaudeCliAdapter
     
     adapter = ClaudeCliAdapter()
     

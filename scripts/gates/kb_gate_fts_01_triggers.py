@@ -14,7 +14,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.project_kb import ProjectKBService
+from octopusos.core.project_kb import ProjectKBService
 
 
 def main():

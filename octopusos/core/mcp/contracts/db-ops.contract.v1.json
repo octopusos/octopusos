@@ -1,0 +1,70 @@
+{
+  "mcp_server": "db-ops",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "db_inspect",
+      "input_schema": {
+        "type": "object",
+        "required": ["engine", "target"],
+        "properties": {
+          "engine": { "type": "string", "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "redis", "dynamodb"] },
+          "target": { "type": "string" },
+          "instance_id": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "schema": { "type": "object" },
+          "resources": { "type": "array", "items": { "type": "string" } },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    {
+      "name": "db_query_sample",
+      "input_schema": {
+        "type": "object",
+        "required": ["engine", "target", "resource", "limit"],
+        "properties": {
+          "engine": { "type": "string", "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "redis", "dynamodb"] },
+          "target": { "type": "string" },
+          "resource": { "type": "string" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 1000 }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "sample": { "type": "array" },
+          "affected": { "type": "object" },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    {
+      "name": "db_apply_migration",
+      "input_schema": {
+        "type": "object",
+        "required": ["engine", "target", "path", "dry_run"],
+        "properties": {
+          "engine": { "type": "string", "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "dynamodb"] },
+          "target": { "type": "string" },
+          "path": { "type": "string" },
+          "dry_run": { "type": "boolean" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "applied": { "type": "array", "items": { "type": "string" } },
+          "diff_artifact": { "type": "string" },
+          "affected": { "type": "object" },
+          "warnings": { "type": "array", "items": { "type": "string" } },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  ]
+}

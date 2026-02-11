@@ -26,7 +26,7 @@ from typing import List, Dict, Any
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from agentos.core.schemas import (
+from octopusos.core.schemas import (
     OpenPlan,
     validate_open_plan_structure,
     StructuralValidator

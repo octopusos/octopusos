@@ -36,7 +36,7 @@ import subprocess
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import (
+from octopusos.ext.tools import (
     ClaudeCliAdapter,
     OpenAIChatAdapter,
     OllamaAdapter,
@@ -99,7 +99,7 @@ def gate_r2_minimal_run(adapter_configs: List[Dict[str, Any]], repo_path: Path) 
     results = []
     
     # 设置 Gate 模式（允许 Mock）
-    os.environ["AGENTOS_GATE_MODE"] = "1"
+    os.environ["OCTOPUSOS_GATE_MODE"] = "1"
     
     for config in adapter_configs:
         adapter_name = config["name"]
@@ -162,7 +162,7 @@ def gate_r2_diff_valid(adapter_configs: List[Dict[str, Any]], repo_path: Path) -
     - 如果 adapter 产出了 diff，验证格式
     - 使用 DiffVerifier
     """
-    os.environ["AGENTOS_GATE_MODE"] = "1"
+    os.environ["OCTOPUSOS_GATE_MODE"] = "1"
     
     results = []
     
@@ -224,7 +224,7 @@ def gate_r2_no_direct_write(adapter_configs: List[Dict[str, Any]], repo_path: Pa
     - ToolResult.wrote_files == False
     - ToolResult.committed == False
     """
-    os.environ["AGENTOS_GATE_MODE"] = "1"
+    os.environ["OCTOPUSOS_GATE_MODE"] = "1"
     
     for config in adapter_configs:
         adapter_name = config["name"]
@@ -268,7 +268,7 @@ def gate_r2_result_structure(adapter_configs: List[Dict[str, Any]], repo_path: P
     - tool / status / diff / files_touched / line_count / tool_run_id
     - Step 4 扩展：model_id / provider
     """
-    os.environ["AGENTOS_GATE_MODE"] = "1"
+    os.environ["OCTOPUSOS_GATE_MODE"] = "1"
     
     required_fields = [
         "tool", "status", "diff", "files_touched", "line_count", "tool_run_id",

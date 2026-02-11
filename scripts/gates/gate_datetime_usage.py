@@ -7,7 +7,7 @@ Prevents regression of forbidden datetime usage:
 2. datetime.now() without timezone parameter
 3. Direct timestamp creation without UTC awareness
 
-Ensures all code uses agentos.core.time.clock module.
+Ensures all code uses octopusos.core.time.clock module.
 
 Exit codes:
 - 0: Success (no violations found)
@@ -24,16 +24,16 @@ from pathlib import Path
 from typing import List, Tuple, Dict
 
 # Root directory for scanning
-ROOT_DIR = Path(__file__).parent.parent.parent / "agentos"
+ROOT_DIR = Path(__file__).parent.parent.parent / "octopusos"
 
 # Whitelist: Files that are allowed to use datetime directly
 WHITELIST = {
     # Core clock module itself (implements utc_now)
-    "agentos/core/time/clock.py",
-    "agentos/core/time/__init__.py",
+    "octopusos/core/time/clock.py",
+    "octopusos/core/time/__init__.py",
 
     # Test files that test datetime behavior
-    "agentos/core/time/test_clock.py",
+    "octopusos/core/time/test_clock.py",
 }
 
 # Directories to exclude from scanning
@@ -153,7 +153,7 @@ def print_report(violations_by_type: Dict[str, List[DatetimeViolation]]) -> bool
         print("All code follows the Time & Timestamp Contract:")
         print("  - No datetime.utcnow() usage (deprecated)")
         print("  - No datetime.now() without timezone")
-        print("  - All timestamps use agentos.core.time.clock module")
+        print("  - All timestamps use octopusos.core.time.clock module")
         print()
         return False
 
@@ -189,7 +189,7 @@ def print_report(violations_by_type: Dict[str, List[DatetimeViolation]]) -> bool
     print("    timestamp = datetime.now()")
     print()
     print("  After:")
-    print("    from agentos.core.time import utc_now")
+    print("    from octopusos.core.time import utc_now")
     print("    timestamp = utc_now()")
     print()
     print("Additional helpers:")
@@ -198,7 +198,7 @@ def print_report(violations_by_type: Dict[str, List[DatetimeViolation]]) -> bool
     print("  - from_epoch_ms(ms) -> datetime")
     print("  - to_epoch_ms(dt) -> int")
     print()
-    print("See: agentos/core/time/clock.py")
+    print("See: octopusos/core/time/clock.py")
     print()
 
     return True

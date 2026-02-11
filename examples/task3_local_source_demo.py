@@ -21,7 +21,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.knowledge.sources.local import LocalSource
+from octopusos.core.knowledge.sources.local import LocalSource
 
 
 def create_sample_documents(base_dir: Path):

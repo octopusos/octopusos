@@ -1,4 +1,4 @@
-# AgentOS Multi-Repository Project Configuration
+# OctopusOS Multi-Repository Project Configuration
 # This file defines a project with multiple repository bindings
 
 name: my-application
@@ -13,7 +13,7 @@ repos:
     role: code
     writable: true
     branch: main
-    auth_profile: github-ssh  # Reference to auth profile created via 'agentos auth add'
+    auth_profile: github-ssh  # Reference to auth profile created via 'octopusos auth add'
 
   # Frontend application repository
   - name: frontend
@@ -78,6 +78,6 @@ repos:
 #   - Default branch name
 #
 # auth_profile: (optional)
-#   - Name of authentication profile (created via 'agentos auth add')
+#   - Name of authentication profile (created via 'octopusos auth add')
 #   - Required for private repositories
 #   - Not needed for public repositories or local-only repos

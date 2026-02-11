@@ -4,7 +4,7 @@ This guide demonstrates practical usage of the Error Tester utility for validati
 
 ## Setup
 
-1. Start the AgentOS WebUI: `python -m agentos.webui.app`
+1. Start the OctopusOS WebUI: `python -m octopusos.webui.app`
 2. Navigate to http://localhost:5000
 3. Open browser Developer Tools (F12)
 4. Use the console to run tests

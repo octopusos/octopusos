@@ -8,7 +8,7 @@
  * and advanced auth flows will be added in future iterations.
  */
 
-const TOKEN_STORAGE_KEY = 'agentos_admin_token';
+const TOKEN_STORAGE_KEY = 'octopusos_admin_token';
 
 /**
  * Get the current admin token from storage

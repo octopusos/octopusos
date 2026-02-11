@@ -17,18 +17,18 @@ Usage:
 import asyncio
 from datetime import datetime, timezone
 
-from agentos.core.brain.classifier_version_manager import (
+from octopusos.core.brain.classifier_version_manager import (
     get_version_manager,
     reset_version_manager,
 )
-from agentos.core.brain.improvement_proposal import (
+from octopusos.core.brain.improvement_proposal import (
     ImprovementProposal,
     ProposalEvidence,
     ChangeType,
     RecommendationType,
     RiskLevel,
 )
-from agentos.core.brain.improvement_proposal_store import get_store
+from octopusos.core.brain.improvement_proposal_store import get_store
 
 
 def print_section(title: str):
@@ -258,9 +258,9 @@ if __name__ == "__main__":
 
     print("\n" + "="*60)
     print("  For production usage, use the CLI commands:")
-    print("    - agentos version list")
-    print("    - agentos version promote --proposal BP-XXX")
-    print("    - agentos version rollback --to v1")
-    print("    - agentos version show v2")
-    print("    - agentos version history")
+    print("    - octopusos version list")
+    print("    - octopusos version promote --proposal BP-XXX")
+    print("    - octopusos version rollback --to v1")
+    print("    - octopusos version show v2")
+    print("    - octopusos version history")
     print("="*60 + "\n")

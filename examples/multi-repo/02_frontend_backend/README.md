@@ -124,13 +124,13 @@ repos:
     writable: true
 YAML
 
-agentos project import --from project.yaml --workspace-root /tmp/fullstack-demo --yes
+octopusos project import --from project.yaml --workspace-root /tmp/fullstack-demo --yes
 ```
 
 ### 5. Verify Import
 
 ```bash
-agentos project repos list my-fullstack-app
+octopusos project repos list my-fullstack-app
 ```
 
 Expected output:
@@ -191,7 +191,7 @@ cd ..
 ### 7. Trace Activity
 
 ```bash
-agentos project trace my-fullstack-app
+octopusos project trace my-fullstack-app
 ```
 
 ## Expected Outcomes
@@ -207,8 +207,8 @@ agentos project trace my-fullstack-app
 # Remove demo workspace
 rm -rf /tmp/fullstack-demo
 
-# Remove project from AgentOS
-sqlite3 ~/.agentos/db.sqlite "DELETE FROM projects WHERE id='my-fullstack-app';"
+# Remove project from OctopusOS
+sqlite3 ~/.octopusos/db.sqlite "DELETE FROM projects WHERE id='my-fullstack-app';"
 ```
 
 Or run:
@@ -221,7 +221,7 @@ bash cleanup.sh
 1. **Repository Isolation**: Each repo has independent git history
 2. **Unified Management**: Single project view across repos
 3. **Cross-Repo Tasks**: Tasks can modify multiple repos atomically
-4. **Dependency Tracking**: AgentOS detects cross-repo dependencies
+4. **Dependency Tracking**: OctopusOS detects cross-repo dependencies
 
 ## Next Steps
 

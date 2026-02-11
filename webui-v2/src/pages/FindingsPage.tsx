@@ -7,7 +7,7 @@
  * - ✅ Table Contract: TableShell 三行结构
  * - ✅ Phase 3 Integration: 添加 DetailDrawer + DeleteConfirmDialog
  * - ✅ Unified Exit: TableShell 封装
- * - ✅ Phase 6 Integration: Real API with networkosService.listFindings()
+ * - ✅ Phase 6 Integration: Real API with networkosService.listLeadFindingsApiLeadFindingsGet()
  */
 
 /* eslint-disable react/jsx-no-literals */
@@ -19,7 +19,7 @@ import { K, useTextTranslation } from '@/ui/text'
 import { DetailDrawer } from '@/ui/interaction'
 import type { GridColDef } from '@/ui'
 import { BugIcon, LinkOffIcon, WarningIcon, ScheduleIcon } from '@/ui/icons'
-import { networkosService, type SecurityFinding } from '@/services/networkos.service'
+import { networkosService, type SecurityFinding } from '@services'
 import { toast } from '@/ui/feedback'
 
 // ===================================
@@ -95,7 +95,7 @@ export default function FindingsPage() {
       }
 
       // Call real API
-      const response = await networkosService.listFindings(params)
+      const response = await networkosService.listLeadFindingsApiLeadFindingsGet(params)
 
       setFindings((response?.findings || []) as FindingRow[])
       setTotalCount(response?.total || 0)
@@ -114,13 +114,13 @@ export default function FindingsPage() {
   const loadStats = useCallback(async () => {
     try {
       // Calculate stats from findings data (backend max limit is 500)
-      const allFindings = await networkosService.listFindings({ limit: 500 })
+      const allFindings = await networkosService.listLeadFindingsApiLeadFindingsGet({ limit: 500 })
 
       // Defensive check: ensure findings array exists
       const findingsArray = allFindings?.findings || []
 
-      const criticalCount = findingsArray.filter(f => f.severity === 'critical').length
-      const last24hCount = findingsArray.filter(f => {
+      const criticalCount = findingsArray.filter((f: any) => f.severity === 'critical').length
+      const last24hCount = findingsArray.filter((f: any) => {
         const discoveredTime = new Date(f.discovered_at).getTime()
         const now = Date.now()
         return (now - discoveredTime) < 24 * 60 * 60 * 1000
@@ -131,9 +131,9 @@ export default function FindingsPage() {
         unlinkedCount: 0, // Not tracked in API yet
         bySeverity: {
           CRITICAL: criticalCount,
-          HIGH: findingsArray.filter(f => f.severity === 'high').length,
-          MEDIUM: findingsArray.filter(f => f.severity === 'medium').length,
-          LOW: findingsArray.filter(f => f.severity === 'low').length,
+          HIGH: findingsArray.filter((f: any) => f.severity === 'high').length,
+          MEDIUM: findingsArray.filter((f: any) => f.severity === 'medium').length,
+          LOW: findingsArray.filter((f: any) => f.severity === 'low').length,
         },
         byWindow: {
           '24h': last24hCount,
@@ -153,7 +153,7 @@ export default function FindingsPage() {
 
   const handleUpdateStatus = async (findingId: string, status: 'new' | 'acknowledged' | 'in_progress' | 'resolved' | 'dismissed') => {
     try {
-      await networkosService.updateFindingStatus(findingId, status)
+      await networkosService.patchLeadFindingStatusApiLeadFindingsFindingIdStatusPatch(findingId, status)
       toast.success(t(K.page.findings.updateSuccess))
       await loadFindings()
       setDrawerOpen(false)

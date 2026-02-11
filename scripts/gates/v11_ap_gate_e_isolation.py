@@ -65,10 +65,10 @@ def main():
 
     # Scan all answer-related Python files
     answer_files = [
-        PROJECT_ROOT / "agentos/core/answers/answer_store.py",
-        PROJECT_ROOT / "agentos/core/answers/answer_validator.py",
-        PROJECT_ROOT / "agentos/core/answers/answer_applier.py",
-        PROJECT_ROOT / "agentos/cli/answers.py",
+        PROJECT_ROOT / "octopusos/core/answers/answer_store.py",
+        PROJECT_ROOT / "octopusos/core/answers/answer_validator.py",
+        PROJECT_ROOT / "octopusos/core/answers/answer_applier.py",
+        PROJECT_ROOT / "octopusos/cli/answers.py",
     ]
 
     print("[1] Scanning for isolation violations")

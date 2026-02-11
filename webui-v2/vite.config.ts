@@ -1,17 +1,62 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import fs from 'fs'
 import path from 'path'
+
+const VERSION_FILE = path.resolve(__dirname, '..', '..', 'VERSION')
+const releaseVersion = fs.readFileSync(VERSION_FILE, 'utf-8').trim() || '0.0'
+const buildVersion = releaseVersion
+const productName = 'OctopusOS'
+const webuiName = 'OctopusOS WebUI'
+const backendOrigin = (process.env.OCTOPUS_BACKEND_ORIGIN || '').trim()
+const publicOrigin = (process.env.OCTOPUS_PUBLIC_ORIGIN || '').trim()
+
+function resolvePortFromOrigin(origin: string): number | undefined {
+  if (!origin) return undefined
+  try {
+    const parsed = new URL(origin)
+    if (!parsed.port) return undefined
+    const port = Number(parsed.port)
+    return Number.isFinite(port) ? port : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const explicitPort = resolvePortFromOrigin(publicOrigin)
+const proxyConfig = backendOrigin
+  ? {
+      '/api': {
+        target: backendOrigin,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: backendOrigin,
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
+    }
+  : undefined
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_PRODUCT_NAME__: JSON.stringify(productName),
+    __APP_WEBUI_NAME__: JSON.stringify(webuiName),
+    __APP_RELEASE_VERSION__: JSON.stringify(releaseVersion),
+    __APP_BUILD_VERSION__: JSON.stringify(buildVersion),
+  },
 
-  // Fixed port for v2
+  // Runtime port/proxy comes from origin env, not hardcoded ports.
   server: {
-    port: 5174,
-    strictPort: true,
+    port: explicitPort,
+    strictPort: false,
     host: true,
     open: false,
+    proxy: proxyConfig,
   },
 
   // Path aliases
@@ -34,8 +79,16 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mui': ['@mui/material', '@mui/icons-material'],
+          'ui-text': [path.resolve(__dirname, './src/ui/text/index.ts')],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          'mui-core': ['@mui/material'],
+          'mui-icons': ['@mui/icons-material'],
+          'mui-x': ['@mui/x-data-grid'],
+          emotion: ['@emotion/react', '@emotion/styled'],
+          charts: ['recharts'],
+          markdown: ['react-markdown', 'remark-gfm', 'rehype-raw'],
+          i18n: ['i18next', 'react-i18next'],
+          virtualized: ['react-virtuoso'],
         },
       },
     },

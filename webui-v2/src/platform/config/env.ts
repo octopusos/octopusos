@@ -7,9 +7,11 @@
  * All config values should be read from here, not directly from import.meta.env.
  */
 
+import { getRuntimePublicOrigin } from './runtimeConfig'
+
 interface PlatformConfig {
-  /** Backend API base URL (default: http://localhost:8080) */
-  apiBaseUrl: string;
+  /** Public origin used by the WebUI runtime */
+  publicOrigin: string;
 
   /** Request timeout in milliseconds (default: 30000) */
   apiTimeout: number;
@@ -20,19 +22,16 @@ interface PlatformConfig {
   /** Enable demo mode (default: true) */
   enableDemoMode: boolean;
 
-  /** Development server port (default: 5174) */
-  devPort: number;
 }
 
 /**
  * Parse and validate environment variables
  */
 function parseEnv(): PlatformConfig {
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+  const publicOrigin = (import.meta.env.VITE_PUBLIC_ORIGIN || getRuntimePublicOrigin()).trim();
   const apiTimeout = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000', 10);
   const enableMock = import.meta.env.VITE_ENABLE_MOCK === 'true';
   const enableDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
-  const devPort = parseInt(import.meta.env.VITE_DEV_PORT || '5174', 10);
 
   // Validate critical values
   if (isNaN(apiTimeout) || apiTimeout <= 0) {
@@ -40,11 +39,10 @@ function parseEnv(): PlatformConfig {
   }
 
   return {
-    apiBaseUrl,
+    publicOrigin,
     apiTimeout: isNaN(apiTimeout) ? 30000 : apiTimeout,
     enableMock,
     enableDemoMode,
-    devPort: isNaN(devPort) ? 5174 : devPort,
   };
 }
 
@@ -68,7 +66,7 @@ export const isProd = import.meta.env.PROD;
  */
 if (isDev) {
   console.log('[Platform] Configuration loaded:', {
-    apiBaseUrl: config.apiBaseUrl,
+    publicOrigin: config.publicOrigin,
     apiTimeout: config.apiTimeout,
     enableMock: config.enableMock,
     enableDemoMode: config.enableDemoMode,

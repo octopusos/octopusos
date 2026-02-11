@@ -22,7 +22,7 @@ from pathlib import Path
 repo_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(repo_root))
 
-from agentos.core.infra.git_client import GitClientFactory
+from octopusos.core.infra.git_client import GitClientFactory
 
 
 def gate_p0_n2_self_proving_commits() -> tuple[bool, str]:

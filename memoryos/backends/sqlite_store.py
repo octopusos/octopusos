@@ -8,17 +8,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from octopusos.core.storage.migrations import ensure_component_migrations
 from memoryos.core.store import MemoryStore
 
 class SqliteMemoryStore(MemoryStore):
     """SQLite-based memory store with FTS5."""
     
     def __init__(self, db_path: Optional[Path] = None):
-        if db_path is None:
-            from agentos.core.storage.paths import component_db_path
-            db_path = component_db_path("memoryos")
-        self.db_path = db_path
+        from octopusos.core.storage.paths import resolve_component_db_path
+        self.db_path = resolve_component_db_path("memoryos", db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_component_migrations("memoryos")
         self._init_db()
     
     def _init_db(self):

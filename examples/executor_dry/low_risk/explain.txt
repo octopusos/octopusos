@@ -16,12 +16,12 @@ Swimlanes: 1
 
 --- Patch Plan ---
 Files: 2
-  - modify: agentos/utils/format.py (risk: low)
-  - modify: agentos/utils/validation.py (risk: low)
+  - modify: octopusos/utils/format.py (risk: low)
+  - modify: octopusos/utils/validation.py (risk: low)
 
 --- Commit Plan ---
 Commits: 1
-  - commit_0001: feat(agentos): update 2 file(s)
+  - commit_0001: feat(octopusos): update 2 file(s)
     Files: 2, Risk: low
 
 --- Review Requirements ---

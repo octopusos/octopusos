@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 def check_dag_cycle_detection():
     """Check DAG cycle detection."""
-    dag_file = project_root / "agentos" / "core" / "executor" / "dag_scheduler.py"
+    dag_file = project_root / "octopusos" / "core" / "executor" / "dag_scheduler.py"
     
     if not dag_file.exists():
         return False, "DAG scheduler file not found"
@@ -36,7 +36,7 @@ def check_dag_cycle_detection():
 
 def check_dag_parallel_execution():
     """Check parallel execution support."""
-    dag_file = project_root / "agentos" / "core" / "executor" / "dag_scheduler.py"
+    dag_file = project_root / "octopusos" / "core" / "executor" / "dag_scheduler.py"
     content = dag_file.read_text()
     
     if "async def execute_parallel" not in content:
@@ -53,7 +53,7 @@ def check_dag_parallel_execution():
 
 def check_dag_dependency_resolution():
     """Check dependency resolution."""
-    dag_file = project_root / "agentos" / "core" / "executor" / "dag_scheduler.py"
+    dag_file = project_root / "octopusos" / "core" / "executor" / "dag_scheduler.py"
     content = dag_file.read_text()
     
     if "get_ready_operations" not in content:
@@ -70,7 +70,7 @@ def check_dag_dependency_resolution():
 
 def check_dag_error_propagation():
     """Check failed operations block dependents."""
-    dag_file = project_root / "agentos" / "core" / "executor" / "dag_scheduler.py"
+    dag_file = project_root / "octopusos" / "core" / "executor" / "dag_scheduler.py"
     content = dag_file.read_text()
     
     if "FAILED" not in content and "failed" not in content:

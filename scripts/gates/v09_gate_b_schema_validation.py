@@ -12,7 +12,7 @@
 import sys
 from pathlib import Path
 
-# Add agentos to path
+# Add octopusos to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
@@ -21,7 +21,7 @@ def test_schema_validation():
     print("Testing schema validation...")
     
     try:
-        from agentos.core.content.schema_loader import ContentSchemaLoader
+        from octopusos.core.content.schema_loader import ContentSchemaLoader
         import yaml
         from jsonschema import validate, ValidationError
         

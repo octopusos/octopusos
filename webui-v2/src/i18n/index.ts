@@ -20,7 +20,7 @@ import zh from './locales/zh.json'
 export type Language = 'en' | 'zh'
 
 // Store language preference in localStorage
-const STORAGE_KEY = 'agentos-webui-language'
+const STORAGE_KEY = 'octopusos-webui-language'
 
 // Get saved language or default to Chinese
 const getSavedLanguage = (): Language => {
@@ -41,11 +41,16 @@ i18next
     interpolation: {
       escapeValue: false // React already escapes values
     },
-    // Enable debugging in development
-    debug: import.meta.env.DEV,
-    // Disable i18next promotional messages
-    saveMissing: false,
-    missingKeyHandler: false,
+    // Keep console clean in dev/e2e: i18next prints a promotional warning when debug=true.
+    debug: false,
+    // Capture missing keys in dev/e2e runs without console noise.
+    saveMissing: import.meta.env.DEV,
+    missingKeyHandler: (lngs, ns, key) => {
+      if (!import.meta.env.DEV) return
+      const w = window as any
+      w.__octopusosI18nMissingKeys = w.__octopusosI18nMissingKeys || []
+      w.__octopusosI18nMissingKeys.push({ lngs, ns, key })
+    },
   })
 
 /**

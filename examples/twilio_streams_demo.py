@@ -17,7 +17,7 @@ Usage:
 
 import asyncio
 import numpy as np
-from agentos.core.communication.voice.providers.twilio_streams import (
+from octopusos.core.communication.voice.providers.twilio_streams import (
     TwilioStreamsTransportProvider,
 )
 

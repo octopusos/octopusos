@@ -13,64 +13,14 @@
  * - form.field.notificationType
  */
 
-import { useState, useEffect } from 'react'
-import { TextField, Select, MenuItem } from '@mui/material'
+import { useState, useEffect, useMemo } from 'react'
+import { TextField, Select, MenuItem, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Divider } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
-
-/**
- * Mock 数据（迁移阶段）
- */
-const MOCK_NOTIFICATIONS = [
-  {
-    id: 1,
-    type: 'Info',
-    title: 'System Update Available',
-    message: 'AgentOS v2.5.0 is ready to install',
-    timestamp: '2026-02-02 10:30:00',
-    read: false,
-    priority: 'Medium',
-  },
-  {
-    id: 2,
-    type: 'Warning',
-    title: 'High Memory Usage',
-    message: 'Brain cache using 85% of allocated memory',
-    timestamp: '2026-02-02 09:45:00',
-    read: false,
-    priority: 'High',
-  },
-  {
-    id: 3,
-    type: 'Success',
-    title: 'Deployment Completed',
-    message: 'Project "WebUI v2" deployed successfully',
-    timestamp: '2026-02-02 08:15:00',
-    read: true,
-    priority: 'Low',
-  },
-  {
-    id: 4,
-    type: 'Error',
-    title: 'Task Execution Failed',
-    message: 'Task #42 failed with timeout error',
-    timestamp: '2026-02-02 07:30:00',
-    read: false,
-    priority: 'Critical',
-  },
-  {
-    id: 5,
-    type: 'Info',
-    title: 'New Skill Available',
-    message: 'Skill "pdf-analyzer" added to marketplace',
-    timestamp: '2026-02-01 16:20:00',
-    read: true,
-    priority: 'Low',
-  },
-]
+import { inboxService } from '@/services'
 
 /**
  * NotificationsPage 组件
@@ -79,12 +29,14 @@ const MOCK_NOTIFICATIONS = [
  */
 
 interface NotificationRow {
-  id: string | number
+  id: string
   title: string
   message: string
   type: string
   timestamp: string
   read: boolean
+  cardId?: string
+  inboxItemId?: string
 }
 
 export default function NotificationsPage() {
@@ -106,25 +58,42 @@ export default function NotificationsPage() {
   // ===================================
   // State Management
   // ===================================
-  const [notifications, setNotifications] = useState<NotificationRow[]>(MOCK_NOTIFICATIONS)
-  const [loading, setLoading] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detail, setDetail] = useState<any>(null)
+  const [selectedRow, setSelectedRow] = useState<NotificationRow | null>(null)
+
+  const loadNotifications = async () => {
+    setLoading(true)
+    try {
+      const response: any = await inboxService.listItems({ status: 'unread', limit: 100 })
+      const items = Array.isArray(response?.items) ? response.items : Array.isArray(response?.data?.items) ? response.data.items : []
+      const rows: NotificationRow[] = items.map((item: any) => ({
+        id: String(item.inbox_item_id),
+        title: String(item?.card?.title || item.scope_type || 'inbox'),
+        message: String(item?.card?.summary || `card_id=${String(item.card_id)}`),
+        type: String(item?.card?.severity || item.delivery_type || 'inbox_only'),
+        timestamp: new Date(Number(item.updated_at_ms || item.created_at_ms || Date.now())).toISOString(),
+        read: String(item.status) !== 'unread',
+        cardId: String(item.card_id),
+        inboxItemId: String(item.inbox_item_id),
+      }))
+      setNotifications(rows)
+    } catch (err) {
+      console.error('[NotificationsPage] failed to load inbox items', err)
+      setNotifications([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // ===================================
   // Data Fetching
   // ===================================
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        // API skeleton
-        // const response = await notificationsService.getNotifications()  // Uncommented for Phase 6.1
-        // setNotifications(response.data)
-        setNotifications(MOCK_NOTIFICATIONS)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
+    void loadNotifications()
   }, [])
 
   usePageHeader({
@@ -164,6 +133,14 @@ export default function NotificationsPage() {
       field: 'type',
       headerName: t(K.page.notifications.columnType),
       width: 100,
+      renderCell: (params) => (
+        <Chip
+          label={String(params.value || '')}
+          size="small"
+          variant="outlined"
+          color="info"
+        />
+      ),
     },
     {
       field: 'title',
@@ -191,109 +168,192 @@ export default function NotificationsPage() {
       field: 'read',
       headerName: t(K.page.notifications.columnRead),
       width: 80,
+      renderCell: (params) => (
+        <Chip
+          label={params.value ? 'read' : 'unread'}
+          size="small"
+          variant="outlined"
+          color={params.value ? 'default' : 'warning'}
+        />
+      ),
     },
   ]
+
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    return notifications.filter((row) => {
+      if (typeFilter !== 'all' && row.type !== typeFilter) return false
+      if (q && !(row.title.toLowerCase().includes(q) || row.message.toLowerCase().includes(q))) return false
+      return true
+    })
+  }, [notifications, searchQuery, typeFilter])
 
   // ===================================
   // Render: TableShell Pattern
   // ===================================
   return (
-    <TableShell
-      loading={loading}
-      rows={notifications}
-      columns={columns}
-      filterBar={
-        <FilterBar
-          filters={[
-            {
-              width: 6,
-              component: (
-                <TextField
-                  label={t(K.common.search)}
-                  placeholder={t(K.page.notifications.searchPlaceholder)}
-                  fullWidth
-                  size="small"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              ),
-            },
-            {
-              width: 3,
-              component: (
-                <Select
-                  fullWidth
-                  size="small"
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                >
-                  <MenuItem value="all">{t(K.page.notifications.allTypes)}</MenuItem>
-                  <MenuItem value="info">{t(K.page.notifications.typeInfo)}</MenuItem>
-                  <MenuItem value="success">{t(K.page.notifications.typeSuccess)}</MenuItem>
-                  <MenuItem value="warning">{t(K.page.notifications.typeWarning)}</MenuItem>
-                  <MenuItem value="error">{t(K.page.notifications.typeError)}</MenuItem>
-                </Select>
-              ),
-            },
-            {
-              width: 3,
-              component: (
-                <Select
-                  fullWidth
-                  size="small"
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                >
-                  <MenuItem value="all">{t(K.page.notifications.allPriority)}</MenuItem>
-                  <MenuItem value="critical">{t(K.page.notifications.priorityCritical)}</MenuItem>
-                  <MenuItem value="high">{t(K.page.notifications.priorityHigh)}</MenuItem>
-                  <MenuItem value="medium">{t(K.page.notifications.priorityMedium)}</MenuItem>
-                  <MenuItem value="low">{t(K.page.notifications.priorityLow)}</MenuItem>
-                </Select>
-              ),
-            },
-          ]}
-          actions={[
-            {
-              key: 'reset',
-              label: t('common.reset'),
-              onClick: () => {
-                // 🔒 No-Interaction: 仅重置 state
-                setSearchQuery('')
-                setTypeFilter('all')
-                setPriorityFilter('all')
+    <>
+      <TableShell
+        loading={loading}
+        rows={filteredRows}
+        columns={columns}
+        filterBar={
+          <FilterBar
+            filters={[
+              {
+                width: 6,
+                component: (
+                  <TextField
+                    label={t(K.common.search)}
+                    placeholder={t(K.page.notifications.searchPlaceholder)}
+                    fullWidth
+                    size="small"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                ),
               },
-            },
+              {
+                width: 3,
+                component: (
+                  <Select
+                    fullWidth
+                    size="small"
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">{t(K.page.notifications.allTypes)}</MenuItem>
+                    <MenuItem value="info">info</MenuItem>
+                    <MenuItem value="warn">warn</MenuItem>
+                    <MenuItem value="high">high</MenuItem>
+                    <MenuItem value="critical">critical</MenuItem>
+                  </Select>
+                ),
+              },
+              {
+                width: 3,
+                component: (
+                  <Select
+                    fullWidth
+                    size="small"
+                    value={priorityFilter}
+                    onChange={(e) => setPriorityFilter(e.target.value)}
+                  >
+                    <MenuItem value="all">{t(K.page.notifications.allPriority)}</MenuItem>
+                    <MenuItem value="critical">{t(K.page.notifications.priorityCritical)}</MenuItem>
+                    <MenuItem value="high">{t(K.page.notifications.priorityHigh)}</MenuItem>
+                    <MenuItem value="medium">{t(K.page.notifications.priorityMedium)}</MenuItem>
+                    <MenuItem value="low">{t(K.page.notifications.priorityLow)}</MenuItem>
+                  </Select>
+                ),
+              },
+            ]}
+            actions={[
+              {
+                key: 'reset',
+                label: t('common.reset'),
+                onClick: () => {
+                  setSearchQuery('')
+                  setTypeFilter('all')
+                  setPriorityFilter('all')
+                },
+              },
+              {
+                key: 'apply',
+                label: t('common.apply'),
+                variant: 'contained',
+                onClick: () => {},
+              },
+            ]}
+          />
+        }
+        emptyState={{
+          title: t(K.page.notifications.noNotifications),
+          description: t(K.page.notifications.noNotificationsDescription),
+          actions: [
             {
-              key: 'apply',
-              label: t('common.apply'),
+              label: t(K.common.refresh),
+              onClick: () => void loadNotifications(),
               variant: 'contained',
-              onClick: () => {}, // 🔒 No-Interaction: 空函数
             },
-          ]}
-        />
-      }
-      emptyState={{
-        title: t(K.page.notifications.noNotifications),
-        description: t(K.page.notifications.noNotificationsDescription),
-        actions: [
-          {
-            label: t(K.common.refresh),
-            onClick: () => {}, // 🔒 No-Interaction: 空函数
-            variant: 'contained',
-          },
-        ],
-      }}
-      pagination={{
-        page: 0,
-        pageSize: 25,
-        total: MOCK_NOTIFICATIONS.length,
-        onPageChange: () => {}, // 🔒 No-Interaction: 空函数
-      }}
-      onRowClick={(row) => {
-        // 🔒 No-Interaction: 迁移阶段不打开 DetailDrawer
-        console.log('Notification row clicked (migration stage):', row)
-      }}
-    />
+          ],
+        }}
+        pagination={{
+          page: 0,
+          pageSize: 25,
+          total: notifications.length,
+          onPageChange: () => {},
+        }}
+        onRowClick={(row) => {
+          const r = row as any as NotificationRow
+          setSelectedRow(r)
+          setDetailOpen(true)
+          setDetailLoading(true)
+          setDetail(null)
+          void (async () => {
+            try {
+              const resp: any = await inboxService.getCard(String(r.cardId || ''), { limit: 50 })
+              setDetail(resp?.card ? resp : resp?.data)
+              if (r.inboxItemId) {
+                await inboxService.markRead(String(r.inboxItemId))
+                await loadNotifications()
+              }
+            } catch (err) {
+              console.error('[NotificationsPage] load card detail failed', err)
+              toast.error('Load failed')
+            } finally {
+              setDetailLoading(false)
+            }
+          })()
+        }}
+      />
+
+      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{selectedRow?.title || 'Card'}</DialogTitle>
+        <DialogContent>
+          {detailLoading ? (
+            <Typography variant="body2">{t('common.loading')}</Typography>
+          ) : detail?.card ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography variant="body2">card_id: {String(detail.card.card_id)}</Typography>
+              <Typography variant="body2">type: {String(detail.card.card_type)}</Typography>
+              <Typography variant="body2">severity: {String(detail.card.severity)}</Typography>
+              <Typography variant="body2">status: {String(detail.card.status)}</Typography>
+              <Typography variant="body2">resolution_status: {String(detail.card.resolution_status)}</Typography>
+              <Typography variant="body2">summary: {String(detail.card.summary)}</Typography>
+              <Typography variant="body2">linked_task_id: {String(detail.card.linked_task_id || '')}</Typography>
+              <Divider sx={{ my: 1 }} />
+              <Typography variant="subtitle2">state_card_events</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(detail.state_card_events || [], null, 2)}</Typography>
+              <Typography variant="subtitle2">chat_injection_events</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(detail.chat_injection_events || [], null, 2)}</Typography>
+              <Typography variant="subtitle2">work_items</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(detail.work_items || [], null, 2)}</Typography>
+              <Typography variant="subtitle2">tasks</Typography>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(detail.tasks || [], null, 2)}</Typography>
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              {t(K.page.notifications.noNotificationsDescription)}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {detail?.card?.card_id ? (
+            <>
+              <Button variant="outlined" onClick={() => void inboxService.closeCard(String(detail.card.card_id))}>
+                close
+              </Button>
+              <Button variant="outlined" onClick={() => void inboxService.markRead(String(selectedRow?.inboxItemId || ''))}>
+                mark read
+              </Button>
+            </>
+          ) : null}
+          <Button variant="contained" onClick={() => setDetailOpen(false)}>
+            {t('common.close')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   )
 }

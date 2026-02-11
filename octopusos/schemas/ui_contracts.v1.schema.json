@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://octopusos.local/schemas/ui_contracts.v1.schema.json",
+  "title": "UI Contracts v1",
+  "type": "object",
+  "required": ["kind", "version"],
+  "properties": {
+    "kind": { "type": "string", "enum": ["confirm_card", "ask_missing_fields"] },
+    "version": { "type": "string", "const": "1" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "confirm_card" } } },
+      "then": { "$ref": "#/$defs/confirm_card" }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "ask_missing_fields" } } },
+      "then": { "$ref": "#/$defs/ask_missing_fields" }
+    }
+  ],
+  "$defs": {
+    "button": {
+      "type": "object",
+      "required": ["label", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string" },
+        "action": { "type": "string", "enum": ["confirm", "cancel", "provide_fields"] },
+        "style": { "type": "string", "enum": ["primary", "secondary", "danger"] },
+        "payload": { "type": "object" }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": ["title", "items"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "items": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "confirm_card": {
+      "type": "object",
+      "required": ["kind", "version", "title", "sections", "primary", "secondary"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "confirm_card" },
+        "version": { "const": "1" },
+        "title": { "type": "string" },
+        "sections": { "type": "array", "items": { "$ref": "#/$defs/section" } },
+        "primary": { "$ref": "#/$defs/button" },
+        "secondary": { "$ref": "#/$defs/button" }
+      }
+    },
+    "ask_missing_fields": {
+      "type": "object",
+      "required": ["kind", "version", "title", "missing", "candidates", "primary", "secondary"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "ask_missing_fields" },
+        "version": { "const": "1" },
+        "title": { "type": "string" },
+        "missing": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["environment", "target", "instance"] },
+          "minItems": 1
+        },
+        "candidates": {
+          "type": "object",
+          "required": ["instances"],
+          "additionalProperties": false,
+          "properties": {
+            "instances": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["instance_id", "label"],
+                "additionalProperties": false,
+                "properties": {
+                  "instance_id": { "type": "string" },
+                  "label": { "type": "string" },
+                  "engine": { "type": "string" },
+                  "environment": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "primary": { "$ref": "#/$defs/button" },
+        "secondary": { "$ref": "#/$defs/button" }
+      }
+    }
+  }
+}

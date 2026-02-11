@@ -13,7 +13,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agentos.core.capabilities import (
+from octopusos.core.capabilities import (
     CapabilityRunner,
     CommandRoute,
     ExecutionContext,
@@ -43,7 +43,7 @@ def demo_exec_tool():
         session_id="demo_session_1",
         user_id="demo_user",
         extension_id="demo.echo",
-        work_dir=Path("/tmp/.agentos/demo/work"),
+        work_dir=Path("/tmp/.octopusos/demo/work"),
         timeout=10
     )
 
@@ -79,7 +79,7 @@ def demo_analyze_response():
         session_id="demo_session_2",
         user_id="demo_user",
         extension_id="demo.api",
-        work_dir=Path("/tmp/.agentos/demo/work"),
+        work_dir=Path("/tmp/.octopusos/demo/work"),
         timeout=10
     )
 
@@ -125,7 +125,7 @@ def demo_error_handling():
         session_id="demo_session_3",
         user_id="demo_user",
         extension_id="demo.nonexistent",
-        work_dir=Path("/tmp/.agentos/demo/work"),
+        work_dir=Path("/tmp/.octopusos/demo/work"),
         timeout=10
     )
 
@@ -156,7 +156,7 @@ def demo_inline_analysis():
         session_id="demo_session_4",
         user_id="demo_user",
         extension_id="demo.analyze",
-        work_dir=Path("/tmp/.agentos/demo/work"),
+        work_dir=Path("/tmp/.octopusos/demo/work"),
         timeout=10,
         usage_doc="API schema analysis for RESTful services"
     )
@@ -188,7 +188,7 @@ def demo_tool_info():
     print("Demo 6: Tool Information")
     print("="*60)
 
-    from agentos.core.capabilities.tool_executor import ToolExecutor
+    from octopusos.core.capabilities.tool_executor import ToolExecutor
 
     executor = ToolExecutor()
 

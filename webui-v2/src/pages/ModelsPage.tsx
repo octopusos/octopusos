@@ -77,7 +77,7 @@ export default function ModelsPage() {
   const loadModels = async () => {
     try {
       setLoading(true)
-      const response = await systemService.listModels()
+      const response = await systemService.listModelsApiModelsListGet()
       setModels(response.models || [])
     } catch (error) {
       console.error('[ModelsPage] Failed to load models:', error)
@@ -117,14 +117,14 @@ export default function ModelsPage() {
       // Start download
       setDownloadingModels((prev) => ({ ...prev, [modelId]: { progress: 0 } }))
 
-      const response = await systemService.pullModel({ model_name: modelName })
+      const response = await systemService.pullModelApiModelsPullPost({ model_name: modelName })
       const taskId = response.task_id
 
       if (taskId) {
         // Poll for progress using setInterval
         const pollInterval = setInterval(async () => {
           try {
-            const progressRes = await systemService.getModelPullProgress(taskId)
+            const progressRes = await systemService.pullModelProgressApiModelsPullTaskIdProgressGet(taskId)
             const progress = progressRes.progress || 0
 
             setDownloadingModels((prev) => ({
@@ -174,7 +174,7 @@ export default function ModelsPage() {
 
   const handleDeleteModel = async (modelId: string) => {
     try {
-      await systemService.deleteModel(modelId)
+      await systemService.deleteModelApiModelsModelIdDelete(modelId)
       await loadModels()
     } catch (error) {
       console.error('[ModelsPage] Failed to delete model:', error)
@@ -231,7 +231,7 @@ export default function ModelsPage() {
             meta={[
               { key: 'id', label: t(K.page.models.columnId), value: model.id },
               { key: 'type', label: t(K.page.models.columnType), value: modelType },
-              { key: 'status', label: 'Status', value: model.status },
+              { key: 'status', label: t(K.page.models.columnStatus), value: model.status },
             ]}
             tags={[model.status]}
             icon={getModelIcon()}

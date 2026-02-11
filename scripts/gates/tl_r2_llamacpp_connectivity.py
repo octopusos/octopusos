@@ -15,7 +15,7 @@ Step 4 扩展：验证 llama.cpp server 接入的连通性 + 边界正确性
 🔒 钉子 3：output_kind 必须断言（Mode System 支点）
 
 运行方式：
-    AGENTOS_GATE_MODE=1 python scripts/gates/tl_r2_llamacpp_connectivity.py [repo_root]
+    OCTOPUSOS_GATE_MODE=1 python scripts/gates/tl_r2_llamacpp_connectivity.py [repo_root]
 """
 
 import sys
@@ -27,7 +27,7 @@ from typing import Dict, Any, Tuple
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import LlamaCppAdapter, ToolTask, DiffVerifier
+from octopusos.ext.tools import LlamaCppAdapter, ToolTask, DiffVerifier
 
 
 def gate_llamacpp_health(adapter: LlamaCppAdapter) -> Tuple[bool, str]:
@@ -82,7 +82,7 @@ def gate_llamacpp_minimal_run(adapter: LlamaCppAdapter, repo_path: Path) -> Tupl
     - 发送最小 prompt，拿回 ToolResult
     - 检查 diff 字段存在（允许 Mock）
     """
-    os.environ["AGENTOS_GATE_MODE"] = "1"
+    os.environ["OCTOPUSOS_GATE_MODE"] = "1"
     
     try:
         # 准备最小任务

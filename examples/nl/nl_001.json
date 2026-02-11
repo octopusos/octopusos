@@ -1,11 +1,11 @@
 {
   "id": "nl_req_low_risk_doc",
   "schema_version": "0.9.4",
-  "project_id": "agentos",
-  "input_text": "请为 IntentBuilder 类添加完整的文档注释，包括：\n- 类级别的 docstring 说明其用途和 RED LINES\n- 每个公共方法的参数说明和返回值\n- 使用示例\n目标文件：agentos/core/intent_builder/builder.py",
+  "project_id": "octopusos",
+  "input_text": "请为 IntentBuilder 类添加完整的文档注释，包括：\n- 类级别的 docstring 说明其用途和 RED LINES\n- 每个公共方法的参数说明和返回值\n- 使用示例\n目标文件：octopusos/core/intent_builder/builder.py",
   "context_hints": {
     "files": [
-      "agentos/core/intent_builder/builder.py"
+      "octopusos/core/intent_builder/builder.py"
     ],
     "areas": [
       "docs"

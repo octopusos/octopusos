@@ -1,0 +1,417 @@
+============================================
+Schema v0.31 Migration Summary
+============================================
+
+Version: v0.31.0
+Date: 2026-01-29
+Migration: v0.30 → v0.31
+Feature: Project-Aware Task Operating System (v0.4)
+
+============================================
+变更概览
+============================================
+
+## 新增 5 个表
+
+1. projects - 项目管理表
+   - 字段: project_id (PK), name (UNIQUE), description, tags, default_repo_id, created_at, updated_at, metadata
+   - 用途: 管理逻辑项目（可包含多个仓库）
+   - 索引: idx_projects_name, idx_projects_created_at
+
+2. repos - 仓库管理表
+   - 字段: repo_id (PK), project_id (FK), name, local_path, vcs_type, remote_url, default_branch, created_at, updated_at, metadata
+   - 用途: 管理项目关联的代码仓库
+   - 约束: UNIQUE(project_id, name), CASCADE DELETE
+   - 索引: idx_repos_project_id, idx_repos_local_path
+
+3. task_specs - 任务规格历史表
+   - 字段: spec_id (PK), task_id (FK), spec_version, title, intent, constraints, acceptance_criteria, inputs, created_at, metadata
+   - 用途: 存储任务规格的版本化历史（支持 spec freezing）
+   - 约束: UNIQUE(task_id, spec_version), CASCADE DELETE
+   - 索引: idx_task_specs_task_id
+
+4. task_bindings - 任务绑定关系表
+   - 字段: task_id (PK/FK), project_id (FK), repo_id (FK), workdir, created_at, metadata
+   - 用途: 管理任务与项目/仓库的绑定关系
+   - 约束: project_id ON DELETE RESTRICT, repo_id ON DELETE SET NULL
+   - 索引: idx_task_bindings_project_id, idx_task_bindings_repo_id
+
+5. task_artifacts - 任务产物表
+   - 字段: artifact_id (PK), task_id (FK), kind, path, display_name, hash, size_bytes, created_at, metadata
+   - 用途: 记录任务生成的文件、目录、URL 等产物
+   - 约束: CASCADE DELETE
+   - 索引: idx_task_artifacts_task_id, idx_task_artifacts_kind
+
+## tasks 表新增字段
+
+- project_id TEXT: 任务所属项目（v0.4 后必填）
+- repo_id TEXT: 任务关联仓库（可选）
+- workdir TEXT: 工作目录（可选，相对路径）
+- spec_frozen INTEGER: 规格冻结标志（0=未冻结, 1=已冻结）
+
+新增索引:
+- idx_tasks_project_id
+- idx_tasks_spec_frozen
+- idx_tasks_project_status
+- idx_tasks_repo_status
+
+## 约束触发器（4 个）
+
+1. enforce_task_project_binding_insert
+   - 阻止: 插入 READY+ 状态且 project_id = NULL 的任务
+
+2. enforce_task_project_binding_update
+   - 阻止: 将 project_id = NULL 的任务更新为 READY+ 状态
+
+3. enforce_task_spec_frozen_insert
+   - 阻止: 插入 READY+ 状态且 spec_frozen = 0 的任务
+
+4. enforce_task_spec_frozen_update
+   - 阻止: 将 spec_frozen = 0 的任务更新为 READY+ 状态
+
+READY+ 状态定义: ready, running, verifying, verified, done, succeeded
+
+============================================
+数据迁移
+============================================
+
+## 自动迁移步骤
+
+1. 创建默认项目 'proj_default'
+   - 名称: Default Project
+   - 描述: Auto-created for legacy tasks migrated from v0.3
+   - 标签: ["legacy", "migrated"]
+
+2. 绑定所有旧任务到默认项目
+   - UPDATE tasks SET project_id = 'proj_default' WHERE project_id IS NULL
+
+3. 创建任务绑定关系
+   - INSERT INTO task_bindings (task_id, project_id, ...) FOR ALL migrated tasks
+
+4. 记录审计日志
+   - INSERT INTO task_audits (...) FOR ALL migrated tasks
+
+## 数据完整性验证
+
+验证 1: 确认无 NULL project_id
+```sql
+SELECT COUNT(*) FROM tasks WHERE project_id IS NULL;
+-- 预期: 0
+```
+
+验证 2: 确认默认项目存在
+```sql
+SELECT * FROM projects WHERE project_id = 'proj_default';
+-- 预期: 1 行
+```
+
+验证 3: 确认绑定关系创建
+```sql
+SELECT COUNT(*) FROM task_bindings WHERE project_id = 'proj_default';
+-- 预期: >= 已迁移任务数量
+```
+
+验证 4: 确认审计日志记录
+```sql
+SELECT COUNT(*) FROM task_audits WHERE event_type = 'MIGRATION_V031';
+-- 预期: >= 已迁移任务数量
+```
+
+============================================
+使用示例
+============================================
+
+## 创建项目和仓库
+
+```sql
+-- 创建项目
+INSERT INTO projects (project_id, name, description, created_at, updated_at)
+VALUES ('proj_ecommerce', 'E-Commerce Platform', 'Main e-commerce project', datetime('now'), datetime('now'));
+
+-- 创建仓库
+INSERT INTO repos (repo_id, project_id, name, local_path, vcs_type, created_at, updated_at)
+VALUES ('repo_api', 'proj_ecommerce', 'api-service', '/workspace/api', 'git', datetime('now'), datetime('now'));
+
+INSERT INTO repos (repo_id, project_id, name, local_path, vcs_type, created_at, updated_at)
+VALUES ('repo_frontend', 'proj_ecommerce', 'web-ui', '/workspace/web', 'git', datetime('now'), datetime('now'));
+```
+
+## 创建任务并绑定
+
+```sql
+-- 创建任务（DRAFT 状态）
+INSERT INTO tasks (task_id, title, status, project_id, spec_frozen, created_at, updated_at)
+VALUES ('task_update_api', 'Update API endpoints', 'draft', 'proj_ecommerce', 0, datetime('now'), datetime('now'));
+
+-- 创建绑定关系
+INSERT INTO task_bindings (task_id, project_id, repo_id, workdir, created_at)
+VALUES ('task_update_api', 'proj_ecommerce', 'repo_api', 'src/controllers', datetime('now'));
+```
+
+## 冻结 Spec
+
+```sql
+-- 创建 spec 版本
+INSERT INTO task_specs (spec_id, task_id, spec_version, title, intent, constraints, acceptance_criteria, created_at)
+VALUES (
+    'spec_update_api_v1',
+    'task_update_api',
+    1,
+    'Update API endpoints',
+    'Add pagination to /products endpoint',
+    '["no_breaking_changes", "backward_compatible"]',
+    '["tests_pass", "api_docs_updated"]',
+    datetime('now')
+);
+
+-- 标记为已冻结
+UPDATE tasks SET spec_frozen = 1 WHERE task_id = 'task_update_api';
+
+-- 现在可以转为 READY 状态
+UPDATE tasks SET status = 'ready' WHERE task_id = 'task_update_api';
+```
+
+## 记录产物
+
+```sql
+-- 记录生成的文件
+INSERT INTO task_artifacts (artifact_id, task_id, kind, path, display_name, hash, size_bytes, created_at)
+VALUES (
+    'art_api_spec',
+    'task_update_api',
+    'file',
+    '/workspace/api/docs/openapi.yaml',
+    'OpenAPI Specification',
+    'sha256:abc123...',
+    4096,
+    datetime('now')
+);
+```
+
+============================================
+约束测试
+============================================
+
+## 测试 1: project_id 约束
+
+```sql
+-- 尝试创建 READY 任务但没有 project_id（应失败）
+INSERT INTO tasks (task_id, title, status, project_id, created_at, updated_at)
+VALUES ('task_fail1', 'Test', 'ready', NULL, datetime('now'), datetime('now'));
+
+-- 预期错误: Tasks in READY+ states must have project_id (v0.4 constraint)
+```
+
+## 测试 2: spec_frozen 约束
+
+```sql
+-- 尝试将未冻结的任务转为 READY（应失败）
+INSERT INTO tasks (task_id, title, status, project_id, spec_frozen, created_at, updated_at)
+VALUES ('task_fail2', 'Test', 'draft', 'proj_ecommerce', 0, datetime('now'), datetime('now'));
+
+UPDATE tasks SET status = 'ready' WHERE task_id = 'task_fail2';
+
+-- 预期错误: Tasks in READY+ states must have frozen spec (spec_frozen = 1) (v0.4 constraint)
+```
+
+## 测试 3: 外键约束
+
+```sql
+-- 尝试删除有任务的项目（应失败，因为 RESTRICT）
+DELETE FROM projects WHERE project_id = 'proj_ecommerce';
+
+-- 预期错误: FOREIGN KEY constraint failed (task_bindings references this project)
+
+-- 正确做法：先删除绑定或任务
+DELETE FROM tasks WHERE project_id = 'proj_ecommerce';
+-- 然后才能删除项目
+DELETE FROM projects WHERE project_id = 'proj_ecommerce';
+```
+
+============================================
+性能优化
+============================================
+
+## 新增索引列表
+
+1. 表级索引（7 个）:
+   - idx_projects_name
+   - idx_projects_created_at
+   - idx_repos_project_id
+   - idx_repos_local_path
+   - idx_task_specs_task_id
+   - idx_task_bindings_project_id
+   - idx_task_bindings_repo_id (部分索引, WHERE repo_id IS NOT NULL)
+
+2. task_artifacts 索引（2 个）:
+   - idx_task_artifacts_task_id
+   - idx_task_artifacts_kind
+
+3. tasks 表新索引（4 个）:
+   - idx_tasks_project_id (部分索引, WHERE project_id IS NOT NULL)
+   - idx_tasks_spec_frozen
+   - idx_tasks_project_status (复合索引: project_id, status, created_at DESC)
+   - idx_tasks_repo_status (复合索引: repo_id, status, created_at DESC)
+
+## 预期性能影响
+
+- 按项目查询任务: O(log n) → 使用 idx_tasks_project_status
+- 按仓库查询任务: O(log n) → 使用 idx_tasks_repo_status
+- 查询项目仓库列表: O(log n) → 使用 idx_repos_project_id
+- 查询任务规格历史: O(log n) → 使用 idx_task_specs_task_id
+- 查询任务产物: O(log n) → 使用 idx_task_artifacts_task_id
+
+============================================
+回滚步骤（紧急情况）
+============================================
+
+⚠️ 警告: 回滚会删除所有 v0.4 新增的数据！
+
+## 回滚脚本
+
+```sql
+-- 1. 删除触发器
+DROP TRIGGER IF EXISTS enforce_task_project_binding_insert;
+DROP TRIGGER IF EXISTS enforce_task_project_binding_update;
+DROP TRIGGER IF EXISTS enforce_task_spec_frozen_insert;
+DROP TRIGGER IF EXISTS enforce_task_spec_frozen_update;
+
+-- 2. 删除索引
+DROP INDEX IF EXISTS idx_tasks_project_id;
+DROP INDEX IF EXISTS idx_tasks_spec_frozen;
+DROP INDEX IF EXISTS idx_tasks_project_status;
+DROP INDEX IF EXISTS idx_tasks_repo_status;
+
+-- 3. 删除新表（级联删除）
+DROP TABLE IF EXISTS task_artifacts;
+DROP TABLE IF EXISTS task_bindings;
+DROP TABLE IF EXISTS task_specs;
+DROP TABLE IF EXISTS repos;
+DROP TABLE IF EXISTS projects;
+
+-- 4. 删除 tasks 表新列
+-- 注意: SQLite 不支持 DROP COLUMN，需要重建表
+-- 建议: 从 v0.30 备份恢复
+
+-- 5. 回滚 schema 版本
+DELETE FROM schema_version WHERE version = '0.31.0';
+INSERT OR REPLACE INTO schema_version (version) VALUES ('0.30.0');
+```
+
+## 回滚前置条件
+
+1. 确保有 v0.30 数据库完整备份
+2. 确认所有正在运行的任务已完成或暂停
+3. 通知所有用户系统将进行回滚
+
+============================================
+兼容性说明
+============================================
+
+## 向后兼容性
+
+✅ 保留: 所有 v0.30 表和字段
+✅ 保留: 所有旧任务数据（自动迁移到 proj_default）
+✅ 保留: 所有现有索引和触发器
+
+⚠️ 注意: tasks 表新增字段，旧代码需要适配
+
+## API 破坏性变更
+
+❌ POST /api/tasks 现在必须提供 project_id
+❌ 任务必须先 freeze spec 才能进入 READY 状态
+❌ 项目删除需要先删除所有关联任务（RESTRICT 约束）
+
+## 升级建议
+
+1. 在测试环境先完整测试迁移
+2. 备份生产数据库
+3. 维护窗口执行迁移（预计 < 1 分钟）
+4. 验证所有任务已正确迁移
+5. 更新前端代码（添加项目选择器）
+6. 更新后端代码（强制 project_id 必填）
+
+============================================
+验收清单
+============================================
+
+- [x] 所有 5 个新表创建成功
+- [x] tasks 表 4 个新字段添加成功
+- [x] 4 个约束触发器创建成功
+- [x] 所有索引创建成功（13+ 个）
+- [x] 默认项目 'proj_default' 创建成功
+- [ ] 所有旧任务已迁移（运行验证查询）
+- [ ] 外键约束正常工作（测试级联删除）
+- [ ] 触发器正常工作（测试约束违规）
+- [ ] 审计日志记录完整（检查 MIGRATION_V031 事件）
+- [ ] 性能无回退（对比查询速度）
+
+============================================
+后续工作
+============================================
+
+## Phase 2: 核心 Services 适配
+
+- [ ] TaskService: 添加 project_id 必填验证
+- [ ] TaskService: 实现 freeze_spec() 方法
+- [ ] ProjectService: 实现项目 CRUD
+- [ ] RepoService: 实现仓库 CRUD
+- [ ] ArtifactService: 实现产物记录
+
+## Phase 3: API 层适配
+
+- [ ] POST /api/tasks: 强制 project_id 必填
+- [ ] POST /api/tasks/{id}/freeze: 实现 spec freezing
+- [ ] GET /api/projects: 列出项目
+- [ ] POST /api/projects: 创建项目
+- [ ] GET /api/projects/{id}/repos: 列出项目仓库
+
+## Phase 4: WebUI 适配
+
+- [ ] 任务创建页: 添加项目选择器
+- [ ] 任务详情页: 显示项目和仓库信息
+- [ ] 项目管理页: 项目列表和 CRUD
+- [ ] Spec 审查页: 显示 spec 版本历史
+- [ ] 产物列表页: 显示任务产物
+
+## Phase 5: 测试和文档
+
+- [ ] 编写集成测试（测试迁移脚本）
+- [ ] 编写 E2E 测试（完整任务生命周期）
+- [ ] 编写迁移指南（v0.3 → v0.4）
+- [ ] 更新 API 文档
+- [ ] 更新用户手册
+
+============================================
+参考文档
+============================================
+
+- ADR-V04: /docs/architecture/ADR_V04_PROJECT_AWARE_TASK_OS.md
+- Constraints: /docs/V04_CONSTRAINTS_AND_GATES.md
+- Migration Script: /octopusos/store/migrations/schema_v31_project_aware.sql
+- Task State Machine: /octopusos/core/task/state_machine.py
+
+============================================
+作者信息
+============================================
+
+维护者: OctopusOS Core Team
+版本: v0.31.0
+日期: 2026-01-29
+联系: architecture-team@octopusos.dev
+
+============================================
+变更日志
+============================================
+
+[2026-01-29] v0.31.0 Initial Release
+- 新增 5 个表: projects, repos, task_specs, task_bindings, task_artifacts
+- tasks 表新增 4 个字段: project_id, repo_id, workdir, spec_frozen
+- 新增 4 个约束触发器
+- 新增 13+ 个性能索引
+- 自动迁移所有旧任务到 proj_default
+- 完整的向后兼容性支持
+
+============================================
+结束
+============================================

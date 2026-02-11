@@ -13,7 +13,8 @@ import { DialogForm } from '@/ui/interaction'
 import { Box, Typography, TextField, LinearProgress, Alert } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { skillosService } from '@/services/skillos.service'
+import { useWriteGate } from '@/ui/guards/useWriteGate'
+import { WriteGateBanner } from '@/components/gates/WriteGateBanner'
 
 interface InstallUrlDialogProps {
   open: boolean
@@ -21,8 +22,9 @@ interface InstallUrlDialogProps {
   onSuccess: () => void
 }
 
-export function InstallUrlDialog({ open, onClose, onSuccess }: InstallUrlDialogProps) {
+export function InstallUrlDialog({ open, onClose, onSuccess: _onSuccess }: InstallUrlDialogProps) {
   const { t } = useTextTranslation()
+  const writeGate = useWriteGate('FEATURE_EXTENSIONS_INSTALL')
 
   const [url, setUrl] = useState('')
   const [sha256, setSha256] = useState('')
@@ -32,6 +34,10 @@ export function InstallUrlDialog({ open, onClose, onSuccess }: InstallUrlDialogP
   const [error, setError] = useState<string>('')
 
   const handleSubmit = async () => {
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
     if (!url.trim()) {
       toast.error(t('page.extensions.urlRequired'))
       return
@@ -51,53 +57,7 @@ export function InstallUrlDialog({ open, onClose, onSuccess }: InstallUrlDialogP
     setCurrentStep('Starting installation...')
 
     try {
-      // Start installation
-      const response = await skillosService.installExtensionUrl(
-        url.trim(),
-        sha256.trim() || undefined
-      )
-      const installId = response.install_id
-
-      // Poll installation progress
-      const pollInterval = setInterval(async () => {
-        try {
-          const progressData = await skillosService.getInstallProgress(installId)
-
-          setProgress(progressData.progress)
-          if (progressData.current_step) {
-            setCurrentStep(progressData.current_step)
-          }
-
-          if (progressData.status === 'COMPLETED') {
-            clearInterval(pollInterval)
-            setInstalling(false)
-            toast.success(t('page.extensions.installSuccess'))
-            onSuccess()
-            handleCloseDialog()
-          } else if (progressData.status === 'FAILED') {
-            clearInterval(pollInterval)
-            setInstalling(false)
-            const errorMsg = progressData.error || 'Installation failed'
-            setError(errorMsg)
-            toast.error(t('page.extensions.installFailed') + ': ' + errorMsg)
-          }
-        } catch (pollError) {
-          console.error('Failed to poll progress:', pollError)
-          clearInterval(pollInterval)
-          setInstalling(false)
-          setError('Failed to check installation progress')
-        }
-      }, 1000) // Poll every second
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        if (installing) {
-          setInstalling(false)
-          setError('Installation timeout')
-          toast.error('Installation took too long')
-        }
-      }, 300000)
+      throw new Error('Extension URL install is not available in current API contract')
 
     } catch (err: any) {
       console.error('Install failed:', err)
@@ -128,10 +88,16 @@ export function InstallUrlDialog({ open, onClose, onSuccess }: InstallUrlDialogP
       cancelText={t(K.common.cancel)}
       onSubmit={handleSubmit}
       loading={installing}
-      submitDisabled={!url.trim() || installing}
+      submitDisabled={!url.trim() || installing || !writeGate.allowed}
       maxWidth="sm"
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <WriteGateBanner
+          featureKey="FEATURE_EXTENSIONS_INSTALL"
+          reason={writeGate.reason}
+          missingOperations={writeGate.missingOperations}
+          compact
+        />
         {/* Description */}
         <Typography variant="body2" color="text.secondary">
           {t(K.page.extensions.installUrlDialogDesc)}

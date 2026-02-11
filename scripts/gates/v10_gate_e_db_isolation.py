@@ -8,7 +8,7 @@ Dry-Executor operates ONLY on ExecutionIntent (v0.9.1) data.
 It does NOT query registry/DB for commands/workflows/agents.
 
 STRICT ISOLATION ASSERTIONS (3 required):
-1. Runs in fresh temporary directory without ~/.agentos access
+1. Runs in fresh temporary directory without ~/.octopusos access
 2. HOME environment isolated to tempdir
 3. Output contains no host-specific absolute paths
 """
@@ -34,12 +34,12 @@ def main():
     # 1. Static check: No registry/store imports
     print("\n🔍 [1/4] Static Check: No Registry/DB Imports...")
     
-    dry_executor_files = list(Path("agentos/core/executor_dry").glob("*.py"))
+    dry_executor_files = list(Path("octopusos/core/executor_dry").glob("*.py"))
     
     forbidden_patterns = [
-        "from agentos.store",
-        "from agentos.content.registry",
-        "import agentos.store",
+        "from octopusos.store",
+        "from octopusos.content.registry",
+        "import octopusos.store",
         "ContentRegistry",
     ]
     
@@ -91,7 +91,7 @@ def main():
                 # 3. Isolation Assertion 2: HOME isolated
                 print("\n🔍 [3/4] Isolation Assertion 2: HOME Environment Isolated...")
                 
-                # Set HOME to tmpdir, blocking any ~/.agentos access
+                # Set HOME to tmpdir, blocking any ~/.octopusos access
                 isolated_env = os.environ.copy()
                 isolated_env["HOME"] = str(tmpdir_path)
                 isolated_env["USERPROFILE"] = str(tmpdir_path)  # Windows
@@ -102,7 +102,7 @@ def main():
                 # Run dry executor in isolated environment
                 result = subprocess.run(
                     [
-                        sys.executable, "-m", "agentos.core.executor_dry.dry_executor",
+                        sys.executable, "-m", "octopusos.core.executor_dry.dry_executor",
                         str(intent_dst),
                         str(output_dir / "result.json")
                     ],
@@ -119,7 +119,7 @@ def main():
                     print(f"  ℹ️  CLI test skipped, trying direct import...")
                     
                     # Direct import test
-                    from agentos.core.executor_dry import run_dry_execution
+                    from octopusos.core.executor_dry import run_dry_execution
                     with open(intent_dst, encoding="utf-8") as f:
                         intent_data = json.load(f)
                     

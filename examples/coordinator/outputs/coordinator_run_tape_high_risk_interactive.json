@@ -55,7 +55,7 @@
           "guard_name": "memory_pack_available",
           "passed": true,
           "reason": "MemoryPack with database migration experiences loaded",
-          "evidence_refs": ["memory_pack://agentos/database"]
+          "evidence_refs": ["memory_pack://octopusos/database"]
         }
       ],
       "outputs_produced": [

@@ -1,8 +1,9 @@
-import React, { useState, useRef, useLayoutEffect } from 'react'
+import React, { useState, useRef, useLayoutEffect, useEffect, lazy, Suspense } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   AppBar,
   Box,
+  Chip,
   Divider,
   Drawer,
   IconButton,
@@ -11,6 +12,7 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Popover,
   Paper,
   Toolbar,
   Typography,
@@ -18,6 +20,12 @@ import {
   useTheme,
   Breadcrumbs,
   Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
 } from '@mui/material'
 import {
   MenuIcon,
@@ -52,6 +60,7 @@ import {
   SettingsIcon,
   IntegrationIcon,
   ChatBubbleIcon,
+  EmailIcon,
   PublicIcon,
   BuildIcon,
   HelpIcon,
@@ -61,6 +70,8 @@ import {
   HubIcon,
   RemoteControlIcon,
   TrendingUpIcon,
+  LockIcon,
+  LockOpenIcon,
 } from '@/ui/icons'
 import {
   SHELL_GAP,
@@ -72,8 +83,22 @@ import {
 import { PageHeaderProvider, PageHeaderBar } from '@/ui/layout'
 import { t, K, changeLanguage, getCurrentLanguage } from '@/ui/text'
 import { ThemeToggle, LanguageSwitch, ApiStatus, ApiStatusDialog } from '@/ui'
+import { FrontdeskChatProvider } from '@/features/frontdesk'
+import { FabChatLauncher } from '@/components/app/FabChatLauncher'
+import { SystemStatusChip } from '@/components/system/SystemStatusChip'
+import { useSystemStatus } from '@/features/systemStatus/useSystemStatus'
 import { useApiHealth } from '@/hooks/useApiHealth'
 import { useThemeMode } from '@/contexts/ThemeContext'
+import { appInfo } from '@/platform/config'
+import { clearToken, getToken, setToken } from '@/platform/auth/adminToken'
+import { get } from '@/platform/http'
+import { systemService } from '@services/system.service'
+
+const FrontdeskDrawer = lazy(() =>
+  import('@/features/frontdesk/FrontdeskDrawer').then((mod) => ({
+    default: mod.FrontdeskDrawer,
+  }))
+)
 
 interface NavItem {
   label: string
@@ -109,6 +134,10 @@ const getNavItems = (): NavItem[] => [
 
   // Chat Section
   { label: t(K.nav.chat), path: '/chat', icon: <ChatIcon />, divider: true },
+  { label: t(K.nav.work), path: '/chat/work', icon: <WorkIcon /> },
+  { label: t(K.nav.workList), path: '/work-list', icon: <AssignmentIcon /> },
+  { label: t(K.nav.taskList), path: '/task-list', icon: <TaskIcon /> },
+  { label: t(K.nav.coding), path: '/coding', icon: <CodeIcon /> },
   { label: t(K.nav.chatReport), path: '/chat-report', icon: <AnalyticsIcon /> },
   { label: t(K.nav.voice), path: '/voice', icon: <PhoneIcon /> },
 
@@ -166,6 +195,11 @@ const getNavItems = (): NavItem[] => [
   { label: t(K.nav.decisionTimeline), path: '/decision-timeline', icon: <TimelineIcon /> },
   { label: t(K.nav.actionLog), path: '/action-log', icon: <DocumentIcon /> },
   { label: t(K.nav.evidenceChains), path: '/evidence-chains', icon: <LinkIcon /> },
+  { label: t(K.nav.externalFactsReplay), path: '/external-facts/replay', icon: <LinkIcon /> },
+  { label: t(K.nav.externalFactsPolicy), path: '/external-facts/policy', icon: <SettingsIcon /> },
+  { label: t(K.nav.externalFactsProviders), path: '/external-facts/providers', icon: <CloudIcon /> },
+  { label: t(K.nav.connectors), path: '/connectors', icon: <IntegrationIcon /> },
+  { label: t(K.nav.factsSchema), path: '/facts/schema', icon: <SettingsIcon /> },
   { label: t(K.nav.auditLog), path: '/audit-log', icon: <AssignmentIcon /> },
   { label: t(K.nav.riskTimeline), path: '/risk-timeline', icon: <TimelineIcon /> },
 
@@ -180,7 +214,12 @@ const getNavItems = (): NavItem[] => [
 
   // Communication Section
   { label: t(K.nav.channels), path: '/channels', icon: <ChatBubbleIcon />, divider: true },
+  { label: t(K.nav.enterpriseIm), path: '/channels/enterprise-im', icon: <ChatBubbleIcon /> },
+  { label: t(K.nav.emailChannel), path: '/channels/email', icon: <EmailIcon /> },
   { label: t(K.nav.controlPanel), path: '/communication', icon: <PublicIcon /> },
+  { label: t(K.nav.mcpMarketplace), path: '/mcp-marketplace', icon: <StoreIcon /> },
+  { label: t(K.nav.networkAccess), path: '/network/access', icon: <CloudIcon /> },
+  { label: t(K.nav.securityDevices), path: '/security/devices', icon: <ShieldIcon /> },
 
   // System Section
   { label: t(K.nav.context), path: '/context', icon: <StorageIcon />, divider: true },
@@ -189,7 +228,6 @@ const getNavItems = (): NavItem[] => [
 
   // Settings Section
   { label: t(K.nav.extensions), path: '/extensions', icon: <ExtensionIcon />, divider: true },
-  { label: t(K.nav.mcpMarketplace), path: '/mcp-marketplace', icon: <StoreIcon /> },
   { label: t(K.nav.models), path: '/models', icon: <ExtensionIcon /> },
   { label: t(K.nav.providers), path: '/providers', icon: <CloudIcon /> },
   { label: t(K.nav.config), path: '/config', icon: <SettingsIcon /> },
@@ -211,7 +249,7 @@ const getNavItems = (): NavItem[] => [
  */
 export default function AppShell() {
   const theme = useTheme()
-  const agentos = (theme.palette as any).agentos
+  const octopusos = (theme.palette as any).octopusos
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigate = useNavigate()
@@ -232,6 +270,90 @@ export default function AppShell() {
     pollInterval: 30000, // 30 seconds
     enabled: true,
   })
+  const { isRestricted } = useSystemStatus()
+  const [adminDialogOpen, setAdminDialogOpen] = useState(false)
+  const [adminTokenInput, setAdminTokenInput] = useState('')
+  const [adminModeEnabled, setAdminModeEnabled] = useState(() => Boolean(getToken()))
+  const [adminModeError, setAdminModeError] = useState('')
+  const [validatingAdminToken, setValidatingAdminToken] = useState(false)
+  const [workMode, setWorkMode] = useState<'reactive' | 'proactive' | 'silent_proactive'>('reactive')
+  const [workModeAnchor, setWorkModeAnchor] = useState<HTMLElement | null>(null)
+
+  const blurActiveElement = () => {
+    const activeElement = document.activeElement
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur()
+    }
+  }
+
+  const openAdminDialog = (tokenInput: string) => {
+    blurActiveElement()
+    setAdminTokenInput(tokenInput)
+    setAdminModeError('')
+    window.requestAnimationFrame(() => {
+      setAdminDialogOpen(true)
+    })
+  }
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    console.debug('[ApiHealth][AppShell] status changed', {
+      apiStatus,
+      lastCheck: lastCheck ? lastCheck.toISOString() : null,
+      error: error?.message ?? null,
+      hasDetails: !!details,
+      isRestricted,
+    })
+  }, [apiStatus, lastCheck, error, details, isRestricted])
+
+  useEffect(() => {
+    const refreshAdminMode = () => {
+      setAdminModeEnabled(Boolean(getToken()))
+    }
+    const onRequireAdminToken = () => {
+      openAdminDialog(getToken() || '')
+    }
+    window.addEventListener('focus', refreshAdminMode)
+    window.addEventListener('octopusos:admin-token-required', onRequireAdminToken as EventListener)
+    return () => {
+      window.removeEventListener('focus', refreshAdminMode)
+      window.removeEventListener('octopusos:admin-token-required', onRequireAdminToken as EventListener)
+    }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    const refreshWorkMode = async () => {
+      try {
+        const resp: any = await systemService.resolveConfig('work.mode.global')
+        const value = String(resp?.value || 'reactive')
+        if (!alive) return
+        if (value === 'reactive' || value === 'proactive' || value === 'silent_proactive') {
+          setWorkMode(value)
+        } else {
+          setWorkMode('reactive')
+        }
+      } catch {
+        // Best-effort; keep prior mode.
+      }
+    }
+    void refreshWorkMode()
+    const id = window.setInterval(() => void refreshWorkMode(), 10000)
+    window.addEventListener('focus', refreshWorkMode)
+    const onWorkModeUpdated = (e: any) => {
+      const m = String(e?.detail?.mode || '')
+      if (m === 'reactive' || m === 'proactive' || m === 'silent_proactive') {
+        setWorkMode(m)
+      }
+    }
+    window.addEventListener('octopusos:work-mode-updated', onWorkModeUpdated as EventListener)
+    return () => {
+      alive = false
+      window.clearInterval(id)
+      window.removeEventListener('focus', refreshWorkMode)
+      window.removeEventListener('octopusos:work-mode-updated', onWorkModeUpdated as EventListener)
+    }
+  }, [])
 
   // API Status Dialog state
   const [apiDialogOpen, setApiDialogOpen] = useState(false)
@@ -251,6 +373,44 @@ export default function AppShell() {
   // Handle API dialog close
   const handleApiDialogClose = () => {
     setApiDialogOpen(false)
+  }
+
+  const handleOpenAdminDialog = () => openAdminDialog(getToken() || '')
+
+  const handleCloseAdminDialog = () => {
+    setAdminModeError('')
+    setAdminDialogOpen(false)
+  }
+
+  const handleEnableAdminMode = async () => {
+    const token = adminTokenInput.trim()
+    if (!token) return
+    setValidatingAdminToken(true)
+    setAdminModeError('')
+    try {
+      const response = await get<{ ok: boolean; valid: boolean }>('/api/admin/token/validate', {
+        headers: { 'X-Admin-Token': token },
+      })
+      if (!response?.ok || !response?.valid) {
+        setAdminModeError(t(K.appBar.adminTokenInvalid))
+        return
+      }
+      setToken(token)
+      setAdminModeEnabled(true)
+      setAdminDialogOpen(false)
+    } catch (error) {
+      setAdminModeError(t(K.appBar.adminTokenInvalid))
+    } finally {
+      setValidatingAdminToken(false)
+    }
+  }
+
+  const handleDisableAdminMode = () => {
+    clearToken()
+    setAdminTokenInput('')
+    setAdminModeEnabled(false)
+    setAdminModeError('')
+    setAdminDialogOpen(false)
   }
 
   // 🎨 v2.3: 动态测量 Header Stack 高度 → CSS 变量
@@ -323,7 +483,11 @@ export default function AppShell() {
   const breadcrumbs = generateBreadcrumbs()
 
   // 检测是否为特殊页面（不受宽度限制，高度拉满）
-  const isFullscreenPage = location.pathname === '/chat'
+  const isFullscreenPage =
+    location.pathname === '/chat' ||
+    location.pathname === '/chat/work' ||
+    location.pathname === '/coding' ||
+    location.pathname === '/changelog'
 
   // Drawer content
   const drawer = (
@@ -334,12 +498,28 @@ export default function AppShell() {
 
       {/* Sidebar Header */}
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" fontWeight="bold">
-          AgentOS v2
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Modern Control Surface
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+          <Box
+            component="img"
+            src="/octopus-logo.png"
+            alt="Octopus OS logo"
+            sx={{
+              width: 32,
+              height: 32,
+              objectFit: 'contain',
+              borderRadius: 1,
+              flexShrink: 0,
+            }}
+          />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h6" fontWeight="bold" sx={{ lineHeight: 1.2 }}>
+              {appInfo.productName}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Modern Control Surface
+            </Typography>
+          </Box>
+        </Box>
       </Box>
 
       {/* Navigation List */}
@@ -383,15 +563,31 @@ export default function AppShell() {
 
       {/* Sidebar Footer */}
       <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+        <List disablePadding sx={{ mb: 1 }}>
+          <ListItem disablePadding>
+            <ListItemButton
+              selected={location.pathname === '/changelog'}
+              onClick={() => handleNavigation('/changelog')}
+              sx={{ borderRadius: 1 }}
+            >
+              <ListItemIcon sx={{ minWidth: 36 }}><DocumentIcon /></ListItemIcon>
+              <ListItemText
+                primary={t(K.nav.changeLog)}
+                primaryTypographyProps={{ sx: { fontSize: 14 } }}
+              />
+            </ListItemButton>
+          </ListItem>
+        </List>
         <Typography variant="caption" color="text.secondary">
-          AgentOS WebUI v2.0
+          {appInfo.webuiName}
         </Typography>
       </Box>
     </>
   )
 
   return (
-    <PageHeaderProvider>
+    <FrontdeskChatProvider>
+      <PageHeaderProvider>
       <Box
         sx={{
           display: 'flex',
@@ -485,6 +681,55 @@ export default function AppShell() {
 
                 {/* AppBar Actions */}
                 <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    clickable
+                    onClick={(e) => setWorkModeAnchor(e.currentTarget)}
+                    label={`${t(K.appBar.workModeLabel)}: ${
+                      workMode === 'proactive'
+                        ? t(K.page.workList.modeProactive)
+                        : workMode === 'silent_proactive'
+                          ? t(K.page.workList.modeSilent)
+                          : t(K.page.workList.modeReactive)
+                    }`}
+                  />
+                  <Popover
+                    open={Boolean(workModeAnchor)}
+                    anchorEl={workModeAnchor}
+                    onClose={() => setWorkModeAnchor(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  >
+                    <Box sx={{ p: 2, maxWidth: 420, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="subtitle2">
+                        {t(K.appBar.workModeLabel)}:{" "}
+                        {workMode === 'proactive'
+                          ? t(K.page.workList.modeProactive)
+                          : workMode === 'silent_proactive'
+                            ? t(K.page.workList.modeSilent)
+                            : t(K.page.workList.modeReactive)}
+                      </Typography>
+                      <Typography variant="body2">{t(K.appBar.workModeReactiveDesc)}</Typography>
+                      <Typography variant="body2">{t(K.appBar.workModeProactiveDesc)}</Typography>
+                      <Typography variant="body2">{t(K.appBar.workModeSilentDesc)}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {t(K.page.workList.subtitle)}
+                      </Typography>
+                    </Box>
+                  </Popover>
+                  <SystemStatusChip />
+                  <IconButton
+                    color={adminModeEnabled ? 'success' : 'default'}
+                    onClick={handleOpenAdminDialog}
+                    title={
+                      adminModeEnabled
+                        ? t(K.appBar.adminModeEnabled)
+                        : t(K.appBar.adminModeDisabled)
+                    }
+                  >
+                    {adminModeEnabled ? <LockOpenIcon /> : <LockIcon />}
+                  </IconButton>
                   <ThemeToggle
                     mode={themeMode}
                     onToggle={toggleTheme}
@@ -595,7 +840,11 @@ export default function AppShell() {
         {/* 🎨 v2.3.3: --ui-header-stack-h 由 ResizeObserver 自动更新 */}
         {/* Header Stack 包含：top gap + AppBar + gap + PageHeaderBar */}
         {/* 🎨 v2.3.3: 下方留 SHELL_GAP × 2 (24px) 呼吸区 */}
-        <Box sx={{ height: `calc(var(--ui-header-stack-h, 0px) + ${SHELL_GAP * 2}px)` }} />
+        <Box
+          sx={{
+            height: `calc(var(--ui-header-stack-h, 0px) + ${SHELL_GAP * 2}px)`,
+          }}
+        />
 
         {/* 🎨 内容区域 - Chat 页面特殊处理 */}
         {isFullscreenPage ? (
@@ -607,6 +856,8 @@ export default function AppShell() {
               flexDirection: 'column',
               minHeight: 0, // 防止内容撑破
               overflow: 'hidden',
+              // 与 PageHeaderBar 外框对齐（保持壳层统一边距）
+              px: `${SHELL_GAP}px`,
             }}
           >
             <Outlet />
@@ -645,14 +896,21 @@ export default function AppShell() {
             - 使用 SHELL_SURFACE token（elevation/gap/borderRadius）
             - 内容宽度约束：CONTENT_MAX_WIDTH
         */}
-        <Box component="footer" sx={{ px: `${SHELL_GAP}px`, pb: `${SHELL_GAP}px` }}>
+        <Box
+          component="footer"
+          sx={{
+            px: `${SHELL_GAP}px`,
+            pb: `${SHELL_GAP}px`,
+            mt: isFullscreenPage ? `${SHELL_GAP}px` : 0,
+          }}
+        >
           <Paper
             elevation={SHELL_SURFACE.elevation}
             sx={{
               // 🎨 ShellSurface 统一 sx（与 AppBar/PageHeaderBar 完全一致）
               ...SHELL_SURFACE_SX,
-              // ✅ 使用 AgentOS tokens 适配暗色主题
-              bgcolor: agentos?.bg?.surface || 'background.default',
+              // ✅ 使用 OctopusOS tokens 适配暗色主题
+              bgcolor: octopusos?.bg?.surface || 'background.default',
 
               // FooterBar 内边距
               px: 3,
@@ -662,7 +920,7 @@ export default function AppShell() {
             {/* 🔒 内容最大宽度约束 */}
             <Box sx={{ maxWidth: CONTENT_MAX_WIDTH }}>
               <Typography variant="body2" color="text.secondary">
-                Build: v2.0.0-alpha | AgentOS WebUI v2
+                Build: {appInfo.buildVersion} | Release: {appInfo.releaseVersion} | {appInfo.webuiName}
               </Typography>
             </Box>
           </Paper>
@@ -673,15 +931,57 @@ export default function AppShell() {
     {/* ===================================
         API Status Details Dialog
         =================================== */}
-    <ApiStatusDialog
-      open={apiDialogOpen}
-      onClose={handleApiDialogClose}
-      status={apiStatus}
-      lastCheck={lastCheck}
-      details={details?.details || null}
-      error={error}
-      onRefresh={refresh}
-    />
-    </PageHeaderProvider>
+        <FabChatLauncher />
+        <Suspense fallback={null}>
+          <FrontdeskDrawer />
+        </Suspense>
+
+        <ApiStatusDialog
+          open={apiDialogOpen}
+          onClose={handleApiDialogClose}
+          status={apiStatus}
+          lastCheck={lastCheck}
+          details={details?.details || null}
+          error={error}
+          onRefresh={refresh}
+        />
+        <Dialog open={adminDialogOpen} onClose={handleCloseAdminDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>{t(K.appBar.adminModeTitle)}</DialogTitle>
+          <DialogContent>
+            <TextField
+              label={t(K.appBar.adminTokenLabel)}
+              value={adminTokenInput}
+              onChange={(e) => {
+                setAdminModeError('')
+                setAdminTokenInput(e.target.value)
+              }}
+              fullWidth
+              size="small"
+              sx={{ mt: 1 }}
+              type="password"
+              placeholder={t(K.appBar.adminTokenPlaceholder)}
+              error={Boolean(adminModeError)}
+              helperText={adminModeError || t(K.appBar.adminTokenHelp)}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseAdminDialog}>{t(K.common.cancel)}</Button>
+            {adminModeEnabled ? (
+              <Button variant="contained" color="warning" onClick={handleDisableAdminMode}>
+                {t(K.appBar.disableAdminMode)}
+              </Button>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleEnableAdminMode}
+                disabled={!adminTokenInput.trim() || validatingAdminToken}
+              >
+                {validatingAdminToken ? t(K.appBar.validatingAdminToken) : t(K.appBar.enableAdminMode)}
+              </Button>
+            )}
+          </DialogActions>
+        </Dialog>
+      </PageHeaderProvider>
+    </FrontdeskChatProvider>
   )
 }

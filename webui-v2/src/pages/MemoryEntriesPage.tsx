@@ -2,7 +2,7 @@
  * MemoryEntriesPage - 记忆条目管理
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: memoryosService.getMemoryEntries()
+ * ✅ API: memoryosService.memoryEntriesApiMemoryEntriesGet()
  * ✅ States: loading, error, empty, success
  * 
  * 🔒 No-Interaction Contract:
@@ -63,8 +63,9 @@ export default function MemoryEntriesPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const response = await memoryosService.getMemoryEntries()
-        setData(response.data)
+        const response = await memoryosService.memoryEntriesApiMemoryEntriesGet()
+        const rows = Array.isArray(response?.data) ? response.data : []
+        setData(rows)
       } catch (err) {
         console.error('Failed to fetch memory entries:', err)
         setData([])

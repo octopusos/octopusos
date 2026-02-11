@@ -86,15 +86,15 @@ demo_quality_monitoring() {
     # 1.2: Calculate metrics
     print_info "Step 2: Calculating quality metrics..."
     echo ""
-    echo "Command: agentos metrics show --last 7d"
+    echo "Command: octopusos metrics show --last 7d"
     echo ""
 
-    if command -v agentos &> /dev/null; then
-        agentos metrics show --last 7d || print_error "No metrics data available (need classification events)"
+    if command -v octopusos &> /dev/null; then
+        octopusos metrics show --last 7d || print_error "No metrics data available (need classification events)"
     else
         print_info "Using Python directly:"
         python3 -c "
-from agentos.metrics.info_need_metrics import generate_metrics_report
+from octopusos.metrics.info_need_metrics import generate_metrics_report
 report = generate_metrics_report('7d')
 print(report)
 " || print_error "Metrics calculation requires classification events"
@@ -106,7 +106,7 @@ print(report)
     print_info "Step 3: WebUI Dashboard"
     echo ""
     echo "To view the metrics dashboard:"
-    echo "  1. Start WebUI: python -m agentos.webui.app"
+    echo "  1. Start WebUI: python -m octopusos.webui.app"
     echo "  2. Navigate to: http://localhost:5000"
     echo "  3. Click: Dashboard → InfoNeed Metrics"
     echo ""
@@ -196,7 +196,7 @@ demo_memory_subsystem() {
     echo ""
     echo "Run pattern extraction (dry-run mode):"
     echo ""
-    python3 -m agentos.jobs.info_need_pattern_extraction --days 7 --min-occurrences 5 --dry-run || print_error "Extraction requires MemoryOS data"
+    python3 -m octopusos.jobs.info_need_pattern_extraction --days 7 --min-occurrences 5 --dry-run || print_error "Extraction requires MemoryOS data"
 
     wait_for_input
 
@@ -239,7 +239,7 @@ demo_multi_intent() {
     echo ""
 
     python3 << 'EOF'
-from agentos.core.chat.multi_intent_splitter import MultiIntentSplitter
+from octopusos.core.chat.multi_intent_splitter import MultiIntentSplitter
 
 splitter = MultiIntentSplitter()
 
@@ -295,7 +295,7 @@ EOF
     echo ""
 
     python3 << 'EOF'
-from agentos.core.chat.multi_intent_splitter import MultiIntentSplitter
+from octopusos.core.chat.multi_intent_splitter import MultiIntentSplitter
 
 splitter = MultiIntentSplitter()
 
@@ -324,7 +324,7 @@ EOF
 
     python3 << 'EOF'
 import time
-from agentos.core.chat.multi_intent_splitter import MultiIntentSplitter
+from octopusos.core.chat.multi_intent_splitter import MultiIntentSplitter
 
 splitter = MultiIntentSplitter()
 
@@ -583,9 +583,9 @@ echo "  • Developer Guide: docs/EVOLVABLE_SYSTEM_DEVELOPER_GUIDE.md"
 echo "  • Quick Reference: EVOLVABLE_SYSTEM_QUICK_REFERENCE.md"
 echo ""
 echo "To explore interactively:"
-echo "  • WebUI: python -m agentos.webui.app"
-echo "  • Metrics CLI: agentos metrics show --last 7d"
-echo "  • Pattern Extraction: python -m agentos.jobs.info_need_pattern_extraction --dry-run"
+echo "  • WebUI: python -m octopusos.webui.app"
+echo "  • Metrics CLI: octopusos metrics show --last 7d"
+echo "  • Pattern Extraction: python -m octopusos.jobs.info_need_pattern_extraction --dry-run"
 echo ""
 
 print_success "Thank you for exploring the Evolvable System!"

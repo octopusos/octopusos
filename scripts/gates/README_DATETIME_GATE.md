@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Datetime Usage Gate enforces AgentOS's Time & Timestamp Contract by preventing regression of forbidden datetime usage patterns. This gate ensures all code uses timezone-aware UTC timestamps through the centralized clock module.
+The Datetime Usage Gate enforces OctopusOS's Time & Timestamp Contract by preventing regression of forbidden datetime usage patterns. This gate ensures all code uses timezone-aware UTC timestamps through the centralized clock module.
 
 ## Purpose
 
@@ -12,7 +12,7 @@ The Datetime Usage Gate enforces AgentOS's Time & Timestamp Contract by preventi
 - Inconsistent time handling across the codebase
 
 **Solution:**
-- Centralized clock module: `agentos.core.time.clock`
+- Centralized clock module: `octopusos.core.time.clock`
 - CI gate that rejects code with forbidden patterns
 - Clear migration path with helper functions
 
@@ -31,7 +31,7 @@ timestamp = datetime.utcnow()
 **Fix:**
 ```python
 # ✅ CORRECT
-from agentos.core.time import utc_now
+from octopusos.core.time import utc_now
 timestamp = utc_now()
 ```
 
@@ -48,16 +48,16 @@ timestamp = datetime.now()
 **Fix:**
 ```python
 # ✅ CORRECT
-from agentos.core.time import utc_now
+from octopusos.core.time import utc_now
 timestamp = utc_now()
 ```
 
 ## Clock Module API
 
-The `agentos.core.time.clock` module provides safe alternatives:
+The `octopusos.core.time.clock` module provides safe alternatives:
 
 ```python
-from agentos.core.time import (
+from octopusos.core.time import (
     utc_now,        # Get current UTC time (aware datetime)
     utc_now_ms,     # Get current time as epoch milliseconds (int)
     utc_now_iso,    # Get current time as ISO 8601 string with Z
@@ -127,9 +127,9 @@ Configuration: `.pre-commit-config.yaml`
 
 The following files are exempt from the gate (defined in `gate_datetime_usage.py`):
 
-- `agentos/core/time/clock.py` - Clock module implementation
-- `agentos/core/time/__init__.py` - Module initialization
-- `agentos/core/time/test_clock.py` - Clock module tests
+- `octopusos/core/time/clock.py` - Clock module implementation
+- `octopusos/core/time/__init__.py` - Module initialization
+- `octopusos/core/time/test_clock.py` - Clock module tests
 
 ### Excluded Directories
 
@@ -153,7 +153,7 @@ Time & Timestamp Contract Enforcement
 All code follows the Time & Timestamp Contract:
   - No datetime.utcnow() usage (deprecated)
   - No datetime.now() without timezone
-  - All timestamps use agentos.core.time.clock module
+  - All timestamps use octopusos.core.time.clock module
 ```
 
 ### Violations Found
@@ -170,9 +170,9 @@ Violation: datetime.utcnow()
 Count: 2
 ================================================================================
 
-  agentos/core/example.py:42
+  octopusos/core/example.py:42
     timestamp = datetime.utcnow()
-  agentos/webui/api/handler.py:88
+  octopusos/webui/api/handler.py:88
     created_at = datetime.utcnow()
 
 ================================================================================
@@ -180,11 +180,11 @@ Violation: datetime.now() without timezone
 Count: 3
 ================================================================================
 
-  agentos/cli/main.py:105
+  octopusos/cli/main.py:105
     now = datetime.now()
-  agentos/core/runner.py:234
+  octopusos/core/runner.py:234
     started_at = datetime.now()
-  agentos/store/manager.py:567
+  octopusos/store/manager.py:567
     timestamp = datetime.now()
 
 ================================================================================
@@ -199,7 +199,7 @@ Replace forbidden patterns with clock module:
     timestamp = datetime.now()
 
   After:
-    from agentos.core.time import utc_now
+    from octopusos.core.time import utc_now
     timestamp = utc_now()
 
 Additional helpers:
@@ -208,7 +208,7 @@ Additional helpers:
   - from_epoch_ms(ms) -> datetime
   - to_epoch_ms(dt) -> int
 
-See: agentos/core/time/clock.py
+See: octopusos/core/time/clock.py
 ```
 
 ## Testing the Gate
@@ -232,10 +232,10 @@ This creates temporary test cases and verifies:
 
 ```bash
 # Scan for datetime.utcnow()
-rg "datetime\.utcnow\(\)" agentos/
+rg "datetime\.utcnow\(\)" octopusos/
 
 # Scan for datetime.now() without timezone
-rg "datetime\.now\(\)" agentos/ | grep -v timezone | grep -v tz=
+rg "datetime\.now\(\)" octopusos/ | grep -v timezone | grep -v tz=
 ```
 
 ### Step 2: Replace with clock module
@@ -251,7 +251,7 @@ def create_record():
     }
 
 # After
-from agentos.core.time import utc_now
+from octopusos.core.time import utc_now
 
 def create_record():
     return {
@@ -317,7 +317,7 @@ If the gate doesn't run in CI:
 ## Related Documentation
 
 - [Time & Timestamp Contract](docs/adr/ADR-XXXX-time-timestamp-contract.md) (ADR)
-- [Clock Module](agentos/core/time/clock.py) (Implementation)
+- [Clock Module](octopusos/core/time/clock.py) (Implementation)
 - [Contributing Guide](CONTRIBUTING.md) (Development rules)
 - [Task #11 Completion Report](scripts/verify_task11_completion.py) (Migration status)
 
@@ -344,12 +344,12 @@ To exempt new files:
 
 For questions or issues with the datetime gate:
 
-- Open an issue: [GitHub Issues](https://github.com/seacow-technology/agentos/issues)
-- Discussion: [GitHub Discussions](https://github.com/seacow-technology/agentos/discussions)
+- Open an issue: [GitHub Issues](https://github.com/seacow-technology/octopusos/issues)
+- Discussion: [GitHub Discussions](https://github.com/seacow-technology/octopusos/discussions)
 - Email: dev@seacow.tech
 
 ---
 
 **Version:** 1.0
 **Last Updated:** 2026-01-31
-**Maintainer:** AgentOS Core Team
+**Maintainer:** OctopusOS Core Team

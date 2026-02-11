@@ -53,10 +53,10 @@ def main():
     print()
     
     schemas = [
-        ("agentos/schemas/executor/execution_request.schema.json", "Execution Request"),
-        ("agentos/schemas/executor/execution_result.schema.json", "Execution Result"),
-        ("agentos/schemas/executor/run_tape.schema.json", "Run Tape"),
-        ("agentos/schemas/executor/sandbox_policy.schema.json", "Sandbox Policy"),
+        ("octopusos/schemas/executor/execution_request.schema.json", "Execution Request"),
+        ("octopusos/schemas/executor/execution_result.schema.json", "Execution Result"),
+        ("octopusos/schemas/executor/run_tape.schema.json", "Run Tape"),
+        ("octopusos/schemas/executor/sandbox_policy.schema.json", "Sandbox Policy"),
     ]
     
     for schema_file, schema_name in schemas:

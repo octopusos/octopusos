@@ -1,0 +1,36 @@
+{
+  "id": "octopusos.ext.websearch.shell",
+  "name": "Web Search Shell Extension",
+  "version": "0.1.0",
+  "description": "Open-source shell extension that declares communication.web_search capability without implementation.",
+  "author": "AgentOS",
+  "license": "Apache-2.0",
+  "runtime": "python",
+  "python": {
+    "version": "3.11",
+    "dependencies": []
+  },
+  "external_bins": [],
+  "entrypoint": null,
+  "capabilities": [
+    {
+      "type": "tool",
+      "name": "communication.web_search",
+      "description": "Capability declaration only; runtime implementation provided by internal extension package.",
+      "config": {
+        "risk": "MEDIUM",
+        "network_required": true,
+        "provider": "internal_extension"
+      }
+    }
+  ],
+  "permissions_required": ["network.call", "audit.log"],
+  "platforms": ["linux", "darwin", "win32"],
+  "install": {
+    "mode": "octopusos_managed",
+    "plan": "install/plan.yaml"
+  },
+  "docs": {
+    "usage": "docs/USAGE.md"
+  }
+}

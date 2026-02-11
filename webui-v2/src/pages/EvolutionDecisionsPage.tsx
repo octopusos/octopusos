@@ -24,8 +24,8 @@ import { useTextTranslation } from '@/ui/text'
 import { DetailDrawer } from '@/ui/interaction'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
-import { networkosService } from '@/services/networkos.service'
-import type { EvolutionDecision } from '@/services/networkos.service'
+import { networkosService } from '@services'
+import type { EvolutionDecision } from '@services'
 
 // ===================================
 // Types
@@ -57,7 +57,7 @@ const STATUS_EXECUTED = 'EXECUTED'
  * EvolutionDecisionsPage 组件
  *
  * 📊 Pattern: TablePage（FilterBar + Table + Pagination）
- * 🔌 API: GET /api/governance/evolution-decisions → networkosService.listEvolutionDecisions()
+ * 🔌 API: GET /api/governance/evolution-decisions → networkosService.listEvolutionDecisionsApiGovernanceEvolutionDecisionsGet()
  */
 export default function EvolutionDecisionsPage() {
   // ===================================
@@ -115,14 +115,14 @@ export default function EvolutionDecisionsPage() {
       const apiStatus = statusFilter === STATUS_ALL ? undefined : (statusFilter as 'PROPOSED' | 'APPROVED' | 'REJECTED' | 'EXECUTED')
       const apiType = typeFilter === 'all' ? undefined : (typeFilter as 'PROMOTE' | 'FREEZE' | 'REVOKE' | 'NONE')
 
-      const response = await networkosService.listEvolutionDecisions({
+      const response = await networkosService.listEvolutionDecisionsApiGovernanceEvolutionDecisionsGet({
         status: apiStatus,
         action: apiType,
         page: page + 1, // API uses 1-based indexing
         limit: pageSize,
       })
 
-      const rows: DecisionRow[] = response.decisions.map((decision) => ({
+      const rows: DecisionRow[] = response.decisions.map((decision: any) => ({
         id: decision.decision_id,
         decisionId: decision.decision_id,
         type: decision.action,
@@ -152,7 +152,7 @@ export default function EvolutionDecisionsPage() {
   const loadDecisionDetails = useCallback(async (decisionId: string) => {
     setDetailLoading(true)
     try {
-      const response = await networkosService.getEvolutionDecision(decisionId)
+      const response = await networkosService.getEvolutionDecisionApiGovernanceEvolutionDecisionsDecisionIdGet(decisionId)
       setDetailedDecision(response.decision)
     } catch (error) {
       console.error('Failed to load decision details:', error)

@@ -17,7 +17,7 @@ import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { DialogForm } from '@/ui/interaction'
 import type { GridColDef } from '@/ui'
-import { systemService } from '@/services/system.service'
+import { systemService } from '@services'
 
 
 /**
@@ -57,7 +57,7 @@ export default function AuthProfilesPage() {
       setLoading(true)
       setError(null)
       try {
-        const response = await systemService.listAuthProfiles()
+        const response = await systemService.listAuthProfilesApiAuthProfilesGet()
         setAuthProfiles(response.profiles || [])
       } catch (err) {
         console.error('Failed to fetch auth profiles:', err)
@@ -96,7 +96,7 @@ export default function AuthProfilesPage() {
         setLoading(true)
         setError(null)
         try {
-          const response = await systemService.listAuthProfiles()
+          const response = await systemService.listAuthProfilesApiAuthProfilesGet()
           setAuthProfiles(response.profiles || [])
         } catch (err) {
           console.error('Failed to refresh auth profiles:', err)
@@ -146,7 +146,7 @@ export default function AuthProfilesPage() {
   // ===================================
   const handleValidateProfile = async (profileId: string) => {
     try {
-      const response = await systemService.validateAuthProfile(profileId)
+      const response = await systemService.validateAuthProfileApiAuthProfilesProfileIdValidatePost(profileId)
       // Update profile status in state
       setAuthProfiles(prev =>
         prev.map(p =>

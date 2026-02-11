@@ -6,8 +6,8 @@ Demonstrates workspace layout and validation features.
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from agentos.core.workspace import WorkspaceLayout, WorkspaceValidator
-from agentos.schemas.project import RepoSpec, RepoRole
+from octopusos.core.workspace import WorkspaceLayout, WorkspaceValidator
+from octopusos.schemas.project import RepoSpec, RepoRole
 
 
 def demo_workspace_layout():
@@ -292,7 +292,7 @@ def demo_error_formatting():
     print("Demo 5: Error Message Formatting")
     print("=" * 60)
 
-    from agentos.core.workspace.validation import Conflict, ConflictType
+    from octopusos.core.workspace.validation import Conflict, ConflictType
 
     # Example 1: Path exists
     print("\n📋 Example 1: Directory already exists")

@@ -16,7 +16,7 @@ import { DialogForm } from '@/ui/interaction'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
-import { brainosService } from '@/services/brainos.service'
+import { brainosService } from '@services'
 
 /**
  * UI Row Type (mapped from backend)
@@ -82,10 +82,10 @@ export default function SourcesPage() {
   const fetchSources = async () => {
     try {
       setLoading(true)
-      const response = await brainosService.listKnowledgeSources()
+      const response = await brainosService.listKnowledgeSourcesApiKnowledgeSourcesGet()
 
       // Map backend data to UI format
-      const mappedSources: SourceRow[] = (response.sources || []).map((source) => ({
+      const mappedSources: SourceRow[] = (response.sources || []).map((source: any) => ({
         id: source.id,
         name: source.name || 'Unnamed Source',
         type: source.type || 'Unknown',
@@ -144,7 +144,7 @@ export default function SourcesPage() {
 
     try {
       setSubmitting(true)
-      await brainosService.createKnowledgeSource({
+      await brainosService.createKnowledgeSourceApiKnowledgeSourcesPost({
         name: sourceName.trim(),
         type: sourceType,
         config: {

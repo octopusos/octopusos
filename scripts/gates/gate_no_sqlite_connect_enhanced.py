@@ -22,99 +22,99 @@ from pathlib import Path
 from typing import List, Tuple, Dict
 
 # Root directory for scanning
-ROOT_DIR = Path(__file__).parent.parent.parent / "agentos"
+ROOT_DIR = Path(__file__).parent.parent.parent / "octopusos"
 
 # Whitelist: Files that are allowed to use restricted patterns
 WHITELIST = {
     # Core DB infrastructure
-    "agentos/core/db/registry_db.py",
-    "agentos/core/db/writer.py",
+    "octopusos/core/db/registry_db.py",
+    "octopusos/core/db/writer.py",
 
     # Store initialization and migration
-    "agentos/store/__init__.py",
-    "agentos/store/migrator.py",
-    "agentos/store/connection_factory.py",
-    "agentos/store/migrations.py",
-    "agentos/cli/migrate.py",
-    "agentos/store/migrations/run_pr3_migration.py",
-    "agentos/store/migrations/run_p0_migration.py",  # P0 migration script
-    "agentos/store/migrations/run_p2_migration.py",  # P2 migration script
+    "octopusos/store/__init__.py",
+    "octopusos/store/migrator.py",
+    "octopusos/store/connection_factory.py",
+    "octopusos/store/migrations.py",
+    "octopusos/cli/migrate.py",
+    "octopusos/store/migrations/run_pr3_migration.py",
+    "octopusos/store/migrations/run_p0_migration.py",  # P0 migration script
+    "octopusos/store/migrations/run_p2_migration.py",  # P2 migration script
 
     # Legacy code (to be migrated)
-    "agentos/core/brain/service/query_impact.py",
-    "agentos/core/brain/service/query_subgraph.py",
-    "agentos/core/brain/service/query_trace.py",
-    "agentos/core/brain/service/query_why.py",
-    "agentos/core/brain/store/sqlite_schema.py",
-    "agentos/core/brain/store/sqlite_store.py",
-    "agentos/core/capabilities/policy.py",
-    "agentos/core/chat/budget_audit.py",
-    "agentos/core/chat/budget_recommender.py",
-    "agentos/core/chat/context_builder.py",
-    "agentos/core/chat/context_diff.py",
-    "agentos/core/chat/summarizer.py",
-    "agentos/core/checkpoints/evidence.py",
-    "agentos/core/checkpoints/manager.py",
-    "agentos/core/command/history.py",
-    "agentos/core/communication/network_mode.py",
-    "agentos/core/communication/storage/sqlite_store.py",
-    "agentos/core/content/facade.py",
-    "agentos/core/content/lineage.py",
-    "agentos/core/content/registry.py",
-    "agentos/core/extensions/registry.py",
-    "agentos/core/governance/orchestration/consumer.py",
-    "agentos/core/guardian/storage.py",
-    "agentos/core/idempotency/store.py",
-    "agentos/core/lead/adapters/storage.py",
-    "agentos/core/lead/dedupe.py",
-    "agentos/core/locks/file_lock.py",
-    "agentos/core/locks/task_lock.py",
-    "agentos/core/logging/store.py",
-    "agentos/core/memory/service.py",
-    "agentos/core/orchestrator/patch_tracker.py",
-    "agentos/core/project/repo_service.py",
-    "agentos/core/project/repository.py",
-    "agentos/core/project/service.py",
-    "agentos/core/project_kb/embedding/manager.py",
-    "agentos/core/project_kb/indexer.py",
-    "agentos/core/project_kb/searcher.py",
-    "agentos/core/project_kb/service.py",
-    "agentos/core/recovery/recovery_sweep.py",
-    "agentos/core/review/pack_generator.py",
-    "agentos/core/startup/health_check.py",
-    "agentos/core/supervisor/adapters/audit_adapter.py",
-    "agentos/core/supervisor/inbox.py",
-    "agentos/core/supervisor/poller.py",
-    "agentos/core/supervisor/supervisor.py",
-    "agentos/core/task/artifact_service_v31.py",
-    "agentos/core/task/binding_service.py",
-    "agentos/core/task/lineage_extensions.py",
-    "agentos/core/task/manager.py",
-    "agentos/core/task/project_settings_inheritance.py",
-    "agentos/core/task/replay_task_lifecycle.py",
-    "agentos/core/task/spec_service.py",
-    "agentos/core/task/state_machine.py",
-    "agentos/core/task/task_repo_service.py",
-    "agentos/jobs/memory_gc.py",
-    "agentos/router/persistence.py",
-    "agentos/store/answers_store.py",
-    "agentos/store/content_store.py",
-    "agentos/store/scripts/backfill_audit_decision_fields.py",
-    "agentos/store/scripts/test_backfill.py",
-    "agentos/store/test_utils.py",
-    "agentos/webui/api/config.py",
-    "agentos/webui/api/governance.py",
-    "agentos/webui/store/session_store.py",
+    "octopusos/core/brain/service/query_impact.py",
+    "octopusos/core/brain/service/query_subgraph.py",
+    "octopusos/core/brain/service/query_trace.py",
+    "octopusos/core/brain/service/query_why.py",
+    "octopusos/core/brain/store/sqlite_schema.py",
+    "octopusos/core/brain/store/sqlite_store.py",
+    "octopusos/core/capabilities/policy.py",
+    "octopusos/core/chat/budget_audit.py",
+    "octopusos/core/chat/budget_recommender.py",
+    "octopusos/core/chat/context_builder.py",
+    "octopusos/core/chat/context_diff.py",
+    "octopusos/core/chat/summarizer.py",
+    "octopusos/core/checkpoints/evidence.py",
+    "octopusos/core/checkpoints/manager.py",
+    "octopusos/core/command/history.py",
+    "octopusos/core/communication/network_mode.py",
+    "octopusos/core/communication/storage/sqlite_store.py",
+    "octopusos/core/content/facade.py",
+    "octopusos/core/content/lineage.py",
+    "octopusos/core/content/registry.py",
+    "octopusos/core/extensions/registry.py",
+    "octopusos/core/governance/orchestration/consumer.py",
+    "octopusos/core/guardian/storage.py",
+    "octopusos/core/idempotency/store.py",
+    "octopusos/core/lead/adapters/storage.py",
+    "octopusos/core/lead/dedupe.py",
+    "octopusos/core/locks/file_lock.py",
+    "octopusos/core/locks/task_lock.py",
+    "octopusos/core/logging/store.py",
+    "octopusos/core/memory/service.py",
+    "octopusos/core/orchestrator/patch_tracker.py",
+    "octopusos/core/project/repo_service.py",
+    "octopusos/core/project/repository.py",
+    "octopusos/core/project/service.py",
+    "octopusos/core/project_kb/embedding/manager.py",
+    "octopusos/core/project_kb/indexer.py",
+    "octopusos/core/project_kb/searcher.py",
+    "octopusos/core/project_kb/service.py",
+    "octopusos/core/recovery/recovery_sweep.py",
+    "octopusos/core/review/pack_generator.py",
+    "octopusos/core/startup/health_check.py",
+    "octopusos/core/supervisor/adapters/audit_adapter.py",
+    "octopusos/core/supervisor/inbox.py",
+    "octopusos/core/supervisor/poller.py",
+    "octopusos/core/supervisor/supervisor.py",
+    "octopusos/core/task/artifact_service_v31.py",
+    "octopusos/core/task/binding_service.py",
+    "octopusos/core/task/lineage_extensions.py",
+    "octopusos/core/task/manager.py",
+    "octopusos/core/task/project_settings_inheritance.py",
+    "octopusos/core/task/replay_task_lifecycle.py",
+    "octopusos/core/task/spec_service.py",
+    "octopusos/core/task/state_machine.py",
+    "octopusos/core/task/task_repo_service.py",
+    "octopusos/jobs/memory_gc.py",
+    "octopusos/router/persistence.py",
+    "octopusos/store/answers_store.py",
+    "octopusos/store/content_store.py",
+    "octopusos/store/scripts/backfill_audit_decision_fields.py",
+    "octopusos/store/scripts/test_backfill.py",
+    "octopusos/store/test_utils.py",
+    "octopusos/webui/api/config.py",
+    "octopusos/webui/api/governance.py",
+    "octopusos/webui/store/session_store.py",
 
     # Module-specific database paths (not registry.sqlite)
-    "agentos/core/database.py",  # Config system with env var support
-    "agentos/core/brain/service/index_job.py",  # BrainOS-specific DB (.brainos/index.db)
-    "agentos/core/communication/evidence.py",  # CommunicationOS-specific DB (communication.db)
-    "agentos/jobs/lead_scan.py",  # Lead scan DB (store.db)
-    "agentos/webui/api/brain.py",  # BrainOS WebUI DB (v0.1_mvp.db)
-    "agentos/webui/api/brain_governance.py",  # BrainOS governance DB (brain.db)
-    "agentos/webui/app.py",  # LogStore with env var fallback
-    "agentos/core/git/ignore.py",  # False positive: Thumbs.db is Windows file, not DB
+    "octopusos/core/database.py",  # Config system with env var support
+    "octopusos/core/brain/service/index_job.py",  # BrainOS-specific DB (.brainos/index.db)
+    "octopusos/core/communication/evidence.py",  # CommunicationOS-specific DB (communication.db)
+    "octopusos/jobs/lead_scan.py",  # Lead scan DB (store.db)
+    "octopusos/webui/api/brain.py",  # BrainOS WebUI DB (v0.1_mvp.db)
+    "octopusos/webui/api/brain_governance.py",  # BrainOS governance DB (brain.db)
+    "octopusos/webui/app.py",  # LogStore with env var fallback
+    "octopusos/core/git/ignore.py",  # False positive: Thumbs.db is Windows file, not DB
 }
 
 # Extended forbidden patterns
@@ -143,7 +143,7 @@ FORBIDDEN_PATTERNS = {
     # Direct DB path access (should only use registry_db)
     "db_path_access": [
         r"def\s+get_db_path\s*\(",
-        r"AGENTOS_DB_PATH",
+        r"OCTOPUSOS_DB_PATH",
     ],
 
     # Hardcoded database files
@@ -281,16 +281,16 @@ def print_report(violations: Dict[Path, Dict[str, List[Tuple[int, str]]]]) -> No
     print("=" * 80)
     print()
     print("1. Direct connections - Replace with:")
-    print("   from agentos.core.db import registry_db")
+    print("   from octopusos.core.db import registry_db")
     print("   conn = registry_db.get_db()")
     print()
     print("2. New Store classes - DO NOT CREATE. Use existing stores.")
     print()
-    print("3. Table creation - Move to migration scripts in agentos/store/migrations/")
+    print("3. Table creation - Move to migration scripts in octopusos/store/migrations/")
     print()
     print("4. DB path access - Use registry_db._get_db_path() only in registry_db.py")
     print()
-    print("5. Hardcoded DB files - Use environment variable AGENTOS_DB_PATH")
+    print("5. Hardcoded DB files - Use environment variable OCTOPUSOS_DB_PATH")
     print()
 
 

@@ -49,9 +49,9 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 
 # Files to check
 FILES_TO_CHECK = [
-    "agentos/core/communication/connectors/web_search.py",
-    "agentos/core/communication/priority/priority_scoring.py",
-    "agentos/core/chat/comm_commands.py",
+    "octopusos/core/communication/connectors/web_search.py",
+    "octopusos/core/communication/priority/priority_scoring.py",
+    "octopusos/core/chat/comm_commands.py",
 ]
 
 # Forbidden field names

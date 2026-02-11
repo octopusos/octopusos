@@ -51,8 +51,18 @@ export interface Provider {
   url?: string;
 }
 
+export interface ProviderCatalogItem {
+  id: string;
+  label: string;
+  type: string;
+  supports_models: boolean;
+  supports_start: boolean;
+  supports_auth: string[];
+}
+
 export interface ListProvidersResponse {
-  providers: Provider[];
+  local: ProviderCatalogItem[];
+  cloud: ProviderCatalogItem[];
 }
 
 export interface GetProviderResponse {
@@ -550,11 +560,19 @@ export interface ConfigEntry {
   scope: string;
   description: string;
   lastModified: string;
+  module?: string;
+  source?: 'db' | 'env' | 'default' | 'request_override';
+  schema_version?: number;
+  is_secret?: boolean;
+  is_hot_reload?: boolean;
+  version?: number;
+  project_id?: string | null;
 }
 
 export interface ListConfigEntriesRequest {
   search?: string;
   scope?: string;
+  project_id?: string;
   type?: string;
   page?: number;
   limit?: number;
@@ -574,6 +592,11 @@ export interface CreateConfigEntryRequest {
   value: string;
   type: 'String' | 'Integer' | 'Boolean' | 'JSON';
   scope?: string;
+  project_id?: string;
+  schema_version?: number;
+  dry_run?: boolean;
+  dry_run_token?: string;
+  confirm?: boolean;
   description?: string;
 }
 
@@ -627,6 +650,84 @@ export interface ConfigVersionDiff {
 
 export interface GetConfigDiffResponse {
   diff: ConfigVersionDiff;
+}
+
+export interface ConfigAllowlistModule {
+  module: string;
+  title: string;
+  keys: string[];
+  secrets: string[];
+  high_risk_keys?: string[];
+  key_meta?: Record<string, {
+    risk_level?: 'low' | 'medium' | 'high';
+    requires_confirmation?: boolean;
+    requires_dry_run?: boolean;
+  }>;
+}
+
+export interface GetConfigAllowlistResponse {
+  modules: ConfigAllowlistModule[];
+}
+
+export interface ResolveConfigResponse {
+  key: string;
+  value: unknown;
+  source: 'db' | 'env' | 'default' | 'request_override';
+  schema_version: number;
+  resolved_at: string;
+  secret_configured?: boolean;
+  project_id?: string | null;
+}
+
+export interface ConfigSecretStatusResponse {
+  key: string;
+  configured: boolean;
+}
+
+export interface ConfigSnapshotEntry {
+  key: string;
+  value: unknown;
+  source: string;
+  schema_version: number;
+  is_secret?: boolean;
+  scope?: string;
+  project_id?: string | null;
+  type?: string;
+  value_type?: string;
+  is_hot_reload?: boolean;
+  module?: string;
+}
+
+export interface ConfigSnapshot {
+  snapshot_id: string;
+  scope: string;
+  project_id?: string | null;
+  actor: string;
+  source: string;
+  payload: {
+    entries: ConfigSnapshotEntry[];
+  };
+  created_at: string;
+}
+
+export interface ConfigDiff {
+  added: Array<Record<string, unknown>>;
+  removed: Array<Record<string, unknown>>;
+  changed: Array<Record<string, unknown>>;
+}
+
+export interface ConfigTimelineEvent {
+  id: number;
+  event_type: string;
+  actor: string;
+  module?: string | null;
+  config_key?: string | null;
+  project_id?: string | null;
+  decision_id?: string | null;
+  risk_level?: string | null;
+  reason?: string | null;
+  payload?: Record<string, unknown>;
+  created_at: string;
 }
 
 // ============================================================================
@@ -1055,8 +1156,10 @@ export const systemService = {
     return get('/api/config/entries', { params });
   },
 
-  async getConfigEntry(id: number): Promise<GetConfigEntryResponse> {
-    return get(`/api/config/entries/${id}`);
+  async getConfigEntry(key: string, projectId?: string): Promise<GetConfigEntryResponse> {
+    return get(`/api/config/entries/${encodeURIComponent(key)}`, {
+      params: projectId ? { project_id: projectId } : undefined,
+    });
   },
 
   async createConfigEntry(data: CreateConfigEntryRequest): Promise<CreateConfigEntryResponse> {
@@ -1079,5 +1182,47 @@ export const systemService = {
     return get(`/api/config/entries/${id}/diff`, {
       params: { from: fromVersion, to: toVersion },
     });
+  },
+
+  async getConfigAllowlist(): Promise<GetConfigAllowlistResponse> {
+    return get('/api/config/allowlist');
+  },
+
+  async resolveConfig(key: string, projectId?: string): Promise<ResolveConfigResponse> {
+    return get('/api/config/resolve', {
+      params: projectId ? { key, project_id: projectId } : { key },
+    });
+  },
+
+  async getConfigSecretStatus(key: string, projectId?: string): Promise<ConfigSecretStatusResponse> {
+    return get('/api/config/secret-status', {
+      params: projectId ? { key, project_id: projectId } : { key },
+    });
+  },
+
+  async createConfigSnapshot(data: { scope: string; project_id?: string; note?: string }): Promise<{ snapshot: ConfigSnapshot }> {
+    return post('/api/config/snapshot', data);
+  },
+
+  async getConfigSnapshot(snapshotId: string): Promise<{ snapshot: ConfigSnapshot }> {
+    return get(`/api/config/snapshot/${encodeURIComponent(snapshotId)}`);
+  },
+
+  async getConfigSnapshotDiff(params: { from_snapshot_id?: string; from_snapshot?: string; scope?: string; project_id?: string }): Promise<{ from_snapshot: string; diff: ConfigDiff }> {
+    return get('/api/config/diff', { params });
+  },
+
+  async rollbackConfigFromSnapshot(data: {
+    snapshot_id: string;
+    module_prefix?: string;
+    dry_run?: boolean;
+    decision_id?: string;
+    reason?: string;
+  }): Promise<{ ok: boolean; dry_run?: boolean; changes?: Array<Record<string, unknown>>; applied?: Array<Record<string, unknown>> }> {
+    return post('/api/config/rollback_from_snapshot', data);
+  },
+
+  async listConfigTimeline(params?: { scope?: string; project_id?: string; limit?: number }): Promise<{ events: ConfigTimelineEvent[] }> {
+    return get('/api/config/timeline', { params });
   },
 };

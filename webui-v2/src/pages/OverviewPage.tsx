@@ -44,7 +44,7 @@ export default function OverviewPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await systemService.getOverview()
+      const response = await systemService.getOverviewApiOverviewGet()
       setData(response)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load overview data'

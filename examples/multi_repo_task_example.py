@@ -8,9 +8,9 @@ Created for Phase 5.1: Runner support for cross-repository workspace selection
 from pathlib import Path
 from datetime import datetime, timezone
 
-from agentos.core.task.models import Task, TaskRepoScope, RepoScopeType
-from agentos.core.task.task_repo_service import TaskRepoService
-from agentos.core.task.runner_integration import (
+from octopusos.core.task.models import Task, TaskRepoScope, RepoScopeType
+from octopusos.core.task.task_repo_service import TaskRepoService
+from octopusos.core.task.runner_integration import (
     prepare_execution_env,
     with_repo_context,
     safe_file_read,
@@ -18,9 +18,9 @@ from agentos.core.task.runner_integration import (
     get_repo_summary,
     validate_file_operation,
 )
-from agentos.core.task.repo_context import PathSecurityError
-from agentos.schemas.project import RepoSpec
-from agentos.store import get_db
+from octopusos.core.task.repo_context import PathSecurityError
+from octopusos.schemas.project import RepoSpec
+from octopusos.store import get_db
 
 
 def example_1_basic_multi_repo():

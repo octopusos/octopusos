@@ -1,10 +1,10 @@
 # Extension System Examples and Testing
 
-This directory contains sample extensions and acceptance tests for the AgentOS Extension System.
+This directory contains sample extensions and acceptance tests for the OctopusOS Extension System.
 
 ## Overview
 
-The Extension System provides a complete solution for extending AgentOS with custom capabilities through **declarative extensions (no code execution)**:
+The Extension System provides a complete solution for extending OctopusOS with custom capabilities through **declarative extensions (no code execution)**:
 - **Extension Registry**: Tracks installed extensions and their state
 - **Install Engine**: Executes Core-controlled installation plans with progress tracking
 - **WebUI Management**: Browser-based extension management interface
@@ -42,7 +42,7 @@ hello-extension.zip
 **Usage:**
 ```
 /hello              # Output: "Hello, World!"
-/hello AgentOS      # Output: "Hello, AgentOS!"
+/hello OctopusOS      # Output: "Hello, OctopusOS!"
 ```
 
 ## Creating Extension Packages
@@ -60,10 +60,10 @@ This will create:
 
 ### Prerequisites
 
-1. **Start the AgentOS server:**
+1. **Start the OctopusOS server:**
    ```bash
-   cd /Users/pangge/PycharmProjects/AgentOS
-   python3 -m agentos.webui.server
+   cd /Users/pangge/PycharmProjects/OctopusOS
+   python3 -m octopusos.webui.server
    ```
 
 2. **Verify server is running:**
@@ -237,7 +237,7 @@ Success Rate: 100.0%
 
 **Solution:**
 ```bash
-python3 -m agentos.webui.server
+python3 -m octopusos.webui.server
 ```
 
 ### Extension Package Not Found
@@ -302,7 +302,7 @@ You can also test extensions manually via the WebUI:
 
 4. **Test slash commands:**
    - Go to Chat page
-   - Type `/hello AgentOS`
+   - Type `/hello OctopusOS`
    - Verify response
 
 5. **Disable/Enable:**
@@ -383,7 +383,7 @@ curl -X DELETE http://localhost:8000/api/extensions/demo.hello | jq
        }
      ],
      "install": {
-       "mode": "agentos_managed",
+       "mode": "octopusos_managed",
        "plan": "install/plan.yaml"
      }
    }
@@ -486,28 +486,28 @@ curl -X DELETE http://localhost:8000/api/extensions/demo.hello | jq
 ## Related Documentation
 
 - **PR-A**: Extension Core Infrastructure
-  - `agentos/core/extensions/registry.py`
-  - `agentos/core/extensions/validator.py`
-  - `agentos/core/extensions/installer.py`
+  - `octopusos/core/extensions/registry.py`
+  - `octopusos/core/extensions/validator.py`
+  - `octopusos/core/extensions/installer.py`
 
 - **PR-B**: Install Engine
-  - `agentos/core/extensions/engine.py`
-  - `agentos/core/extensions/steps/`
+  - `octopusos/core/extensions/engine.py`
+  - `octopusos/core/extensions/steps/`
 
 - **PR-C**: WebUI Management
-  - `agentos/webui/api/extensions.py`
-  - `agentos/webui/static/js/views/ExtensionsView.js`
+  - `octopusos/webui/api/extensions.py`
+  - `octopusos/webui/static/js/views/ExtensionsView.js`
 
 - **PR-D**: Slash Command Router
-  - `agentos/core/extensions/router.py`
+  - `octopusos/core/extensions/router.py`
 
 - **PR-E**: Capability Runner
-  - `agentos/core/extensions/runner.py`
+  - `octopusos/core/extensions/runner.py`
 
 ## Support
 
 For issues or questions:
-- Check server logs: `logs/agentos.log`
+- Check server logs: `logs/octopusos.log`
 - View extension logs: API `/api/extensions/{id}/logs`
 - Report bugs: GitHub Issues
 - Documentation: `/docs/extensions/`

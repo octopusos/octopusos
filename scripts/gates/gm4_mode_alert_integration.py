@@ -26,7 +26,7 @@ from io import StringIO
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.mode.mode_alerts import (
+from octopusos.core.mode.mode_alerts import (
     get_alert_aggregator,
     alert_mode_violation,
     FileAlertOutput,

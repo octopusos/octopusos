@@ -16,6 +16,7 @@ import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { useTextTranslation, K } from '@/ui/text'
 import type { GridColDef } from '@/ui'
+import { httpClient } from '@platform/http'
 
 /**
  * Action Type - Aligned with v1 API response
@@ -74,6 +75,11 @@ export default function ActionLogPage() {
   const fetchActions = async () => {
     setLoading(true)
     try {
+      // Endpoint is not available in local mode yet; keep page stable with empty dataset.
+      setActions([])
+      setTotal(0)
+      return
+
       // Build query params (aligned with v1 API contract)
       const params = new URLSearchParams({
         limit: pageSize.toString(),
@@ -93,19 +99,19 @@ export default function ActionLogPage() {
       }
 
       // Note: v1 endpoint has doubled prefix: /api/capability/api/capability/actions/log
-      const response = await fetch(`/api/capability/api/capability/actions/log?${params}`)
-      const result = await response.json()
+      const response = await httpClient.get(`/api/capability/api/capability/actions/log?${params}`)
+      const result = response?.data
 
       if (result.ok && result.data) {
-        setActions(result.data.actions || [])
-        setTotal(result.data.pagination?.total || 0)
+        setActions(Array.isArray(result.data.actions) ? result.data.actions : [])
+        setTotal(typeof result.data.pagination?.total === 'number' ? result.data.pagination.total : 0)
       } else {
-        console.error('API error:', result.error || 'Unknown error')
+        console.warn('API error:', result?.error || 'Unknown error')
         setActions([])
         setTotal(0)
       }
     } catch (err) {
-      console.error('Failed to fetch action logs:', err)
+      console.warn('Failed to fetch action logs:', err)
       setActions([])
       setTotal(0)
     } finally {
@@ -169,11 +175,13 @@ export default function ActionLogPage() {
     },
     {
       field: 'decision_id',
-      headerName: 'Decision',
+      headerName: t('page.actionLog.columnDecision'),
       width: 120,
       renderCell: (params) => {
         const id = params.value as string | null
-        return id ? <code>{id.substring(0, 12)}...</code> : <span style={{ color: '#9ca3af' }}>N/A</span>
+        return id
+          ? <code>{id.substring(0, 12)}...</code>
+          : <span style={{ color: '#9ca3af' }}>{t('page.actionLog.valueNa')}</span>
       },
     },
     {
@@ -183,17 +191,19 @@ export default function ActionLogPage() {
     },
     {
       field: 'execution_time_ms',
-      headerName: 'Execution Time',
+      headerName: t('page.actionLog.columnExecutionTime'),
       width: 130,
       renderCell: (params) => `${params.value}ms`,
     },
     {
       field: 'side_effects',
-      headerName: 'Side Effects',
+      headerName: t('page.actionLog.columnSideEffects'),
       width: 130,
       renderCell: (params) => {
         const effects = params.value as ActionLog['side_effects']
-        return effects && effects.length > 0 ? effects.length : <span style={{ color: '#9ca3af' }}>None</span>
+        return effects && effects.length > 0
+          ? effects.length
+          : <span style={{ color: '#9ca3af' }}>{t('page.actionLog.valueNone')}</span>
       },
     },
     {
@@ -207,11 +217,11 @@ export default function ActionLogPage() {
         const diffMs = now.getTime() - date.getTime()
         const diffMins = Math.floor(diffMs / 60000)
 
-        if (diffMins < 1) return 'Just now'
-        if (diffMins < 60) return `${diffMins}m ago`
+        if (diffMins < 1) return t('page.actionLog.timeJustNow')
+        if (diffMins < 60) return t('page.actionLog.timeMinutesAgo', { minutes: diffMins })
 
         const diffHours = Math.floor(diffMins / 60)
-        if (diffHours < 24) return `${diffHours}h ago`
+        if (diffHours < 24) return t('page.actionLog.timeHoursAgo', { hours: diffHours })
 
         return date.toLocaleString()
       },

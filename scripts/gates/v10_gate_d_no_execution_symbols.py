@@ -5,7 +5,7 @@ v0.10 Gate D: Static Scan for Forbidden Execution Symbols
 Uses Python AST + regex scanning to detect forbidden execution patterns.
 Zero warnings, zero ambiguity, cross-platform compatible.
 
-Scans: agentos/core/executor_dry/**/*.py
+Scans: octopusos/core/executor_dry/**/*.py
 Excludes: docs/, comments, string literals (unless suspicious context)
 
 SCAN STRATEGY (Zero False Positives):
@@ -121,7 +121,7 @@ def main():
     print("=" * 70)
     
     # Scan paths
-    scan_dir = Path("agentos/core/executor_dry")
+    scan_dir = Path("octopusos/core/executor_dry")
     
     print(f"\n🔍 Scanning: {scan_dir}")
     print(f"  Method: Python AST + regex")

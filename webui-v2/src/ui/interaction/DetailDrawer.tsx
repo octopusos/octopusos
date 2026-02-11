@@ -107,60 +107,27 @@ export function DetailDrawer({
   children,
 }: DetailDrawerProps) {
   const { t } = useTextTranslation()
-  // ===================================
-  // 🔒 修复策略4A：显式焦点保存和恢复
-  // ===================================
-  // 保存打开前的焦点元素
   const lastActiveElementRef = useRef<HTMLElement | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
 
-  // Drawer打开时保存当前焦点
   useEffect(() => {
     if (open) {
-      // 保存打开前的焦点元素
       lastActiveElementRef.current = document.activeElement as HTMLElement
+      // Move focus into the drawer to avoid aria-hidden focus warnings on background content.
+      const timer = window.setTimeout(() => {
+        closeButtonRef.current?.focus()
+      }, 0)
+      return () => window.clearTimeout(timer)
     }
   }, [open])
 
-  // 处理Drawer关闭，显式恢复焦点
   const handleClose = () => {
-    // ===================================
-    // 🔒 关键修复：在 onClose 前立即恢复焦点
-    // ===================================
-    // 避免在关闭动画期间焦点留在被 aria-hidden 的 Drawer 内
-
-    // 首先，强制blur当前焦点元素（如果在Drawer内）
-    const currentFocus = document.activeElement as HTMLElement
-    if (currentFocus && typeof currentFocus.blur === 'function') {
-      try {
-        currentFocus.blur()
-      } catch (e) {
-        // ignore
-      }
+    // Best-effort focus restore for trigger element.
+    try {
+      lastActiveElementRef.current?.focus()
+    } catch {
+      // noop
     }
-
-    // 然后，尝试恢复到原始触发元素
-    if (lastActiveElementRef.current && typeof lastActiveElementRef.current.focus === 'function') {
-      try {
-        lastActiveElementRef.current.focus()
-      } catch (e) {
-        // 恢复失败，尝试fallback到body（避免焦点留在Drawer内）
-        console.warn('Failed to restore focus to last active element:', e)
-        try {
-          document.body.focus()
-        } catch (e2) {
-          // 最后的fallback：让焦点自然丢失
-        }
-      }
-    } else {
-      // 没有保存的焦点元素，强制blur到body
-      try {
-        document.body.focus()
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    // 然后关闭 Drawer
     onClose()
   }
 
@@ -169,36 +136,12 @@ export function DetailDrawer({
       anchor="right"
       open={open}
       onClose={handleClose}
-      // ===================================
-      // 🔒 焦点管理 - 修复 ARIA 警告
-      // ===================================
-      // 注意：虽然设置了disableRestoreFocus={false}，但MUI的自动restore
-      // 在嵌套overlay场景可能失效，所以我们实现了显式restore（上面）
-      disableRestoreFocus={false}  // 保留MUI的自动restore作为fallback
-      disableEnforceFocus={false}  // 强制焦点保持在 Drawer 内
-      disableAutoFocus={true}      // 🔒 阻止Paper容器自动获得焦点，避免aria-hidden警告
-      // ===================================
-      // 🔒 z-index 修复 - DetailDrawer 层级管理
-      // ===================================
-      // AppBar z-index = theme.zIndex.appBar = 1020
-      // Dialog/Modal z-index = theme.zIndex.modal = 1040
-      // DetailDrawer 使用 modal + 2 = 1042，确保在所有层之上
       sx={{
-        zIndex: (theme) => theme.zIndex.modal + 2,  // 1042，高于 Dialog(1040) 和 AppBar(1020)
+        zIndex: (theme) => theme.zIndex.modal + 2,
         '& .MuiDrawer-paper': {
           width,
           maxWidth: '100%',
         },
-      }}
-      // ===================================
-      // 🔒 关键修复：让 Paper 容器完全不可聚焦
-      // ===================================
-      // MUI Drawer 默认给 Paper 设置 tabIndex={-1}，使其可接收 programmatic focus
-      // 这导致焦点可能"落到"Paper上，触发 aria-hidden 警告
-      // 通过移除 tabIndex，让 Paper 完全不可聚焦
-      PaperProps={{
-        // @ts-ignore - MUI types可能不允许tabIndex为null，但运行时有效
-        tabIndex: null,  // 移除tabIndex，让Paper不可聚焦
       }}
     >
       {/* Header */}
@@ -222,6 +165,7 @@ export function DetailDrawer({
           )}
         </Box>
         <IconButton
+          ref={closeButtonRef}
           aria-label={t(K.common.close)}
           onClick={handleClose}
           size="small"

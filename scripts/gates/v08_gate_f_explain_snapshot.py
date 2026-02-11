@@ -17,7 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Add agentos to path
+# Add octopusos to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
@@ -35,7 +35,7 @@ def test_explain_output():
     ]
     
     try:
-        from agentos.core.content import ContentRegistry, ContentLineageTracker
+        from octopusos.core.content import ContentRegistry, ContentLineageTracker
         import yaml
         
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -43,7 +43,7 @@ def test_explain_output():
             import sqlite3
             db_path = Path(tmpdir) / "test.db"
             
-            schema_path = Path("agentos/store/schema_v05.sql")
+            schema_path = Path("octopusos/store/schema_v05.sql")
             if not schema_path.exists():
                 print(f"  ❌ Schema file not found: {schema_path}")
                 return False

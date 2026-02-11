@@ -42,13 +42,13 @@ import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
 import { StatusCard, ErrorState, DashboardGrid, AppCard } from '@/ui'
 import { DownloadIcon, TrendingUpIcon } from '@/ui/icons'
-import { networkosService, type TrustTrajectory, type GetTrustTrajectoryRequest } from '@/services/networkos.service'
+import { networkosService, type TrustTrajectory, type GetTrustTrajectoryRequest } from '@services'
 
 /**
  * TrustTrajectoryPage 组件
  *
  * 📊 Pattern: Custom Layout（Timeline + Stats + Table）
- * 🔌 API: GET /api/trust/trajectory/:entityId → networkosService.getTrustTrajectory()
+ * 🔌 API: GET /api/trust/trajectory/:entityId → networkosService.trustTrajectoryApiTrustTrajectorySubjectIdGet()
  */
 export default function TrustTrajectoryPage() {
   const { t } = useTextTranslation()
@@ -86,7 +86,7 @@ export default function TrustTrajectoryPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await networkosService.getTrustTrajectory({
+      const response = await networkosService.trustTrajectoryApiTrustTrajectorySubjectIdGet({
         entityId: targetEntityId,
         timeRange: targetTimeRange,
       })

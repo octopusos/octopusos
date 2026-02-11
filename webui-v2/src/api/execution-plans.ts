@@ -55,26 +55,70 @@ export interface ExecutionPlanListFilters {
 // ============================================
 
 class ExecutionPlansApiClient {
-  private baseUrl = '/api/execution-plans'
+  private baseUrl = '/api/dispatch/jobs'
 
   /**
    * List execution plans with optional filters
-   * GET /api/execution-plans
+   * GET /api/dispatch/jobs
    */
   async listPlans(filters?: ExecutionPlanListFilters): Promise<ExecutionPlansListResponse> {
-    const response = await httpClient.get<ExecutionPlansListResponse>(this.baseUrl, {
-      params: filters
+    const limit = typeof filters?.limit === 'number' ? filters.limit : 25
+    const offset = typeof filters?.offset === 'number' ? filters.offset : 0
+    const backendLimit = Math.min(200, Math.max(1, offset + limit))
+
+    const response = await httpClient.get<{ jobs?: Array<Record<string, any>> }>(this.baseUrl, {
+      params: {
+        status: filters?.status,
+        limit: backendLimit,
+      }
     })
-    return response.data
+
+    const jobs = Array.isArray(response.data?.jobs) ? response.data.jobs : []
+    const sortedJobs = jobs.sort((a, b) => String(b?.created_at || '').localeCompare(String(a?.created_at || '')))
+    const pagedJobs = sortedJobs.slice(offset, offset + limit)
+
+    const plans = pagedJobs.map((job) => ({
+      id: String(job?.job_id || ''),
+      name: `Dispatch ${String(job?.job_id || '').slice(0, 8)}`,
+      description: job?.proposal_id ? `Proposal: ${String(job.proposal_id)}` : undefined,
+      status: String(job?.status || 'queued'),
+      priority: 'medium',
+      steps: Array.isArray(job?.evidence?.steps) ? job.evidence.steps.length : 0,
+      created_at: String(job?.created_at || ''),
+      estimated_time: undefined,
+      executed_at: typeof job?.ended_at === 'string' ? job.ended_at : undefined,
+    }))
+
+    return {
+      plans,
+      total: sortedJobs.length,
+      limit,
+      offset,
+    }
   }
 
   /**
    * Get execution plan details by ID
-   * GET /api/execution-plans/{plan_id}
+   * GET /api/dispatch/jobs/{job_id}
    */
   async getPlan(planId: string): Promise<ExecutionPlanDetailResponse> {
-    const response = await httpClient.get<ExecutionPlanDetailResponse>(`${this.baseUrl}/${encodeURIComponent(planId)}`)
-    return response.data
+    const response = await httpClient.get<{ job?: Record<string, any> }>(`${this.baseUrl}/${encodeURIComponent(planId)}`)
+    const job = response.data?.job || {}
+
+    return {
+      plan: {
+        id: String(job?.job_id || planId),
+        name: `Dispatch ${String(job?.job_id || planId).slice(0, 8)}`,
+        description: job?.proposal_id ? `Proposal: ${String(job.proposal_id)}` : undefined,
+        status: String(job?.status || 'queued'),
+        priority: 'medium',
+        steps: Array.isArray(job?.evidence?.steps) ? job.evidence.steps.length : 0,
+        created_at: String(job?.created_at || ''),
+        estimated_time: undefined,
+        executed_at: typeof job?.ended_at === 'string' ? job.ended_at : undefined,
+      },
+      steps: [],
+    }
   }
 }
 

@@ -15,10 +15,10 @@ from pathlib import Path
 
 import yaml
 
-# Add agentos to path
+# Add octopusos to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.gates.validate_command_redlines import (
+from octopusos.core.gates.validate_command_redlines import (
     CommandRedlineValidator,
     CommandRedlineViolation,
 )

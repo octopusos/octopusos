@@ -12,15 +12,15 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
-        "agentos/api/routes.py",
-        "agentos/api/handlers.py"
+        "octopusos/api/routes.py",
+        "octopusos/api/handlers.py"
       ],
       "modules": [
-        "agentos.api"
+        "octopusos.api"
       ],
       "areas": [
         "backend"
@@ -68,7 +68,7 @@
       ],
       "risk_level": "low",
       "evidence_refs": [
-        "scan://api_routes/agentos.api"
+        "scan://api_routes/octopusos.api"
       ]
     }
   ],
@@ -91,7 +91,7 @@
     "max_cost_usd": 1.0
   },
   "evidence_refs": [
-    "scan://api_routes/agentos.api",
+    "scan://api_routes/octopusos.api",
     "doc://performance/analysis_guide.md"
   ],
   "constraints": {

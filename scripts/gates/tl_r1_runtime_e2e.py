@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import (
+from octopusos.ext.tools import (
     ClaudeCliAdapter,
     ToolTask,
     ToolResult,
@@ -64,7 +64,7 @@ class TLR1Gate:
             # 初始化 git repo
             subprocess.run(["git", "init"], cwd=self.repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "TL-R1 Gate"], cwd=self.repo_path, check=True)
-            subprocess.run(["git", "config", "user.email", "gate@agentos.dev"], cwd=self.repo_path, check=True)
+            subprocess.run(["git", "config", "user.email", "gate@octopusos.dev"], cwd=self.repo_path, check=True)
             
             # 创建初始文件
             index_file = self.repo_path / "index.html"
@@ -74,7 +74,7 @@ class TLR1Gate:
     <title>TL-R1 Test Page</title>
 </head>
 <body>
-    <h1>Welcome to AgentOS</h1>
+    <h1>Welcome to OctopusOS</h1>
     <p>This is a test page for Step 3 Runtime Gate.</p>
 </body>
 </html>
@@ -121,7 +121,7 @@ class TLR1Gate:
             # 创建任务
             task = ToolTask(
                 task_id="tl_r1_task_001",
-                instruction="Add a footer to index.html with text 'Powered by AgentOS Step 3 Runtime'",
+                instruction="Add a footer to index.html with text 'Powered by OctopusOS Step 3 Runtime'",
                 repo_path=str(self.repo_path),
                 allowed_paths=["index.html"],
                 forbidden_paths=[".git/**", "*.env"],
@@ -282,7 +282,7 @@ Lines: {result.line_count}
             index_file = self.repo_path / "index.html"
             content = index_file.read_text()
             
-            if "footer" not in content.lower() or "agentos" not in content.lower():
+            if "footer" not in content.lower() or "octopusos" not in content.lower():
                 return False, "File content does not contain expected changes"
             
             print("✅ File content verified")

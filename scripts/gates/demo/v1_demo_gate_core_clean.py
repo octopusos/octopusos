@@ -2,7 +2,7 @@
 """
 P-G Core Clean Proof
 
-验证 agentos/core/ 没有被 demo/pipeline 专用代码污染。
+验证 octopusos/core/ 没有被 demo/pipeline 专用代码污染。
 """
 
 import sys
@@ -14,11 +14,11 @@ def gate_core_clean(repo_root: Path) -> tuple[bool, str]:
     验证 core 目录的纯净性
     
     禁止规则:
-    1. agentos/core/verify/schema_validator.py 不能包含 SchemaValidator 类
-    2. agentos/core/ 下不能有 demo 专用代码
+    1. octopusos/core/verify/schema_validator.py 不能包含 SchemaValidator 类
+    2. octopusos/core/ 下不能有 demo 专用代码
     """
     
-    schema_validator_file = repo_root / "agentos" / "core" / "verify" / "schema_validator.py"
+    schema_validator_file = repo_root / "octopusos" / "core" / "verify" / "schema_validator.py"
     
     if not schema_validator_file.exists():
         return False, f"schema_validator.py not found: {schema_validator_file}"
@@ -27,7 +27,7 @@ def gate_core_clean(repo_root: Path) -> tuple[bool, str]:
     
     # 检查是否包含 SchemaValidator 类定义
     if "class SchemaValidator" in content:
-        return False, "agentos/core/verify/schema_validator.py 包含 SchemaValidator 类 (污染core)"
+        return False, "octopusos/core/verify/schema_validator.py 包含 SchemaValidator 类 (污染core)"
     
     # 检查是否有向后兼容的 wrapper 注释
     if "向后兼容" in content or "compatibility" in content.lower():

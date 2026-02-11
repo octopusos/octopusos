@@ -1,7 +1,7 @@
 # MCP Marketplace Registry
 #
-# This is the official AgentOS MCP Package registry. Each package represents
-# an MCP server that can be "attached" to AgentOS (not "installed").
+# This is the official OctopusOS MCP Package registry. Each package represents
+# an MCP server that can be "attached" to OctopusOS (not "installed").
 #
 # Attachment Process:
 # 1. Discover: Browse packages in this registry
@@ -15,12 +15,12 @@
 version: "1.0"
 packages:
   # ============================================
-  # T0: Official AgentOS MCPs
+  # T0: Official OctopusOS MCPs
   # ============================================
-  - package_id: "agentos.official/echo-math"
+  - package_id: "octopusos.official/echo-math"
     name: "Echo Math Calculator"
     version: "1.0.0"
-    author: "AgentOS Team"
+    author: "OctopusOS Team"
     description: "Simple echo and math tools for testing and demonstrations"
     long_description: |
       A minimal MCP server providing echo and basic arithmetic operations.
@@ -70,6 +70,106 @@ packages:
     repository: "https://github.com/modelcontextprotocol/servers"
     license: "MIT"
     tags: ["official", "testing", "math", "utilities"]
+
+  - package_id: "octopusos.official/email"
+    name: "Email"
+    version: "0.1.0"
+    author: "OctopusOS Team"
+    description: "Email tools (unread digest, read message, draft reply, send) via the local OctopusOS backend"
+    long_description: |
+      Local MCP server that exposes Email tools by forwarding requests to a running
+      OctopusOS WebUI backend (HTTP).
+
+      This keeps all existing policy gates, audit logs, and confirmation flows in one place.
+      In particular, sending email remains confirmation-based.
+
+    tools:
+      - name: "email.list_unread"
+        description: "List unread emails and generate a digest"
+        input_schema:
+          type: "object"
+          properties:
+            instance_id:
+              type: "string"
+              description: "Email provider instance id"
+            since:
+              type: "string"
+              description: "today|all"
+            limit:
+              type: "number"
+              description: "Max messages to fetch (1..200)"
+            tz:
+              type: "string"
+              description: "Timezone (e.g. Australia/Sydney)"
+          required: ["instance_id"]
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "email.get_message"
+        description: "Fetch a single email message"
+        input_schema:
+          type: "object"
+          properties:
+            instance_id:
+              type: "string"
+            message_id:
+              type: "string"
+          required: ["instance_id", "message_id"]
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "email.draft_reply"
+        description: "Create a polished reply draft (confirmation required to actually send)"
+        input_schema:
+          type: "object"
+          properties:
+            instance_id:
+              type: "string"
+            message_id:
+              type: "string"
+            user_text:
+              type: "string"
+              description: "User intent for the reply"
+          required: ["instance_id", "message_id"]
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "email.send_draft"
+        description: "Send a draft reply (must be confirmation-based)"
+        input_schema:
+          type: "object"
+          properties:
+            instance_id:
+              type: "string"
+            draft_id:
+              type: "string"
+            confirm_token:
+              type: "string"
+            user_confirmed:
+              type: "boolean"
+          required: ["instance_id", "draft_id", "confirm_token", "user_confirmed"]
+        side_effects: ["network_write"]
+        requires_confirmation: true
+
+    declared_side_effects:
+      - "network_read"
+      - "network_write"
+
+    transport: "stdio"
+    connection_template:
+      command: "node"
+      args: ["servers/email-mcp/index.js"]
+      env:
+        OCTOPUSOS_BACKEND_ORIGIN: "http://127.0.0.1:8080"
+
+    recommended_trust_tier: "T1"
+    recommended_quota_profile: "medium"
+    requires_admin_token: false
+
+    homepage: "https://octopusos.local/channels/email"
+    repository: "local"
+    license: "MIT"
+    tags: ["official", "email", "communication", "local"]
 
   # ============================================
   # T1: Verified Stdio MCPs (Local, No Network)
@@ -304,3 +404,107 @@ packages:
     repository: "https://github.com/smithery-ai/mcp-servers"
     license: "MIT"
     tags: ["slack", "communication", "cloud", "notifications"]
+
+  - package_id: "aws.mcp"
+    name: "AWS MCP"
+    version: "0.1.0"
+    author: "OctopusOS Team"
+    description: "Query and operate AWS services via MCP tools"
+    long_description: |
+      AWS MCP adapter exposing read and operation tools for AWS services.
+      Profile and region are injected from attach config into environment variables.
+
+    tools:
+      - name: "aws_sts_get_caller_identity"
+        description: "Get current AWS account identity"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_s3_list_buckets"
+        description: "List S3 buckets"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_ec2_describe_instances"
+        description: "List EC2 instances and instance specs"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_ec2_describe_instance_status"
+        description: "Check EC2 instance runtime and status check health"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_cloudwatch_get_metric_data"
+        description: "Inspect EC2 load and utilization metrics (CPU/network/disk)"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_ce_get_cost_and_usage"
+        description: "Check monthly AWS cost and usage"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_ce_get_cost_breakdown"
+        description: "Explain monthly cost composition by service and usage type"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+      - name: "aws_servicequotas_list_services"
+        description: "Check enabled service domains and quota availability"
+        input_schema:
+          type: "object"
+          properties: {}
+          required: []
+        side_effects: ["network_read"]
+        requires_confirmation: false
+
+    declared_side_effects:
+      - "network_read"
+      - "network_write"
+      - "system_command"
+
+    transport: "stdio"
+    connection_template:
+      command: "uvx"
+      args: ["awslabs.aws-api-mcp-server@latest"]
+      env:
+        AWS_PROFILE: "{{profile}}"
+        AWS_REGION: "{{region}}"
+
+    recommended_trust_tier: "T2"
+    recommended_quota_profile: "medium"
+    requires_admin_token: true
+
+    homepage: "https://aws.amazon.com"
+    repository: "https://github.com/aws"
+    license: "Apache-2.0"
+    tags: ["aws", "cloud", "devops", "infrastructure"]

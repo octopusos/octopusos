@@ -6,7 +6,7 @@ Trust Tier Usage Examples
 
 from datetime import datetime
 
-from agentos.core.capabilities.capability_models import (
+from octopusos.core.capabilities.capability_models import (
     TrustTier,
     RiskLevel,
     ToolDescriptor,
@@ -14,15 +14,15 @@ from agentos.core.capabilities.capability_models import (
     ExecutionMode,
     ToolSource,
 )
-from agentos.core.capabilities.trust_tier_defaults import (
+from octopusos.core.capabilities.trust_tier_defaults import (
     get_default_risk_level,
     get_default_quota,
     should_require_admin_token,
     get_side_effects_policy,
 )
-from agentos.core.capabilities.policy import ToolPolicyEngine
-from agentos.core.mcp.adapter import MCPAdapter
-from agentos.core.mcp.config import MCPServerConfig
+from octopusos.core.capabilities.policy import ToolPolicyEngine
+from octopusos.core.mcp.adapter import MCPAdapter
+from octopusos.core.mcp.config import MCPServerConfig
 
 
 def example_1_query_trust_tier_defaults():

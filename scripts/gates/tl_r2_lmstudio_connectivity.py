@@ -15,7 +15,7 @@ Step 4 扩展：验证 LM Studio 本地模型接入的连通性 + 边界正确�
 🔒 钉子 3：output_kind 必须断言（Mode System 支点）
 
 运行方式：
-    AGENTOS_GATE_MODE=1 python scripts/gates/tl_r2_lmstudio_connectivity.py [repo_root]
+    OCTOPUSOS_GATE_MODE=1 python scripts/gates/tl_r2_lmstudio_connectivity.py [repo_root]
 """
 
 import sys
@@ -27,7 +27,7 @@ from typing import Dict, Any, Tuple
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import (
+from octopusos.ext.tools import (
     LMStudioAdapter,
     ToolTask,
     DiffVerifier,
@@ -89,7 +89,7 @@ def gate_lmstudio_minimal_run(adapter: LMStudioAdapter, repo_path: Path) -> Tupl
     - 发送最小 prompt，拿回 ToolResult
     - 检查 diff 字段存在（允许 Mock）
     """
-    os.environ["AGENTOS_GATE_MODE"] = "1"
+    os.environ["OCTOPUSOS_GATE_MODE"] = "1"
     
     try:
         # 准备最小任务

@@ -17,20 +17,20 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from agentos.core.brain.info_need_pattern_extractor import InfoNeedPatternExtractor
-from agentos.core.brain.info_need_pattern_writer import InfoNeedPatternWriter
-from agentos.core.brain.info_need_pattern_models import (
+from octopusos.core.brain.info_need_pattern_extractor import InfoNeedPatternExtractor
+from octopusos.core.brain.info_need_pattern_writer import InfoNeedPatternWriter
+from octopusos.core.brain.info_need_pattern_models import (
     InfoNeedPatternNode,
     PatternType,
 )
-from agentos.core.memory.schema import (
+from octopusos.core.memory.schema import (
     InfoNeedJudgment,
     InfoNeedType,
     ConfidenceLevel,
     DecisionAction,
     JudgmentOutcome,
 )
-from agentos.jobs.info_need_pattern_extraction import PatternExtractionJob
+from octopusos.jobs.info_need_pattern_extraction import PatternExtractionJob
 
 
 def create_sample_judgment(
@@ -71,7 +71,7 @@ async def demo_feature_extraction():
     print("Demo 1: Question Feature Extraction")
     print("="*60)
 
-    from agentos.core.brain.info_need_pattern_extractor import QuestionFeatureExtractor
+    from octopusos.core.brain.info_need_pattern_extractor import QuestionFeatureExtractor
 
     extractor = QuestionFeatureExtractor()
 

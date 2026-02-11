@@ -29,7 +29,7 @@ def main():
     # Check if explain functionality can be imported
     try:
         sys.path.insert(0, str(REPO_ROOT))
-        from agentos.core.evaluator import EvaluationExplainer
+        from octopusos.core.evaluator import EvaluationExplainer
         
         explainer = EvaluationExplainer()
         

@@ -2,7 +2,7 @@
  * PipelinePage - Pipeline Management (Task Events View)
  *
  * Phase 6: Real API Integration
- * - ✅ API: agentosService.listTasks() → Task list with events
+ * - ✅ API: octopusosService.listTasksApiTasksGet() → Task list with events
  * - ✅ Loading/Success/Error/Empty states
  * - ✅ Filter: search, stage (phase), status
  * - ✅ Actions: Refresh, View Details
@@ -15,7 +15,7 @@ import { TableShell, FilterBar, TextField, Select, MenuItem, Chip } from '@/ui'
 import { CreateTaskDialog, type CreateTaskRequest } from '@/ui/interaction'
 import { K, useTextTranslation } from '@/ui/text'
 import type { GridColDef } from '@/ui'
-import { agentosService } from '@/services/agentos.service'
+import { octopusosService } from '@services'
 import { toast } from '@/ui/feedback'
 
 /**
@@ -113,12 +113,12 @@ export default function PipelinePage() {
   const fetchPipelines = async () => {
     try {
       setLoading(true)
-      const response = await agentosService.listTasks({
+      const response = await octopusosService.listTasksApiTasksGet({
         page: 1,
         limit: 100,
       })
 
-      const rows: PipelineRow[] = response.tasks.map((task) => ({
+      const rows: PipelineRow[] = response.tasks.map((task: any) => ({
         id: task.id,
         task_id: task.id,
         title: task.title,
@@ -151,7 +151,7 @@ export default function PipelinePage() {
   const handleCreateTask = async (data: CreateTaskRequest) => {
     try {
       setCreating(true)
-      await agentosService.createTask(data)
+      await octopusosService.createTaskApiTasksPost(data)
       toast.success('Task created successfully')
       setCreateDialogOpen(false)
       // Refresh the pipeline list

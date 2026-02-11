@@ -55,7 +55,7 @@
           "guard_name": "memory_pack_available",
           "passed": true,
           "reason": "MemoryPack with security scan conventions loaded",
-          "evidence_refs": ["memory_pack://agentos/security"]
+          "evidence_refs": ["memory_pack://octopusos/security"]
         }
       ],
       "outputs_produced": [

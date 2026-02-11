@@ -1,4 +1,4 @@
-# AgentOS Gates
+# OctopusOS Gates
 
 Multi-layer defense system to enforce architectural contracts and prevent regressions.
 
@@ -40,7 +40,7 @@ bash scripts/gates/check_datetime_usage.sh
 
 #### ✅ Allowed
 - Using `registry_db.get_db()` for database access
-- Creating migrations in `agentos/store/migrations/`
+- Creating migrations in `octopusos/store/migrations/`
 - Using whitelisted legacy files (temporary)
 
 #### ❌ Blocked
@@ -55,7 +55,7 @@ bash scripts/gates/check_datetime_usage.sh
 ### Time & Timestamp Gate
 
 #### ✅ Allowed
-- Using `utc_now()` from `agentos.core.time`
+- Using `utc_now()` from `octopusos.core.time`
 - Using `datetime.now(timezone.utc)` with explicit timezone
 - Using `datetime.now(tz=...)` with explicit timezone parameter
 
@@ -75,7 +75,7 @@ import sqlite3
 conn = sqlite3.connect("my.db")
 
 # ✅ CORRECT
-from agentos.core.db import registry_db
+from octopusos.core.db import registry_db
 conn = registry_db.get_db()
 ```
 
@@ -87,7 +87,7 @@ class MySessionStore:
         self.conn = sqlite3.connect("sessions.db")
 
 # ✅ CORRECT
-from agentos.core.db import registry_db
+from octopusos.core.db import registry_db
 
 class MySessionStore:
     def __init__(self):
@@ -105,7 +105,7 @@ def init():
     """)
 
 # ✅ CORRECT
-# Create file: agentos/store/migrations/0042_add_my_table.py
+# Create file: octopusos/store/migrations/0042_add_my_table.py
 def upgrade(conn):
     conn.execute("""
         CREATE TABLE IF NOT EXISTS my_table (
@@ -122,7 +122,7 @@ def get_db():
 
 # ✅ CORRECT
 # Delete your get_db() and use:
-from agentos.core.db import registry_db
+from octopusos.core.db import registry_db
 # Use registry_db.get_db() everywhere
 ```
 

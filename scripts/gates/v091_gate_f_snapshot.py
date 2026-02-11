@@ -17,7 +17,7 @@ sys.path.insert(0, str(project_root))
 from scripts.validate_intents import IntentValidator
 
 EXAMPLES_DIR = Path("examples/intents")
-SCHEMA_PATH = Path("agentos/schemas/execution/intent.schema.json")
+SCHEMA_PATH = Path("octopusos/schemas/execution/intent.schema.json")
 SNAPSHOT_PATH = Path("tests/snapshots/v091_explain_snapshot.json")
 
 # Fixed set of intents to test

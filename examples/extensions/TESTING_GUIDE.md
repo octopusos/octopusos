@@ -1,6 +1,6 @@
 # Extension System Testing Guide
 
-Complete guide for testing the AgentOS Extension System.
+Complete guide for testing the OctopusOS Extension System.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Complete guide for testing the AgentOS Extension System.
 ### 1. Create Extension Packages
 
 ```bash
-cd /Users/pangge/PycharmProjects/AgentOS/examples/extensions
+cd /Users/pangge/PycharmProjects/OctopusOS/examples/extensions
 python3 create_extensions.py
 ```
 
@@ -32,14 +32,14 @@ Output:
 ### 2. Start Server
 
 ```bash
-cd /Users/pangge/PycharmProjects/AgentOS
-python3 -m agentos.webui.server
+cd /Users/pangge/PycharmProjects/OctopusOS
+python3 -m octopusos.webui.server
 ```
 
 ### 3. Run E2E Tests
 
 ```bash
-cd /Users/pangge/PycharmProjects/AgentOS/examples/extensions
+cd /Users/pangge/PycharmProjects/OctopusOS/examples/extensions
 python3 e2e_acceptance_test.py --verbose
 ```
 
@@ -50,14 +50,14 @@ python3 e2e_acceptance_test.py --verbose
 - **Server**: `http://localhost:8000`
 - **Database**: `store/registry.sqlite` (local)
 - **Extensions**: `store/extensions/` (local)
-- **Logs**: `logs/agentos.log`
+- **Logs**: `logs/octopusos.log`
 
 ### Testing Environment
 
 - **Server**: `http://localhost:8001` (separate port)
 - **Database**: `test_store/registry.sqlite` (isolated)
 - **Extensions**: `test_store/extensions/` (isolated)
-- **Logs**: `test_logs/agentos.log`
+- **Logs**: `test_logs/octopusos.log`
 
 ### CI/CD Environment
 
@@ -73,7 +73,7 @@ python3 e2e_acceptance_test.py --verbose
 Test manifest validation:
 
 ```bash
-cd /Users/pangge/PycharmProjects/AgentOS
+cd /Users/pangge/PycharmProjects/OctopusOS
 python3 -m pytest tests/unit/core/extensions/test_validator.py -v
 ```
 
@@ -159,9 +159,9 @@ Test full lifecycle:
 ```bash
 python3 -c "
 from pathlib import Path
-from agentos.core.extensions.registry import ExtensionRegistry
-from agentos.core.extensions.installer import ZipInstaller
-from agentos.core.extensions.engine import ExtensionInstallEngine
+from octopusos.core.extensions.registry import ExtensionRegistry
+from octopusos.core.extensions.installer import ZipInstaller
+from octopusos.core.extensions.engine import ExtensionInstallEngine
 
 # Initialize components
 registry = ExtensionRegistry()
@@ -346,7 +346,7 @@ Test slash commands in chat:
 3. **Test commands:**
    ```
    /hello
-   /hello AgentOS
+   /hello OctopusOS
    /hello "World of Extensions"
    ```
 
@@ -510,7 +510,7 @@ Verify:
 **Solutions:**
 1. Check server is running:
    ```bash
-   ps aux | grep "agentos.webui.server"
+   ps aux | grep "octopusos.webui.server"
    ```
 
 2. Check port is available:
@@ -520,7 +520,7 @@ Verify:
 
 3. Check logs:
    ```bash
-   tail -f logs/agentos.log
+   tail -f logs/octopusos.log
    ```
 
 #### Installation Timeout
@@ -576,13 +576,13 @@ Enable verbose logging:
 
 ```bash
 # Server with debug logging
-DEBUG=1 python3 -m agentos.webui.server
+DEBUG=1 python3 -m octopusos.webui.server
 
 # Tests with verbose output
 python3 e2e_acceptance_test.py --verbose
 
 # Python logging
-export PYTHONPATH=/Users/pangge/PycharmProjects/AgentOS
+export PYTHONPATH=/Users/pangge/PycharmProjects/OctopusOS
 python3 -c "
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -600,7 +600,7 @@ cp store/registry.sqlite store/registry.sqlite.bak
 
 # Reinitialize
 python3 -c "
-from agentos.store import init_db
+from octopusos.store import init_db
 init_db()
 "
 
@@ -654,7 +654,7 @@ jobs:
 
       - name: Initialize database
         run: |
-          python3 -m agentos.store init_db
+          python3 -m octopusos.store init_db
 
       - name: Create extensions
         run: |
@@ -663,7 +663,7 @@ jobs:
 
       - name: Start server
         run: |
-          python3 -m agentos.webui.server &
+          python3 -m octopusos.webui.server &
           sleep 5
 
       - name: Run E2E tests
@@ -742,7 +742,7 @@ When reporting test failures, include:
 
 3. **Server logs:**
    ```bash
-   tail -100 logs/agentos.log
+   tail -100 logs/octopusos.log
    ```
 
 4. **Environment:**
@@ -760,7 +760,7 @@ When reporting test failures, include:
 1. **Always test on clean database:**
    ```bash
    rm store/registry.sqlite
-   python3 -m agentos.store init_db
+   python3 -m octopusos.store init_db
    ```
 
 2. **Use isolated environments:**
@@ -771,7 +771,7 @@ When reporting test failures, include:
 
 3. **Check server logs:**
    ```bash
-   tail -f logs/agentos.log
+   tail -f logs/octopusos.log
    ```
 
 4. **Verify cleanup:**
@@ -800,5 +800,5 @@ After all tests pass:
 For help with testing:
 - Documentation: `/docs/extensions/`
 - Issues: GitHub Issues
-- Logs: `logs/agentos.log`
+- Logs: `logs/octopusos.log`
 - Community: Discord/Slack

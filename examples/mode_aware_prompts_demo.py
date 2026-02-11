@@ -8,7 +8,7 @@ Usage:
     python examples/mode_aware_prompts_demo.py
 """
 
-from agentos.core.chat.prompts import (
+from octopusos.core.chat.prompts import (
     get_system_prompt,
     get_available_modes,
     get_mode_description,
@@ -161,8 +161,8 @@ def demo_usage_example():
     print_section("Usage Example")
 
     code = '''
-from agentos.core.chat.service import ChatService
-from agentos.core.chat.models import ConversationMode
+from octopusos.core.chat.service import ChatService
+from octopusos.core.chat.models import ConversationMode
 
 # Create chat service
 service = ChatService()
@@ -197,7 +197,7 @@ def main():
     print("\n")
     print("╔═══════════════════════════════════════════════════════════════════════╗")
     print("║                                                                       ║")
-    print("║             AgentOS Mode-Aware Output Templates Demo                 ║")
+    print("║             OctopusOS Mode-Aware Output Templates Demo                 ║")
     print("║                                                                       ║")
     print("║  Task #6: Conversation modes adjust AI communication style           ║")
     print("║           without affecting capability permissions                   ║")
@@ -217,7 +217,7 @@ def main():
         print("=" * 80)
         print("\nFor more details, see:")
         print("  • docs/adr/ADR-CHAT-MODE-001-Conversation-Mode-Architecture.md")
-        print("  • agentos/core/chat/prompts.py")
+        print("  • octopusos/core/chat/prompts.py")
         print("  • tests/unit/core/chat/test_mode_aware_prompts.py")
         print()
 

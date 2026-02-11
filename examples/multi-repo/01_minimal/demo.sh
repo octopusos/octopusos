@@ -5,7 +5,7 @@ echo "=== Multi-Repo Minimal Example ==="
 echo ""
 
 # Setup test directories
-DEMO_DIR="/tmp/agentos-demo-$(date +%s)"
+DEMO_DIR="/tmp/octopusos-demo-$(date +%s)"
 mkdir -p "$DEMO_DIR"
 
 echo "1. Creating local test repos..."
@@ -52,12 +52,12 @@ YAML_EOF
 
 # Import project
 echo "3. Importing project..."
-agentos project import --from project.yaml --workspace-root "$DEMO_DIR" --yes
+octopusos project import --from project.yaml --workspace-root "$DEMO_DIR" --yes
 
 # Verify import
 echo ""
 echo "4. Verifying import..."
-agentos project repos list minimal-demo
+octopusos project repos list minimal-demo
 
 # Show workspace
 echo ""
@@ -70,8 +70,8 @@ echo "✓ Demo complete!"
 echo ""
 echo "To explore:"
 echo "  cd $DEMO_DIR"
-echo "  agentos project repos list minimal-demo"
-echo "  agentos project validate minimal-demo"
+echo "  octopusos project repos list minimal-demo"
+echo "  octopusos project validate minimal-demo"
 echo ""
 echo "To cleanup:"
 echo "  rm -rf $DEMO_DIR"

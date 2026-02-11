@@ -12,9 +12,9 @@ FAILED=0
 
 # 扫描路径
 SCAN_PATHS=(
-    "agentos/core/content/registry.py"
-    "agentos/core/content/facade.py"
-    "agentos/core/content/activation.py"
+    "octopusos/core/content/registry.py"
+    "octopusos/core/content/facade.py"
+    "octopusos/core/content/activation.py"
 )
 
 # 禁止的关键词（作为方法名）
@@ -52,7 +52,7 @@ done
 
 # 检查 RED LINE 注释是否存在
 echo "Checking for RED LINE comments..."
-if grep -q "RED LINE.*does NOT execute" agentos/core/content/registry.py; then
+if grep -q "RED LINE.*does NOT execute" octopusos/core/content/registry.py; then
     echo "  ✅ RED LINE comment found in registry.py"
 else
     echo "  ❌ RED LINE comment missing in registry.py"
