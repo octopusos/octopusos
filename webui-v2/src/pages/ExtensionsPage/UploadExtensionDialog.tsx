@@ -13,7 +13,6 @@ import { Box, Typography, Button, LinearProgress, Alert } from '@/ui'
 import { UploadIcon } from '@/ui/icons'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { skillosService } from '@/services/skillos.service'
 
 interface UploadExtensionDialogProps {
   open: boolean
@@ -21,13 +20,13 @@ interface UploadExtensionDialogProps {
   onSuccess: () => void
 }
 
-export function UploadExtensionDialog({ open, onClose, onSuccess }: UploadExtensionDialogProps) {
+export function UploadExtensionDialog({ open, onClose, onSuccess: _onSuccess }: UploadExtensionDialogProps) {
   const { t } = useTextTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [installing, setInstalling] = useState(false)
+  const [installing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState<string>('')
   const [error, setError] = useState<string>('')
@@ -54,55 +53,7 @@ export function UploadExtensionDialog({ open, onClose, onSuccess }: UploadExtens
     setError('')
 
     try {
-      // Upload file
-      const response = await skillosService.installExtensionUpload(selectedFile)
-      const installId = response.install_id
-
-      setUploading(false)
-      setInstalling(true)
-      setProgress(0)
-      setCurrentStep(t('page.extensions.installing'))
-
-      // Poll installation progress
-      const pollInterval = setInterval(async () => {
-        try {
-          const progressData = await skillosService.getInstallProgress(installId)
-
-          setProgress(progressData.progress)
-          if (progressData.current_step) {
-            setCurrentStep(progressData.current_step)
-          }
-
-          if (progressData.status === 'COMPLETED') {
-            clearInterval(pollInterval)
-            setInstalling(false)
-            toast.success(t('page.extensions.installSuccess'))
-            onSuccess()
-            handleCloseDialog()
-          } else if (progressData.status === 'FAILED') {
-            clearInterval(pollInterval)
-            setInstalling(false)
-            const errorMsg = progressData.error || 'Installation failed'
-            setError(errorMsg)
-            toast.error(t('page.extensions.installFailed') + ': ' + errorMsg)
-          }
-        } catch (pollError) {
-          console.error('Failed to poll progress:', pollError)
-          clearInterval(pollInterval)
-          setInstalling(false)
-          setError('Failed to check installation progress')
-        }
-      }, 1000) // Poll every second
-
-      // Timeout after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval)
-        if (installing) {
-          setInstalling(false)
-          setError('Installation timeout')
-          toast.error('Installation took too long')
-        }
-      }, 300000)
+      throw new Error('Extension upload install is not available in current API contract')
 
     } catch (err: any) {
       console.error('Upload failed:', err)

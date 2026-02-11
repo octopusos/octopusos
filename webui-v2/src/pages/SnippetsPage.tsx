@@ -2,7 +2,7 @@
  * SnippetsPage - 代码片段
  *
  * Phase 6: Real API Integration
- * - API: systemService.listSnippets(), createSnippet(), updateSnippet(), deleteSnippet()
+ * - API: systemService.listSnippetsApiSnippetsGet(), createSnippet(), updateSnippet(), deleteSnippet()
  * - States: Loading/Success/Error/Empty
  * - i18n: Full translation support
  * - Features: Create, Edit, View Details, Copy, Delete
@@ -16,7 +16,7 @@ import { K, useText } from '@/ui/text'
 import { DialogForm, ConfirmDialog } from '@/ui/interaction'
 import { TextField, Button, Chip, Grid, Box, Typography } from '@/ui'
 import { systemService } from '@/services'
-import type { Snippet } from '@/services/system.service'
+import type { Snippet } from '@services'
 import { CodeIcon, JavascriptIcon, DataObjectIcon, TerminalIcon } from '@/ui/icons'
 
 // Constants
@@ -110,7 +110,7 @@ export default function SnippetsPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await systemService.listSnippets()
+      const response = await systemService.listSnippetsApiSnippetsGet()
       setSnippets(response.snippets || [])
     } catch (err: unknown) {
       const error = err as Error
@@ -141,7 +141,7 @@ export default function SnippetsPage() {
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0)
 
-      await systemService.createSnippet({
+      await systemService.createSnippetApiSnippetsPost({
         title: snippetTitle,
         content: snippetContent,
         language: snippetLanguage || undefined,
@@ -177,7 +177,7 @@ export default function SnippetsPage() {
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0)
 
-      await systemService.updateSnippet(snippetToEdit.id, {
+      await systemService.updateSnippetApiSnippetsSnippetIdPut(snippetToEdit.id, {
         title: editTitle,
         content: editContent,
         language: editLanguage || undefined,
@@ -226,7 +226,7 @@ export default function SnippetsPage() {
 
     setDeleting(true)
     try {
-      await systemService.deleteSnippet(snippetToDelete.id)
+      await systemService.deleteSnippetApiSnippetsSnippetIdDelete(snippetToDelete.id)
       setDeleteDialogOpen(false)
       setSnippetToDelete(null)
       loadSnippets()

@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 def check_sandbox_auto_detect():
     """Check auto-detection of container engines."""
-    sandbox_file = project_root / "agentos" / "core" / "executor" / "container_sandbox.py"
+    sandbox_file = project_root / "octopusos" / "core" / "executor" / "container_sandbox.py"
     
     if not sandbox_file.exists():
         return False, "Container sandbox file not found"
@@ -36,7 +36,7 @@ def check_sandbox_auto_detect():
 
 def check_sandbox_fallback():
     """Check automatic fallback to worktree."""
-    sandbox_file = project_root / "agentos" / "core" / "executor" / "container_sandbox.py"
+    sandbox_file = project_root / "octopusos" / "core" / "executor" / "container_sandbox.py"
     content = sandbox_file.read_text()
     
     if "_create_fallback" not in content:
@@ -50,14 +50,14 @@ def check_sandbox_fallback():
 
 def check_sandbox_high_risk():
     """Check high-risk operation restrictions."""
-    sandbox_file = project_root / "agentos" / "core" / "executor" / "container_sandbox.py"
+    sandbox_file = project_root / "octopusos" / "core" / "executor" / "container_sandbox.py"
     content = sandbox_file.read_text()
     
     if "is_high_risk_allowed" not in content:
         return False, "Missing is_high_risk_allowed method"
     
     # Check allowlist has risk levels
-    allowlist_file = project_root / "agentos" / "core" / "executor" / "allowlist.py"
+    allowlist_file = project_root / "octopusos" / "core" / "executor" / "allowlist.py"
     if allowlist_file.exists():
         allowlist_content = allowlist_file.read_text()
         if "RiskLevel" not in allowlist_content:
@@ -68,7 +68,7 @@ def check_sandbox_high_risk():
 
 def check_sandbox_container_requirement():
     """Check container requirement enforcement."""
-    allowlist_file = project_root / "agentos" / "core" / "executor" / "allowlist.py"
+    allowlist_file = project_root / "octopusos" / "core" / "executor" / "allowlist.py"
     
     if not allowlist_file.exists():
         return False, "Allowlist file not found"

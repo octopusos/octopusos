@@ -1,201 +1,419 @@
-/**
- * VoicePage - Voice Communication Dashboard
- *
- * 🔒 Migration Contract 遵循规则：
- * - ✅ Text System: 使用 t('xxx')（G7-G8）
- * - ✅ Layout: usePageHeader + usePageActions（G10-G11）
- * - ✅ Dashboard Contract: DashboardGrid + StatCard/MetricCard
- * - ✅ No Interaction: mock 数据，onClick 空函数（G12-G16）
- * - ✅ Unified Exit: 不自定义布局，使用 Dashboard 封装
- *
- * Pattern: DashboardPage（DashboardGrid + StatCard/MetricCard）
- */
-
-import { useState, useEffect } from 'react'
-import { usePageHeader, usePageActions } from '@/ui/layout'
-import { DashboardGrid, StatCard, MetricCard, LoadingState } from '@/ui'
-import { PhoneIcon, CheckCircleIcon, SpeedIcon } from '@/ui/icons'
-import { K, useTextTranslation } from '@/ui/text'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from '@mui/material'
+import { usePageActions, usePageHeader } from '@/ui/layout'
+import { useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { Alert } from '@mui/material'
+import { CreateCallModal } from '@/components/voice/CreateCallModal'
+import { InCallPanel, type ActiveCall } from '@/components/voice/InCallPanel'
+import { callService, type CallRuntime, type VoiceContact, type VoiceContactPayload } from '@/services/callService'
+import { useCallSession } from '@/hooks/useCallSession'
+import { PROVIDERS, PROVIDER_MODELS } from '@/components/voice/callOptions'
 
-/**
- * VoicePage 组件
- *
- * 📊 Pattern: DashboardPage（DashboardGrid + StatCard/MetricCard）
- */
+interface ContactFormState {
+  display_name: string
+  runtime: CallRuntime
+  provider_id: string
+  model_id: string
+  voice_profile_id: string
+  prefs_raw: string
+}
+
+const defaultContactForm: ContactFormState = {
+  display_name: '',
+  runtime: 'local',
+  provider_id: '',
+  model_id: '',
+  voice_profile_id: '',
+  prefs_raw: '{}',
+}
+
 export default function VoicePage() {
-  // ===================================
-  // i18n Hook - Subscribe to language changes
-  // ===================================
   const { t } = useTextTranslation()
-
-  // ===================================
-  // State Management
-  // ===================================
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [hasData, setHasData] = useState(false)
-
-  // ===================================
-  // Page Header (v2.4 API)
-  // ===================================
   usePageHeader({
-    title: t(K.page.voice.title),
-    subtitle: t(K.page.voice.subtitle),
+    title: t('page.voice.callsTitle'),
+    subtitle: t('page.voice.callsSubtitle'),
   })
+
+  const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [inCallOpen, setInCallOpen] = useState(false)
+  const [activeCall, setActiveCall] = useState<ActiveCall | null>(null)
+  const [contacts, setContacts] = useState<VoiceContact[]>([])
+  const [loadingContacts, setLoadingContacts] = useState(false)
+  const [contactsError, setContactsError] = useState<string | null>(null)
+  const [contactKeyword, setContactKeyword] = useState('')
+
+  const [editorOpen, setEditorOpen] = useState(false)
+  const [editingContactId, setEditingContactId] = useState<string | null>(null)
+  const [contactForm, setContactForm] = useState<ContactFormState>(defaultContactForm)
+
+  const { createSession, creating, error } = useCallSession()
+
+  const filteredContacts = useMemo(() => {
+    if (!contactKeyword.trim()) {
+      return contacts
+    }
+    const keyword = contactKeyword.trim().toLowerCase()
+    return contacts.filter((contact) => contact.display_name.toLowerCase().includes(keyword))
+  }, [contactKeyword, contacts])
+
+  const selectedModelOptions = useMemo(() => {
+    if (!contactForm.provider_id) {
+      return []
+    }
+    return PROVIDER_MODELS[contactForm.provider_id] ?? []
+  }, [contactForm.provider_id])
+
+  const loadContacts = useCallback(async () => {
+    setLoadingContacts(true)
+    setContactsError(null)
+    try {
+      const response = await callService.listVoiceContacts()
+      setContacts(response.contacts)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('page.voice.failedLoadContacts')
+      setContactsError(message)
+    } finally {
+      setLoadingContacts(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadContacts()
+  }, [loadContacts])
 
   usePageActions([
     {
-      key: 'refresh',
-      label: t(K.common.refresh),
+      key: 'refresh-contacts',
+      label: t('page.voice.refreshContacts'),
       variant: 'outlined',
       onClick: () => {
-        fetchData()
+        void loadContacts()
       },
     },
     {
-      key: 'newCall',
-      label: t(K.page.voice.newCall),
+      key: 'new-contact',
+      label: t('page.voice.newVoiceContact'),
+      variant: 'outlined',
+      onClick: () => {
+        setEditingContactId(null)
+        setContactForm(defaultContactForm)
+        setEditorOpen(true)
+      },
+    },
+    {
+      key: 'new-call',
+      label: t('page.voice.createCall'),
       variant: 'contained',
       onClick: () => {
-        toast.info(t(K.page.voice.newCall))
+        setCreateModalOpen(true)
       },
     },
   ])
 
-  // ===================================
-  // Data Fetching
-  // ===================================
-  const fetchData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      // API skeleton - ready for real implementation when voiceService is available
-      // const response = await voiceService.getVoiceStats()
-      // setHasData(response.data.length > 0)
+  const startCallFromPayload = useCallback(
+    async (
+      payload: { runtime: CallRuntime; provider_id?: string; model_id?: string; voice_profile_id?: string },
+      idempotencyKey?: string
+    ) => {
+      const response = await createSession(payload, idempotencyKey)
+      setCreateModalOpen(false)
+      setActiveCall({
+        callSessionId: response.call_session_id,
+        wsUrl: response.ws_url,
+        runtime: payload.runtime,
+        providerId: payload.provider_id,
+        modelId: payload.model_id,
+      })
+      setInCallOpen(true)
+    },
+    [createSession]
+  )
 
-      // Temporary: Set hasData for demo
-      setHasData(true)
+  const handleOneClickCall = async (contact: VoiceContact): Promise<void> => {
+    try {
+      await startCallFromPayload({
+        runtime: contact.runtime,
+        provider_id: contact.provider_id ?? undefined,
+        model_id: contact.model_id ?? undefined,
+        voice_profile_id: contact.voice_profile_id ?? undefined,
+      })
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      setHasData(false)
-    } finally {
-      setLoading(false)
+      const message = err instanceof Error ? err.message : t('page.voice.failedStartCallFromContact')
+      toast.error(message)
     }
   }
 
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  // ===================================
-  // Mock Data
-  // ===================================
-  const stats = [
-    {
-      title: t(K.page.voice.statTotalCalls),
-      value: '234',
-      change: '+12%',
-      changeType: 'increase' as const,
-      icon: <PhoneIcon />,
-    },
-    {
-      title: t(K.page.voice.statActiveSessions),
-      value: '12',
-      change: '+3',
-      changeType: 'increase' as const,
-      icon: <CheckCircleIcon />,
-    },
-    {
-      title: t(K.page.voice.statAvgDuration),
-      value: '3.2min',
-      change: '-0.3min',
-      changeType: 'decrease' as const,
-      icon: <SpeedIcon />,
-    },
-  ]
-
-  const metrics = [
-    {
-      title: t(K.page.voice.metricRecentCalls),
-      description: t(K.page.voice.metricRecentCallsDesc),
-      metrics: [
-        { key: 'today', label: t(K.page.voice.today), value: '45' },
-        { key: 'week', label: t(K.page.voice.week), value: '234' },
-        { key: 'month', label: t(K.page.voice.month), value: '1,042' },
-      ],
-    },
-    {
-      title: t(K.page.voice.metricCallQuality),
-      description: t(K.page.voice.metricCallQualityDesc),
-      metrics: [
-        { key: 'excellent', label: t(K.page.voice.excellent), value: '78%', valueColor: 'success.main' },
-        { key: 'good', label: t(K.page.voice.good), value: '18%', valueColor: 'success.main' },
-        { key: 'fair', label: t(K.page.voice.fair), value: '4%', valueColor: 'warning.main' },
-      ],
-    },
-    {
-      title: t(K.page.voice.metricChannelDistribution),
-      description: t(K.page.voice.metricChannelDistributionDesc),
-      metrics: [
-        { key: 'phone', label: t(K.page.voice.phone), value: '45%' },
-        { key: 'web', label: t(K.page.voice.web), value: '35%' },
-        { key: 'mobile', label: t(K.page.voice.mobile), value: '20%' },
-      ],
-    },
-  ]
-
-  // ===================================
-  // Render: DashboardGrid Pattern
-  // ===================================
-  if (loading) {
-    return <LoadingState />
+  const openContactEditor = (contact: VoiceContact): void => {
+    setEditingContactId(contact.id)
+    setContactForm({
+      display_name: contact.display_name,
+      runtime: contact.runtime,
+      provider_id: contact.provider_id ?? '',
+      model_id: contact.model_id ?? '',
+      voice_profile_id: contact.voice_profile_id ?? '',
+      prefs_raw: JSON.stringify(contact.prefs_json ?? {}, null, 2),
+    })
+    setEditorOpen(true)
   }
 
-  if (error) {
-    return <Alert severity="error">{error}</Alert>
+  const handleSaveContact = async (): Promise<void> => {
+    try {
+      let prefs: Record<string, unknown> = {}
+      try {
+        prefs = JSON.parse(contactForm.prefs_raw || '{}')
+      } catch {
+        toast.error(t('page.voice.prefsJsonMustBeValid'))
+        return
+      }
+
+      const payload: VoiceContactPayload = {
+        display_name: contactForm.display_name.trim(),
+        runtime: contactForm.runtime,
+        provider_id: contactForm.runtime === 'cloud' ? contactForm.provider_id : undefined,
+        model_id: contactForm.runtime === 'cloud' ? contactForm.model_id : undefined,
+        voice_profile_id: contactForm.voice_profile_id || undefined,
+        prefs_json: prefs,
+      }
+
+      if (!payload.display_name) {
+        toast.error(t('page.voice.displayNameRequired'))
+        return
+      }
+
+      if (payload.runtime === 'cloud' && (!payload.provider_id || !payload.model_id)) {
+        toast.error(t('page.voice.cloudContactRequiresProviderModel'))
+        return
+      }
+
+      if (editingContactId) {
+        await callService.updateVoiceContact(editingContactId, payload)
+      } else {
+        await callService.createVoiceContact(payload)
+      }
+
+      setEditorOpen(false)
+      setEditingContactId(null)
+      setContactForm(defaultContactForm)
+      await loadContacts()
+      toast.success(t('page.voice.voiceContactSaved'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('page.voice.failedSaveVoiceContact')
+      toast.error(message)
+    }
   }
 
-  if (!hasData) {
-    return <Alert severity="info">{t(K.component.emptyState.noData)}</Alert>
+  const handleDeleteContact = async (contactId: string): Promise<void> => {
+    try {
+      await callService.deleteVoiceContact(contactId)
+      await loadContacts()
+      toast.success(t('page.voice.voiceContactDeleted'))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('page.voice.failedDeleteVoiceContact')
+      toast.error(message)
+    }
   }
 
   return (
-    <DashboardGrid columns={3} gap={16}>
-      {/* Row 1: Stat Cards (3 columns) */}
-      {stats.map((stat, index) => (
-        <StatCard
-          key={index}
-          title={stat.title}
-          value={stat.value}
-          change={stat.change}
-          changeType={stat.changeType}
-          icon={stat.icon}
-          onClick={() => {
-            toast.info(`${stat.title}: ${stat.value}`)
+    <Stack spacing={2}>
+      <Card>
+        <CardContent>
+          <Stack spacing={2}>
+            <Typography variant="h6">{t('page.voice.voiceContacts')}</Typography>
+            <TextField
+              size="small"
+              label={t('common.search')}
+              value={contactKeyword}
+              onChange={(event) => setContactKeyword(event.target.value)}
+              data-testid="voice-contact-search"
+            />
+
+            {contactsError && <Alert severity="error">{contactsError}</Alert>}
+            {loadingContacts && <Alert severity="info">{t('common.loading')}</Alert>}
+
+            <Box sx={{ overflowX: 'auto' }}>
+              <Table size="small" data-testid="voice-contact-table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>{t('page.voice.name')}</TableCell>
+                    <TableCell>{t('page.voice.runtime')}</TableCell>
+                    <TableCell>{t('page.voice.provider')}</TableCell>
+                    <TableCell>{t('page.voice.model')}</TableCell>
+                    <TableCell align="right">{t('common.actions')}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredContacts.map((contact) => (
+                    <TableRow key={contact.id} hover>
+                      <TableCell>{contact.display_name}</TableCell>
+                      <TableCell>{contact.runtime}</TableCell>
+                      <TableCell>{contact.provider_id || '-'}</TableCell>
+                      <TableCell>{contact.model_id || '-'}</TableCell>
+                      <TableCell align="right">
+                        <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            data-testid={`voice-contact-call-${contact.id}`}
+                            onClick={() => {
+                              void handleOneClickCall(contact)
+                            }}
+                          >
+                            {t('page.voice.call')}
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() => {
+                              openContactEditor(contact)
+                            }}
+                          >
+                            {t('common.edit')}
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => {
+                              void handleDeleteContact(contact.id)
+                            }}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <CreateCallModal
+        open={createModalOpen}
+        creating={creating}
+        error={error}
+        onClose={() => setCreateModalOpen(false)}
+        onStart={async (payload, idempotencyKey) => {
+          await startCallFromPayload(payload, idempotencyKey)
+        }}
+      />
+
+      {activeCall && (
+        <InCallPanel
+          open={inCallOpen}
+          call={activeCall}
+          onClose={() => {
+            setInCallOpen(false)
           }}
         />
-      ))}
+      )}
 
-      {/* Row 2: Metric Cards (3 columns) */}
-      {metrics.map((metric, index) => (
-        <MetricCard
-          key={index}
-          title={metric.title}
-          description={metric.description}
-          metrics={metric.metrics}
-          actions={[
-            {
-              key: 'details',
-              label: t(K.page.voice.viewDetails),
-              onClick: () => {
-                toast.info(`${t(K.page.voice.viewDetails)}: ${metric.title}`)
-              },
-            },
-          ]}
-        />
-      ))}
-    </DashboardGrid>
+      <Dialog open={editorOpen} onClose={() => setEditorOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingContactId ? t('page.voice.editVoiceContact') : t('page.voice.createVoiceContact')}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label={t('page.voice.displayName')}
+              value={contactForm.display_name}
+              onChange={(event) => setContactForm((prev) => ({ ...prev, display_name: event.target.value }))}
+              data-testid="voice-contact-name-input"
+            />
+
+            <TextField
+              select
+              label={t('page.voice.runtime')}
+              value={contactForm.runtime}
+              onChange={(event) =>
+                setContactForm((prev) => ({
+                  ...prev,
+                  runtime: event.target.value as CallRuntime,
+                  provider_id: event.target.value === 'local' ? '' : prev.provider_id,
+                  model_id: event.target.value === 'local' ? '' : prev.model_id,
+                }))
+              }
+              SelectProps={{ native: true }}
+            >
+              <option value="local">{t('page.voice.local')}</option>
+              <option value="cloud">{t('page.voice.cloud')}</option>
+            </TextField>
+
+            {contactForm.runtime === 'cloud' && (
+              <>
+                <TextField
+                  select
+                  label={t('page.voice.provider')}
+                  value={contactForm.provider_id}
+                  onChange={(event) =>
+                    setContactForm((prev) => ({ ...prev, provider_id: event.target.value, model_id: '' }))
+                  }
+                  SelectProps={{ native: true }}
+                >
+                  <option value="">{t('page.voice.selectProvider')}</option>
+                  {PROVIDERS.map((provider) => (
+                    <option key={provider} value={provider}>
+                      {provider}
+                    </option>
+                  ))}
+                </TextField>
+
+                <TextField
+                  select
+                  label={t('page.voice.model')}
+                  value={contactForm.model_id}
+                  onChange={(event) => setContactForm((prev) => ({ ...prev, model_id: event.target.value }))}
+                  SelectProps={{ native: true }}
+                  disabled={!contactForm.provider_id}
+                >
+                  <option value="">{t('page.voice.selectModel')}</option>
+                  {selectedModelOptions.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </TextField>
+              </>
+            )}
+
+            <TextField
+              label={t('page.voice.voiceProfile')}
+              value={contactForm.voice_profile_id}
+              onChange={(event) => setContactForm((prev) => ({ ...prev, voice_profile_id: event.target.value }))}
+            />
+
+            <TextField
+              label={t('page.voice.prefsJson')}
+              multiline
+              minRows={4}
+              value={contactForm.prefs_raw}
+              onChange={(event) => setContactForm((prev) => ({ ...prev, prefs_raw: event.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditorOpen(false)}>{t('common.cancel')}</Button>
+          <Button variant="contained" onClick={() => void handleSaveContact()}>
+            {t('common.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Stack>
   )
 }

@@ -18,6 +18,8 @@ import WarningIcon from '@mui/icons-material/Warning'
 import ErrorIcon from '@mui/icons-material/Error'
 import InfoIcon from '@mui/icons-material/Info'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import { useIsReadOnly } from '@/ui/guards/useIsReadOnly'
+import { WriteActionGuard } from '@/ui/guards/WriteActionGuard'
 
 // Mock Governance Items 基础数据
 const mockGovernanceItemsBase = [
@@ -96,6 +98,7 @@ export default function GovernancePage() {
   const [selectedItem, setSelectedItem] = useState<typeof mockGovernanceItemsBase[0] | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const isReadOnly = useIsReadOnly()
 
   // ===================================
   // Data Fetching - Uses mock data (mockGovernanceItemsBase)
@@ -117,12 +120,14 @@ export default function GovernancePage() {
       variant: 'outlined',
       onClick: () => console.log('Refresh governance items'),
     },
-    {
-      key: 'create',
-      label: t(K.page.governance.createPolicy),
-      variant: 'contained',
-      onClick: () => console.log('Create governance policy'),
-    },
+    ...(isReadOnly
+      ? []
+      : [{
+          key: 'create',
+          label: t(K.page.governance.createPolicy),
+          variant: 'contained' as const,
+          onClick: () => console.log('Create governance policy'),
+        }]),
   ])
 
   // ===================================
@@ -182,32 +187,34 @@ export default function GovernancePage() {
         onClose={() => setDrawerOpen(false)}
         title={selectedItem?.title || ''}
         actions={
-          <>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => console.log('Review item:', selectedItem?.id)}
-            >
-              {t(K.page.governance.actionReview)}
-            </Button>
-            <Button
-              variant="outlined"
-              color="success"
-              onClick={() => console.log('Resolve item:', selectedItem?.id)}
-            >
-              {t(K.page.governance.resolve)}
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => {
-                setDrawerOpen(false)
-                setDeleteDialogOpen(true)
-              }}
-            >
-              {t('common.delete')}
-            </Button>
-          </>
+          <WriteActionGuard>
+            <>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => console.log('Review item:', selectedItem?.id)}
+              >
+                {t(K.page.governance.actionReview)}
+              </Button>
+              <Button
+                variant="outlined"
+                color="success"
+                onClick={() => console.log('Resolve item:', selectedItem?.id)}
+              >
+                {t(K.page.governance.resolve)}
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  setDrawerOpen(false)
+                  setDeleteDialogOpen(true)
+                }}
+              >
+                {t('common.delete')}
+              </Button>
+            </>
+          </WriteActionGuard>
         }
       >
         {selectedItem && (

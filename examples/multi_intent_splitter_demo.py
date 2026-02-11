@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.chat.multi_intent_splitter import MultiIntentSplitter, split_question
+from octopusos.core.chat.multi_intent_splitter import MultiIntentSplitter, split_question
 
 
 def print_section(title: str):

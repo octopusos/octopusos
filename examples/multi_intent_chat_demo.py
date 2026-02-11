@@ -16,8 +16,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from agentos.core.chat.engine import ChatEngine
-from agentos.core.chat.service import ChatService
+from octopusos.core.chat.engine import ChatEngine
+from octopusos.core.chat.service import ChatService
 import json
 
 
@@ -209,7 +209,7 @@ def demo_audit_trail():
     """Demo 8: Audit trail logging"""
     print_section("Demo 8: Audit Trail Logging")
 
-    from agentos.core.audit import get_audit_events
+    from octopusos.core.audit import get_audit_events
 
     engine = ChatEngine(chat_service=ChatService())
     session_id = engine.create_session(

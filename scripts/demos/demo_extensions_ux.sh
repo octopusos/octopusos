@@ -4,7 +4,7 @@
 # This script demonstrates the new features
 
 echo "═════════════════════════════════════════════════════════════"
-echo "  AgentOS Extensions UX Enhancements Demo"
+echo "  OctopusOS Extensions UX Enhancements Demo"
 echo "  Features: L-16 to L-20"
 echo "═════════════════════════════════════════════════════════════"
 echo ""
@@ -58,8 +58,8 @@ echo -e "${BLUE}Manual Testing Instructions:${NC}"
 echo "═════════════════════════════════════════════════════════════"
 echo ""
 
-echo "1. Start AgentOS:"
-echo "   $ python -m agentos.cli webui"
+echo "1. Start OctopusOS:"
+echo "   $ python -m octopusos.cli webui"
 echo ""
 
 echo "2. Open browser:"

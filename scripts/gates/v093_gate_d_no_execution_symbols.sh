@@ -6,9 +6,9 @@ echo "v0.9.3 Gate D: No Execution Symbols"
 echo "======================================================================"
 echo ""
 
-SCHEMA_DIR="agentos/schemas/evaluator"
+SCHEMA_DIR="octopusos/schemas/evaluator"
 EXAMPLES_DIR="examples/intents/evaluations"
-CORE_DIR="agentos/core/evaluator"
+CORE_DIR="octopusos/core/evaluator"
 
 PROHIBITED_PATTERNS=(
   "subprocess"

@@ -40,11 +40,11 @@ def main():
     # 1. Schemas
     print("[1] Schemas")
     check_file_exists(
-        PROJECT_ROOT / "agentos/schemas/execution/answer_pack.schema.json",
+        PROJECT_ROOT / "octopusos/schemas/execution/answer_pack.schema.json",
         "AnswerPack schema"
     )
     check_file_exists(
-        PROJECT_ROOT / "agentos/schemas/execution/blockers.schema.json",
+        PROJECT_ROOT / "octopusos/schemas/execution/blockers.schema.json",
         "Blockers schema"
     )
     print()
@@ -52,19 +52,19 @@ def main():
     # 2. Core modules
     print("[2] Core Modules")
     check_file_exists(
-        PROJECT_ROOT / "agentos/core/answers/__init__.py",
+        PROJECT_ROOT / "octopusos/core/answers/__init__.py",
         "Answers module init"
     )
     check_file_exists(
-        PROJECT_ROOT / "agentos/core/answers/answer_store.py",
+        PROJECT_ROOT / "octopusos/core/answers/answer_store.py",
         "AnswerStore"
     )
     check_file_exists(
-        PROJECT_ROOT / "agentos/core/answers/answer_validator.py",
+        PROJECT_ROOT / "octopusos/core/answers/answer_validator.py",
         "AnswerValidator"
     )
     check_file_exists(
-        PROJECT_ROOT / "agentos/core/answers/answer_applier.py",
+        PROJECT_ROOT / "octopusos/core/answers/answer_applier.py",
         "AnswerApplier"
     )
     print()
@@ -72,11 +72,11 @@ def main():
     # 3. CLI commands
     print("[3] CLI Commands")
     check_file_exists(
-        PROJECT_ROOT / "agentos/cli/answers.py",
+        PROJECT_ROOT / "octopusos/cli/answers.py",
         "Answers CLI"
     )
     check_file_exists(
-        PROJECT_ROOT / "agentos/cli/pipeline.py",
+        PROJECT_ROOT / "octopusos/cli/pipeline.py",
         "Pipeline CLI (with resume)"
     )
     print()

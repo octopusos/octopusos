@@ -22,6 +22,7 @@ import {
 } from '@mui/icons-material'
 import { Box, Typography, Alert } from '@mui/material'
 import { httpClient } from '@platform/http'
+import { hasToken } from '@platform/auth/adminToken'
 
 interface DiagnosticLink {
   id: string
@@ -84,6 +85,10 @@ export default function SupportPage() {
     setLoading(true)
     setError(null)
     try {
+      if (!hasToken()) {
+        setQuickLinks([])
+        return
+      }
       // Real API call for diagnostic data
       const response = await httpClient.get<{ ok: boolean; data: DiagnosticData }>('/api/support/diagnostics')
 
@@ -163,7 +168,7 @@ export default function SupportPage() {
         setQuickLinks(links)
       }
     } catch (err) {
-      console.error('Failed to load diagnostics:', err)
+      console.warn('Failed to load diagnostics:', err)
       setError(err instanceof Error ? err.message : 'Failed to load diagnostic data')
     } finally {
       setLoading(false)
@@ -293,16 +298,16 @@ export default function SupportPage() {
         <AppCardBody>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="body2">
-              • <a href="https://docs.agentos.org" target="_blank" rel="noopener noreferrer">{t(K.page.support.documentation)}</a>
+              • <a href="https://docs.octopusos.org" target="_blank" rel="noopener noreferrer">{t(K.page.support.documentation)}</a>
             </Typography>
             <Typography variant="body2">
-              • <a href="https://github.com/agentos/agentos/issues" target="_blank" rel="noopener noreferrer">{t(K.page.support.reportIssue)}</a>
+              • <a href="https://github.com/octopusos/octopusos/issues" target="_blank" rel="noopener noreferrer">{t(K.page.support.reportIssue)}</a>
             </Typography>
             <Typography variant="body2">
-              • <a href="https://github.com/agentos/agentos/discussions" target="_blank" rel="noopener noreferrer">{t(K.page.support.community)}</a>
+              • <a href="https://github.com/octopusos/octopusos/discussions" target="_blank" rel="noopener noreferrer">{t(K.page.support.community)}</a>
             </Typography>
             <Typography variant="body2">
-              • <a href="mailto:support@agentos.org">{t(K.page.support.supportEmail)}</a>
+              • <a href="mailto:support@octopusos.org">{t(K.page.support.supportEmail)}</a>
             </Typography>
           </Box>
         </AppCardBody>

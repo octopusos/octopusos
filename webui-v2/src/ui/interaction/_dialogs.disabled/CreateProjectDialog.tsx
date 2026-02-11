@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { Grid, TextField } from '@mui/material'
 import { DialogForm } from '../DialogForm'
 import { K, t } from '@/ui/text'
-import type { CreateProjectRequest } from '@/modules/agentos/dto'
+import type { CreateProjectRequest } from '@/modules/octopusos/dto'
 
 export interface CreateProjectDialogProps {
   /**

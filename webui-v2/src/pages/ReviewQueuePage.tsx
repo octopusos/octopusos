@@ -18,8 +18,8 @@ import { useTextTranslation } from '@/ui/text'
 import { DetailDrawer, ConfirmDialog } from '@/ui/interaction'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
-import { brainosService } from '@/services/brainos.service'
-import type { ReviewQueueItem } from '@/services/brainos.service'
+import { brainosService } from '@services'
+import type { ReviewQueueItem } from '@services'
 
 // ===================================
 // Types
@@ -114,12 +114,12 @@ export default function ReviewQueuePage() {
   const fetchReviews = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await brainosService.listReviewQueue({
+      const response = await brainosService.listReviewQueueApiV3ReviewQueueGet({
         page: page + 1, // API uses 1-based indexing
         limit: pageSize,
       })
 
-      const rows: ReviewQueueRow[] = response.items.map((item) => {
+      const rows: ReviewQueueRow[] = response.items.map((item: any) => {
         // Parse content to extract metadata
         const content = typeof item.content === 'string' ? JSON.parse(item.content) : item.content
         const priority = content.priority || PRIORITY_MEDIUM
@@ -155,7 +155,7 @@ export default function ReviewQueuePage() {
   const loadItemDetail = useCallback(async (itemId: string) => {
     setDetailLoading(true)
     try {
-      const response = await brainosService.getReviewQueueItem(itemId)
+      const response = await brainosService.getReviewQueueItemApiV3ReviewQueueItemIdGet(itemId)
       setItemDetail(response.item)
     } catch (error) {
       console.error('Failed to load item detail:', error)
@@ -174,7 +174,7 @@ export default function ReviewQueuePage() {
 
     setActionLoading(true)
     try {
-      await brainosService.approveReviewItem(selectedReview.id, {})
+      await brainosService.approveReviewQueueApiV3ReviewQueueItemIdApprovePost(selectedReview.id, {})
       toast.success(t('page.reviewQueue.approveSuccess'))
       setApproveDialogOpen(false)
       setDrawerOpen(false)
@@ -195,7 +195,7 @@ export default function ReviewQueuePage() {
 
     setActionLoading(true)
     try {
-      await brainosService.rejectReviewItem(selectedReview.id, {
+      await brainosService.rejectReviewQueueApiV3ReviewQueueItemIdRejectPost(selectedReview.id, {
         reason: rejectReason,
       })
       toast.success(t('page.reviewQueue.rejectSuccess'))

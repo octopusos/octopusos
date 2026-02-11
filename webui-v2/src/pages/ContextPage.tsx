@@ -32,7 +32,7 @@ import { usePageHeader, usePageActions } from '@/ui/layout'
 import { LoadingState, ErrorState } from '@/components'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { brainosService } from '@/services'
+import { brainosService, systemService } from '@/services'
 import { ConfirmDialog } from '@/ui/interaction/ConfirmDialog'
 import {
   RefreshIcon,
@@ -146,7 +146,7 @@ export default function ContextPage() {
     setError(null)
 
     try {
-      const response = await brainosService.getContextManager(sessionId)
+      const response = await brainosService.getContextStatusApiContextStatusGet(sessionId)
 
       // Map API response to ContextStatus
       setContextStatus({
@@ -172,7 +172,8 @@ export default function ContextPage() {
 
   const loadRecentSessions = async () => {
     try {
-      const sessions = await brainosService.listSessions(10)
+      const response = await systemService.listSessionsApiSessionsGet({ limit: 10, offset: 0 })
+      const sessions = Array.isArray(response?.sessions) ? response.sessions : []
 
       if (sessions.length === 0) {
         toast.info(t(K.page.context.noSessionsFound))
@@ -202,7 +203,7 @@ export default function ContextPage() {
     setOperationMessage(t(K.page.context.refreshingContext))
 
     try {
-      const response = await brainosService.refreshContext(sessionId)
+      const response = await brainosService.contextRefreshApiContextRefreshPost(sessionId)
 
       if (response.ok) {
         toast.success(t(K.page.context.contextRefreshedSuccess))
@@ -232,7 +233,7 @@ export default function ContextPage() {
     setOperationMessage(t(K.page.context.attachingContext))
 
     try {
-      const response = await brainosService.attachContext(sessionId, {
+      const response = await brainosService.contextAttachApiContextAttachPost(sessionId, {
         memory: { enabled: true, namespace: 'default' },
         rag: { enabled: true },
       })
@@ -264,7 +265,7 @@ export default function ContextPage() {
     setDetachLoading(true)
 
     try {
-      const response = await brainosService.clearContext(sessionId)
+      const response = await brainosService.contextDetachApiContextDetachPost(sessionId)
 
       if (response.ok) {
         toast.success(t(K.page.context.contextDetachedSuccess))

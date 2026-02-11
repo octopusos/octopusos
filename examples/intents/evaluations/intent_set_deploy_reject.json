@@ -8,7 +8,7 @@
     "intent_deploy_service_v2_9"
   ],
   "context": {
-    "project_id": "agentos",
+    "project_id": "octopusos",
     "env": "staging",
     "tags": ["deployment", "conflict", "same-priority"]
   },

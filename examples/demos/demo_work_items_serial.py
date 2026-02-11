@@ -13,7 +13,7 @@ import json
 import logging
 from pathlib import Path
 
-from agentos.core.task.work_items import (
+from octopusos.core.task.work_items import (
     WorkItem,
     WorkItemOutput,
     create_work_items_summary,

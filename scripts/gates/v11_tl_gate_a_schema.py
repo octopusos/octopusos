@@ -10,8 +10,8 @@ def main():
     print("=" * 60 + "\nTL Gate A - Tools Schema Validation\n" + "=" * 60 + "\n")
     
     schemas = [
-        ("agentos/schemas/tools/tool_task_pack.schema.json", "ToolTaskPack"),
-        ("agentos/schemas/tools/tool_result_pack.schema.json", "ToolResultPack"),
+        ("octopusos/schemas/tools/tool_task_pack.schema.json", "ToolTaskPack"),
+        ("octopusos/schemas/tools/tool_result_pack.schema.json", "ToolResultPack"),
     ]
     
     for schema_file, name in schemas:

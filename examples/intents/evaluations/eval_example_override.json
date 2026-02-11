@@ -20,7 +20,7 @@
           "intent_refactor_api_v1",
           "intent_refactor_api_v2"
         ],
-        "resource_ref": "file:agentos/api/routes.py",
+        "resource_ref": "file:octopusos/api/routes.py",
         "description": "Both intents write to the same file",
         "evidence_refs": [
           "intent:intent_refactor_api_v1:scope",

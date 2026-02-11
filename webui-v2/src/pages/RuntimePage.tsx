@@ -17,7 +17,8 @@ import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
 import { Refresh as RefreshIcon, Lock as LockIcon, Done as DoneIcon, Power as PowerIcon } from '@mui/icons-material'
 import { Box, Alert, Typography, List, ListItem, Chip } from '@mui/material'
-import { systemService, type GetRuntimeInfoResponse } from '@/services'
+import { systemService } from '@/services'
+import { hasToken } from '@platform/auth/adminToken'
 
 export default function RuntimePage() {
   // ===================================
@@ -31,7 +32,7 @@ export default function RuntimePage() {
   // ===================================
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [data, setData] = useState<GetRuntimeInfoResponse | null>(null)
+  const [data, setData] = useState<any>(null)
 
   // Fix Permissions state
   const [fixPermOpen, setFixPermOpen] = useState(false)
@@ -58,10 +59,16 @@ export default function RuntimePage() {
   // Data Fetching
   // ===================================
   const loadRuntimeInfo = async () => {
+    if (!hasToken()) {
+      setData(null)
+      setError(null)
+      setLoading(false)
+      return
+    }
     try {
       setLoading(true)
       setError(null)
-      const response = await systemService.getRuntimeInfo()
+      const response = await systemService.daemonStatusApiDaemonStatusGet()
       setData(response)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load runtime info'
@@ -79,11 +86,12 @@ export default function RuntimePage() {
   // Fix Permissions Handler
   // ===================================
   const handleFixPermissions = async () => {
+    if (!hasToken()) return
     setFixPermLoading(true)
     setFixPermResult(null)
 
     try {
-      const result = await systemService.fixPermissions()
+      const result = await systemService.fixPermissionsApiRuntimeFixPermissionsPost()
       setFixPermResult(result)
 
       if (result.ok) {
@@ -107,11 +115,12 @@ export default function RuntimePage() {
   // Self-check Handler
   // ===================================
   const handleRunSelfCheck = async () => {
+    if (!hasToken()) return
     setSelfCheckLoading(true)
     setSelfCheckResult(null)
 
     try {
-      const result = await systemService.runSelfCheck({
+      const result = await systemService.runSelfcheckApiSelfcheckPost({
         include_network: false,
         include_context: true,
       })
@@ -201,7 +210,7 @@ export default function RuntimePage() {
           value="OK"
         />
         <StatCard
-          title={t(K.page.runtime.agentosVersion)}
+          title={t(K.page.runtime.octopusosVersion)}
           value={data.version || '1.0.0'}
         />
         <StatCard

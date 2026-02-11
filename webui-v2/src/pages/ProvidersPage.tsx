@@ -31,6 +31,8 @@ import { ConfirmDialog, DetailDrawer } from '@/ui/interaction'
 import { providersApi } from '@/api/providers'
 import type { ModelInfoResponse } from '@/api/providers'
 import { CloudIcon, StorageIcon, CodeIcon as ApiIcon, PlayArrowIcon, StopIcon, RestartAltIcon, VisibilityIcon, EditIcon, DeleteIcon, BugIcon, SettingsIcon } from '@/ui/icons'
+import { useWriteGate } from '@/ui/guards/useWriteGate'
+import { WriteGateBanner } from '@/components/gates/WriteGateBanner'
 
 // Constants
 const ICON_SIZE_SMALL = 'small' as const
@@ -85,6 +87,7 @@ const getStateTranslation = (state: string, t: (key: string) => string): string 
  */
 export default function ProvidersPage() {
   const { t } = useText()
+  const writeGate = useWriteGate('FEATURE_PROVIDERS_CONTROL')
 
   // P0-17: Load providers data
   const { providers, loading, error, refresh, startOllama, stopOllama, restartOllama } =
@@ -198,6 +201,7 @@ export default function ProvidersPage() {
       label: t(K.page.providers.addProvider),
       variant: 'contained',
       onClick: () => {
+        if (!writeGate.allowed) return
         setWizardOpen(true)
       },
     },
@@ -218,6 +222,10 @@ export default function ProvidersPage() {
 
   // P0-20 & P1-22: Lifecycle control handlers
   const handleStartOllama = async () => {
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
     try {
       await startOllama()
     } catch (err) {
@@ -226,6 +234,10 @@ export default function ProvidersPage() {
   }
 
   const handleStopOllama = async () => {
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
     try {
       await stopOllama()
     } catch (err) {
@@ -234,6 +246,10 @@ export default function ProvidersPage() {
   }
 
   const handleRestartOllama = async () => {
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
     try {
       await restartOllama()
     } catch (err) {
@@ -405,10 +421,10 @@ export default function ProvidersPage() {
 
     return {
       key: 'detect-executable',
-      label: 'Configure Executable',
+      label: t(K.page.providers.configureExecutable),
       variant: 'outlined' as const,
       icon: <SettingsIcon fontSize={ICON_SIZE_SMALL} />,
-      tooltip: 'Detect and configure executable path',
+      tooltip: t(K.page.providers.detectConfigureExecutablePath),
       onClick: () => {
         setExecutableConfigState({
           open: true,
@@ -430,10 +446,10 @@ export default function ProvidersPage() {
 
     return {
       key: 'advanced-diagnostics',
-      label: 'Advanced Diagnostics',
+      label: t(K.page.providers.advancedDiagnostics),
       variant: 'outlined' as const,
       icon: <SettingsIcon fontSize={ICON_SIZE_SMALL} />,
-      tooltip: 'View advanced diagnostics',
+      tooltip: t(K.page.providers.viewAdvancedDiagnostics),
       onClick: () => {
         setAdvancedDiagnosticsState({
           open: true,
@@ -483,6 +499,11 @@ export default function ProvidersPage() {
 
   return (
     <>
+      <WriteGateBanner
+        featureKey="FEATURE_PROVIDERS_CONTROL"
+        reason={writeGate.reason}
+        missingOperations={writeGate.missingOperations}
+      />
       <CardCollectionWrap layout="grid" columns={3} gap={16}>
         {providers.map((provider) => {
           const lifecycleActions = getLifecycleActions(provider)
@@ -560,7 +581,10 @@ export default function ProvidersPage() {
                   variant: 'outlined' as const,
                   icon: <EditIcon fontSize={ICON_SIZE_SMALL} />,
                   tooltip: t('common.edit'),
-                  onClick: () => handleConfigure(provider),
+                  onClick: () => {
+                    if (!writeGate.allowed) return
+                    handleConfigure(provider)
+                  },
                 },
                 // P1-20: Delete action
                 {
@@ -569,7 +593,10 @@ export default function ProvidersPage() {
                   variant: 'outlined' as const,
                   icon: <DeleteIcon fontSize={ICON_SIZE_SMALL} />,
                   tooltip: t('common.delete') || 'Delete',
-                  onClick: () => handleDeleteClick(provider),
+                  onClick: () => {
+                    if (!writeGate.allowed) return
+                    handleDeleteClick(provider)
+                  },
                 },
               ]}
             />
@@ -579,7 +606,7 @@ export default function ProvidersPage() {
 
       {/* P0-18: Add Provider Wizard */}
       <AddProviderWizard
-        open={wizardOpen}
+        open={wizardOpen && writeGate.allowed}
         onClose={() => setWizardOpen(false)}
         onSuccess={() => {
           refresh()

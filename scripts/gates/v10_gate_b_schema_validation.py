@@ -50,8 +50,8 @@ def main():
     # Load schemas
     print("\n📖 Loading schemas...")
     try:
-        result_schema = load_json("agentos/schemas/executor/dry_execution_result.schema.json")
-        intent_schema = load_json("agentos/schemas/execution/intent.schema.json")
+        result_schema = load_json("octopusos/schemas/executor/dry_execution_result.schema.json")
+        intent_schema = load_json("octopusos/schemas/execution/intent.schema.json")
         print("  ✅ Schemas loaded")
     except Exception as e:
         print(f"  ❌ Failed to load schemas: {e}")

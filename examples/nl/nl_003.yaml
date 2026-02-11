@@ -1,6 +1,6 @@
 id: nl_req_high_risk_db_migration
 schema_version: "0.9.4"
-project_id: "agentos"
+project_id: "octopusos"
 input_text: |
   添加 Builder 输出持久化到数据库：
   - 新增 builder_outputs 表（id, nl_request_id, output_json, created_at）

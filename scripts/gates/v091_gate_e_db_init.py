@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root))
 from scripts.validate_intents import IntentValidator
 
 EXAMPLES_DIR = Path("examples/intents")
-SCHEMA_PATH = Path("agentos/schemas/execution/intent.schema.json")
+SCHEMA_PATH = Path("octopusos/schemas/execution/intent.schema.json")
 
 
 def main():

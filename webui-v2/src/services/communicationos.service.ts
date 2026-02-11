@@ -11,6 +11,7 @@
  */
 
 import { get, post, put, del } from '@platform/http';
+import { communicationosServiceGen } from './communicationos.service.gen';
 
 // ============================================================================
 // Temporary Types (Will be replaced by @modules imports in A8)
@@ -270,6 +271,18 @@ export interface MCPGovernancePreview {
   audit_level: string;
 }
 
+export interface LocalAwsProfilesResponse {
+  ok: boolean;
+  profiles: string[];
+  default_profile?: string;
+  reason?: string;
+}
+
+export interface UpdateMCPServerConfigRequest {
+  profile?: string;
+  region?: string;
+}
+
 export interface AttachMCPPackageRequest {
   package_id: string;
   override_trust_tier?: string;
@@ -396,7 +409,31 @@ export const communicationosService = {
     return post(`/api/mcp/servers/${id}/disconnect`);
   },
 
+  async preflightMCPServer(id: string): Promise<Record<string, unknown>> {
+    return get(`/api/mcp/servers/${id}/preflight`);
+  },
+
+  async enableMCPServer(id: string, data?: { auto_install?: boolean; confirm_actions?: boolean }): Promise<Record<string, unknown>> {
+    return post(`/api/mcp/servers/${id}/enable`, data);
+  },
+
+  async disableMCPServer(id: string): Promise<Record<string, unknown>> {
+    return post(`/api/mcp/servers/${id}/disable`);
+  },
+
+  async listLocalAwsProfiles(): Promise<LocalAwsProfilesResponse> {
+    return get('/api/mcp/aws/profiles');
+  },
+
+  async updateMCPServerConfig(id: string, data: UpdateMCPServerConfigRequest): Promise<Record<string, unknown>> {
+    return post(`/api/mcp/servers/${id}/config`, data);
+  },
+
   // MCP Marketplace
+  async listMCPMarketplaceCatalog(params?: ListMCPMarketplaceRequest): Promise<{ packages: Array<Record<string, unknown>> }> {
+    return get('/api/mcp/marketplace/catalog', { params });
+  },
+
   async listMCPMarketplace(params?: ListMCPMarketplaceRequest): Promise<ListMCPMarketplaceResponse> {
     return get('/api/mcp/marketplace/packages', { params });
   },
@@ -414,7 +451,7 @@ export const communicationosService = {
   },
 
   async uninstallMCPPackage(packageId: string): Promise<{ ok: boolean; data: { audit_id: string; warnings: string[] } }> {
-    return del(`/api/communicationos/mcp/packages/${packageId}/uninstall`);
+    return communicationosServiceGen.uninstallMcpPackageCanonicalApiMcpMarketplacePackagesPackageIdDelete(packageId);
   },
 
   // Communication Audit & Control API (CommunicationOS Core)

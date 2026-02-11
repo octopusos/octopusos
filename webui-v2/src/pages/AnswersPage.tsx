@@ -16,8 +16,8 @@ import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import type { GridColDef } from '@/ui'
-import { agentosService } from '@/services'
-import type { AnswerPack } from '@/services/agentos.service'
+import { systemService } from '@/services'
+import type { AnswerPack } from '@services'
 
 /**
  * Answer Pack Type (aligned with API response)
@@ -54,19 +54,16 @@ export default function AnswersPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await agentosService.getAnswerPacks({
+      const response = await systemService.listAnswerPacksApiAnswersPacksGet({
         search: searchQuery || undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         limit: pageSize,
         offset: page * pageSize,
       })
 
-      if (response.ok) {
-        setAnswers(response.data)
-        setTotal(response.total)
-      } else {
-        setError('Failed to fetch answer packs')
-      }
+      const items = Array.isArray(response?.packs) ? response.packs : Array.isArray(response) ? response : []
+      setAnswers(items)
+      setTotal(response?.total ?? items.length)
     } catch (err) {
       console.error('Failed to fetch answers:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')

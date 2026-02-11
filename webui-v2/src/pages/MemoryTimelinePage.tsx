@@ -18,9 +18,10 @@ import { TableShell, FilterBar, TextField, Select, MenuItem, Chip } from '@/ui'
 import { DetailDrawer } from '@/ui/interaction/DetailDrawer'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { memoryosServiceGen } from '@/services/memoryos.service.gen'
+import { memoryosService } from '@/services/memoryos.service'
 import type { GridColDef } from '@/ui'
 import type { TimelineItem } from '@modules/memoryos'
+import { hasToken } from '@platform/auth/adminToken'
 
 // ===================================
 // Constants
@@ -50,6 +51,34 @@ const PLACEHOLDER_DASH = '-'
 // ===================================
 interface TimelineRow extends TimelineItem {
   impact: typeof IMPACT_HIGH | typeof IMPACT_MEDIUM | typeof IMPACT_LOW
+}
+
+const normalizeTimelineItem = (item: unknown, index: number): TimelineItem => {
+  const raw = (item ?? {}) as Partial<TimelineItem> & { id?: string | number }
+  const confidence =
+    typeof raw.confidence === 'number' && Number.isFinite(raw.confidence) ? raw.confidence : 0
+  const timestamp = typeof raw.timestamp === 'string' ? raw.timestamp : new Date(0).toISOString()
+
+  return {
+    id: String(raw.id ?? `timeline-${index}`),
+    timestamp,
+    key: typeof raw.key === 'string' ? raw.key : PLACEHOLDER_DASH,
+    value: typeof raw.value === 'string' ? raw.value : PLACEHOLDER_DASH,
+    type: typeof raw.type === 'string' ? raw.type : PLACEHOLDER_DASH,
+    source:
+      raw.source === 'rule_extraction' || raw.source === 'explicit' || raw.source === 'system'
+        ? raw.source
+        : 'system',
+    confidence,
+    is_active: Boolean(raw.is_active),
+    version: typeof raw.version === 'number' ? raw.version : 1,
+    supersedes: typeof raw.supersedes === 'string' ? raw.supersedes : undefined,
+    superseded_by: typeof raw.superseded_by === 'string' ? raw.superseded_by : undefined,
+    scope: typeof raw.scope === 'string' ? raw.scope : PLACEHOLDER_DASH,
+    project_id: typeof raw.project_id === 'string' ? raw.project_id : undefined,
+    task_id: typeof raw.task_id === 'string' ? raw.task_id : undefined,
+    metadata: raw.metadata && typeof raw.metadata === 'object' ? raw.metadata : undefined,
+  }
 }
 
 /**
@@ -112,33 +141,40 @@ export default function MemoryTimelinePage() {
   // API Call - Load Events
   // ===================================
   const loadEvents = useCallback(async () => {
+    if (!hasToken()) {
+      setEvents([])
+      setTotalCount(0)
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
       // Call real API (now returns data directly via wrapper functions)
-      const response = await memoryosServiceGen.getMemoryTimeline({
-        page: page + 1, // API uses 1-based indexing
+      const response = await memoryosService.getMemoryTimeline({
         limit: pageSize,
       })
 
-      // Check if response has items array
-      if (!response || !Array.isArray(response.items)) {
-        console.error('[MemoryTimeline] Invalid response format:', response)
+      const timelineEvents = Array.isArray(response?.events) ? response.events : []
+      if (!response || !Array.isArray(timelineEvents)) {
+        console.warn('[MemoryTimeline] Invalid response format:', response)
         toast.error('Invalid API response format')
         setEvents([])
         setTotalCount(0)
         return
       }
 
-      // Transform TimelineItem to TimelineRow with impact calculation
-      const transformedEvents: TimelineRow[] = response.items.map((item) => ({
-        ...item,
-        impact: calculateImpact(item),
-      }))
+      const transformedEvents: TimelineRow[] = timelineEvents.map((item: unknown, index: number) => {
+        const normalized = normalizeTimelineItem(item, index)
+        return {
+          ...normalized,
+          impact: calculateImpact(normalized),
+        }
+      })
 
       setEvents(transformedEvents)
-      setTotalCount(response.total)
+      setTotalCount(typeof response.total === 'number' ? response.total : transformedEvents.length)
     } catch (error) {
-      console.error('[MemoryTimeline] Failed to load events:', error)
+      console.warn('[MemoryTimeline] Failed to load events:', error)
       toast.error(t(K.error.loadFailed))
       setEvents([])
       setTotalCount(0)

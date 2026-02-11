@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.mode import get_mode
+from octopusos.core.mode import get_mode
 
 
 def main():

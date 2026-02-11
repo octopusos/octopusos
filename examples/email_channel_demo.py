@@ -18,10 +18,10 @@ import asyncio
 from datetime import datetime, timezone
 
 # Import Email Channel components
-from agentos.communicationos.channels.email.adapter import EmailAdapter, CursorStore
-from agentos.communicationos.providers.email import EmailEnvelope
-from agentos.communicationos.models import OutboundMessage
-from agentos.communicationos.message_bus import MessageBus
+from octopusos.communicationos.channels.email.adapter import EmailAdapter, CursorStore
+from octopusos.communicationos.providers.email import EmailEnvelope
+from octopusos.communicationos.models import OutboundMessage
+from octopusos.communicationos.message_bus import MessageBus
 
 # For demo, we'll use a mock provider
 from tests.unit.communicationos.channels.email_channel.test_adapter import MockEmailProvider
@@ -45,9 +45,9 @@ def demo_basic_polling():
             from_address="user@example.com",
             from_name="John Doe",
             to_addresses=["agent@example.com"],
-            subject="Question about AgentOS",
+            subject="Question about OctopusOS",
             date=now,
-            text_body="Hello, I have a question about AgentOS. How do I get started?"
+            text_body="Hello, I have a question about OctopusOS. How do I get started?"
         ),
         EmailEnvelope(
             provider_message_id="msg_002",
@@ -172,7 +172,7 @@ def demo_reply_with_threading():
         conversation_key="thread-001@user.example.com",
         reply_to_message_id="email_thread-001@user.example.com",
         text="Thank you for your question! Here's how to get started...",
-        metadata={"subject": "Question about AgentOS"}
+        metadata={"subject": "Question about OctopusOS"}
     )
 
     print("\nSending reply:")
@@ -280,7 +280,7 @@ def demo_message_bus_integration():
     print("Demo 5: MessageBus Integration")
     print("=" * 60)
 
-    from agentos.communicationos.message_bus import ProcessingContext, ProcessingStatus
+    from octopusos.communicationos.message_bus import ProcessingContext, ProcessingStatus
 
     # Create MessageBus
     bus = MessageBus()

@@ -18,11 +18,11 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-from agentos.core.task.dependency_service import TaskDependencyService, CircularDependencyError
-from agentos.core.task.artifact_service import TaskArtifactService
-from agentos.core.task.audit_service import TaskAuditService
-from agentos.core.task.models import Task, DependencyType
-from agentos.core.task.repo_context import ExecutionEnv, TaskRepoContext, RepoScopeType
+from octopusos.core.task.dependency_service import TaskDependencyService, CircularDependencyError
+from octopusos.core.task.artifact_service import TaskArtifactService
+from octopusos.core.task.audit_service import TaskAuditService
+from octopusos.core.task.models import Task, DependencyType
+from octopusos.core.task.repo_context import ExecutionEnv, TaskRepoContext, RepoScopeType
 
 
 def create_test_database(db_path: Path):
@@ -359,8 +359,8 @@ def main():
     print(f"DOT file: {dot_file}")
     print("\nNext steps:")
     print("  1. Render graph: dot -Tpng dependency_graph.dot -o dependency_graph.png")
-    print("  2. Query dependencies: agentos task dependencies show <task_id>")
-    print("  3. Check cycles: agentos task dependencies check-cycles")
+    print("  2. Query dependencies: octopusos task dependencies show <task_id>")
+    print("  3. Check cycles: octopusos task dependencies check-cycles")
 
     db.close()
 

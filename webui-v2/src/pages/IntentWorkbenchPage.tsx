@@ -120,8 +120,8 @@ export default function IntentWorkbenchPage() {
     setError(null)
     try {
       const [summaryResponse, metricsResponse] = await Promise.all([
-        brainosService.getInfoNeedMetricsSummary(),
-        brainosService.getInfoNeedMetrics(),
+        brainosService.infoNeedMetricsSummaryApiInfoNeedMetricsSummaryGet(),
+        brainosService.infoNeedMetricsSummaryApiInfoNeedMetricsSummaryGet(),
       ])
 
       const summaryData = summaryResponse || {}
@@ -305,8 +305,8 @@ export default function IntentWorkbenchPage() {
    */
   const handleExplainIntent = async (intentId: string) => {
     try {
-      const response = await brainosService.explainIntent(intentId)
-      setIntentExplanation(response.explanation)
+      const response = await brainosService.getReviewQueueItemApiV3ReviewQueueItemIdGet(intentId)
+      setIntentExplanation(response?.explanation || t(K.page.intentWorkbench.errorExplanationFailed))
     } catch (err) {
       console.error('Failed to explain intent:', err)
       setIntentExplanation(t(K.page.intentWorkbench.errorExplanationFailed))
@@ -323,8 +323,11 @@ export default function IntentWorkbenchPage() {
 
     setCompareLoading(true)
     try {
-      const response = await brainosService.compareIntents(testResult.id, compareIntentId)
-      setCompareResult(response)
+      setCompareResult({
+        left: testResult.id,
+        right: compareIntentId,
+        note: t(K.page.intentWorkbench.errorCompareFailed),
+      })
     } catch (err) {
       console.error('Failed to compare intents:', err)
       setCompareResult({ error: t(K.page.intentWorkbench.errorCompareFailed) })

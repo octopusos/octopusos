@@ -20,7 +20,7 @@ def test_executor_determinism():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import ExecutorEngine
+        from octopusos.core.executor import ExecutorEngine
         
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)
@@ -98,7 +98,7 @@ def test_audit_log_structure():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import AuditLogger
+        from octopusos.core.executor import AuditLogger
         
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir = Path(tmpdir)

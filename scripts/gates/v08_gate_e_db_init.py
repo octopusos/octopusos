@@ -26,7 +26,7 @@ def test_db_init_with_custom_path():
         print(f"  Creating DB at: {db_path}")
         
         # 读取 v0.5 schema
-        schema_path = Path("agentos/store/schema_v05.sql")
+        schema_path = Path("octopusos/store/schema_v05.sql")
         if not schema_path.exists():
             print(f"  ❌ Schema file not found: {schema_path}")
             return False
@@ -84,13 +84,13 @@ def test_content_registry_import():
     print("\nTesting ContentRegistry with custom path...")
     
     try:
-        from agentos.core.content.registry import ContentRegistry
+        from octopusos.core.content.registry import ContentRegistry
         
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = Path(tmpdir) / "test_registry.db"
             
             # 先手动创建表
-            schema_path = Path("agentos/store/schema_v05.sql")
+            schema_path = Path("octopusos/store/schema_v05.sql")
             with open(schema_path, encoding="utf-8") as f:
                 schema_sql = f.read()
             

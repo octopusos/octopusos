@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.chat.response_guardian import (
+from octopusos.core.chat.response_guardian import (
     ResponseGuardian,
     check_response_with_guardian
 )

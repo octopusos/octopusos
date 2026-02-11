@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // AgentOS brand colors (can be customized later)
+        // OctopusOS brand colors (can be customized later)
         primary: {
           50: '#e3f2fd',
           100: '#bbdefb',

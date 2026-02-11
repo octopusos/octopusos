@@ -1,6 +1,6 @@
 id: nl_req_medium_risk_api
 schema_version: "0.9.4"
-project_id: "agentos"
+project_id: "octopusos"
 input_text: |
   实现 Builder 历史记录查询 API：
   - GET /api/builder/history - 查询所有 builder 输出

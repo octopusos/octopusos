@@ -23,8 +23,8 @@ import { K, useTextTranslation } from '@/ui/text'
 import { DetailDrawer, DeleteConfirmDialog } from '@/ui/interaction'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
-import { networkosService } from '@/services/networkos.service'
-import type { GovernanceFinding } from '@/services/networkos.service'
+import { networkosService } from '@services'
+import type { GovernanceFinding } from '@services'
 
 // ===================================
 // Types
@@ -94,7 +94,7 @@ export default function GovernanceFindingsView() {
       }
 
       // Call real API
-      const response = await networkosService.listGovernanceFindings(params)
+      const response = await networkosService.listGovernanceFindingsApiGovernanceFindingsGet(params)
       setFindings(response.findings)
       setTotalCount(response.total)
     } catch (err) {
@@ -111,7 +111,7 @@ export default function GovernanceFindingsView() {
 
   const loadFindingDetail = async (findingId: string) => {
     try {
-      const response = await networkosService.getGovernanceFinding(findingId)
+      const response = await networkosService.getGovernanceFindingApiGovernanceFindingsFindingIdGet(findingId)
       setSelectedFinding(response.finding)
     } catch (err) {
       console.error('Failed to load finding detail:', err)
@@ -180,7 +180,7 @@ export default function GovernanceFindingsView() {
   const handleDelete = async () => {
     if (!selectedFinding) return
     try {
-      await networkosService.deleteGovernanceFinding(selectedFinding.id)
+      await networkosService.deleteGovernanceFindingApiGovernanceFindingsFindingIdDelete(selectedFinding.id)
       toast.success(t(K.page.governanceFindings.dismissedSuccess))
       setDeleteDialogOpen(false)
       setDrawerOpen(false)

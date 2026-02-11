@@ -5,7 +5,7 @@
  * - ✅ Text System: 使用 t('xxx')（G7-G8）
  * - ✅ Layout: usePageHeader + usePageActions（G10-G11）
  * - ✅ Table Contract: TableShell 三行结构
- * - ✅ Real API Integration: agentosService (Phase 6)
+ * - ✅ Real API Integration: octopusosService (Phase 6)
  * - ✅ Unified Exit: TableShell 封装
  */
 
@@ -17,7 +17,7 @@ import { TableShell, FilterBar, TextField, Select, MenuItem } from '@/ui'
 import { DialogForm } from '@/ui/interaction'
 import { K, useTextTranslation } from '@/ui/text'
 import type { GridColDef } from '@/ui'
-import { agentosService, type Project } from '@/services/agentos.service'
+import { octopusosService, type Project } from '@services'
 import { useSnackbar } from 'notistack'
 
 // Constants for prop values
@@ -117,43 +117,23 @@ export default function ProjectsPage() {
         params.status = statusFilter
       }
 
-      const response = await agentosService.listProjects(params)
+      const response = await octopusosService.listProjectsApiProjectsGet(params)
+      const projectRows = Array.isArray(response?.projects) ? response.projects : []
 
-      // Fetch repo count for each project in parallel
-      const projectsWithRepos = await Promise.all(
-        response.projects.map(async (project: Project, index: number) => {
-          // Ensure valid id - use fallback if API returns invalid data
-          const validId = project.id || `project-${index}-${Date.now()}`
-
-          try {
-            const reposRes = await agentosService.getProjectRepos(validId)
-            return {
-              id: validId,
-              name: project.name || 'Unnamed Project',
-              description: project.description || '-',
-              repoCount: reposRes.total,
-              status: project.status || 'unknown',
-              owner: '-', // API doesn't provide owner field yet
-              lastActivity: project.updated_at
-                ? new Date(project.updated_at).toLocaleDateString('en-CA')
-                : new Date(project.created_at).toLocaleDateString('en-CA'),
-            }
-          } catch (error) {
-            console.error(`Failed to fetch repos for project ${validId}:`, error)
-            return {
-              id: validId,
-              name: project.name || 'Unnamed Project',
-              description: project.description || '-',
-              repoCount: 0,
-              status: project.status || 'unknown',
-              owner: '-',
-              lastActivity: project.updated_at
-                ? new Date(project.updated_at).toLocaleDateString('en-CA')
-                : new Date(project.created_at).toLocaleDateString('en-CA'),
-            }
-          }
-        })
-      )
+      const projectsWithRepos = projectRows.map((project: Project, index: number) => {
+        const validId = project.id || `missing-id-${index}`
+        return {
+          id: validId,
+          name: project.name || 'Unnamed Project',
+          description: project.description || '-',
+          repoCount: Number((project as any).repo_count || 0),
+          status: project.status || 'unknown',
+          owner: '-',
+          lastActivity: project.updated_at
+            ? new Date(project.updated_at).toLocaleDateString('en-CA')
+            : new Date(project.created_at).toLocaleDateString('en-CA'),
+        }
+      })
 
       setProjects(projectsWithRepos)
       setTotal(response.total)
@@ -267,7 +247,7 @@ export default function ProjectsPage() {
           .filter(Boolean)
       }
 
-      const response = await agentosService.createProject(createData)
+      const response = await octopusosService.createProjectApiProjectsPost(createData)
 
       enqueueSnackbar(t('common.success') + ': Project created successfully', { variant: 'success' })
       setCreateProjectDialogOpen(false)
@@ -313,7 +293,7 @@ export default function ProjectsPage() {
       // Extract repo name from URL (simplified logic)
       const repoName = repoUrl.split('/').pop()?.replace('.git', '') || 'unknown-repo'
 
-      await agentosService.createProjectRepo(selectedProjectId, {
+      await octopusosService.addRepoApiProjectsProjectIdReposPost(selectedProjectId, {
         project_id: selectedProjectId,
         name: repoName,
         path: repoUrl,
@@ -445,7 +425,7 @@ export default function ProjectsPage() {
       }
       emptyState={{
         title: t('page.projects.noProjects'),
-        description: 'Create your first project to get started',
+        description: t(K.page.projects.createFirstProject),
         actions: [
           {
             label: t('page.projects.createProject'),

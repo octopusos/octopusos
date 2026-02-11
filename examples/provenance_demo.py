@@ -1,21 +1,21 @@
 """
 Provenance System Demo
 
-演示 AgentOS Provenance（溯源）系统的基本使用。
+演示 OctopusOS Provenance（溯源）系统的基本使用。
 """
 
 import asyncio
 from datetime import datetime
 
-from agentos.core.capabilities.governance_models.provenance import (
+from octopusos.core.capabilities.governance_models.provenance import (
     ProvenanceStamp,
     ExecutionEnv,
     get_current_env,
     TrustTier,
 )
-from agentos.core.capabilities.capability_models import ToolResult
-from agentos.core.capabilities.provenance_validator import ProvenanceValidator
-from agentos.core.capabilities.provenance_utils import (
+from octopusos.core.capabilities.capability_models import ToolResult
+from octopusos.core.capabilities.provenance_validator import ProvenanceValidator
+from octopusos.core.capabilities.provenance_utils import (
     filter_results_by_trust_tier,
     verify_result_origin,
     compare_results_by_env,
@@ -34,7 +34,7 @@ def demo_get_current_env():
     print(f"进程 ID: {env.pid}")
     print(f"容器 ID: {env.container_id or 'N/A'}")
     print(f"Python 版本: {env.python_version}")
-    print(f"AgentOS 版本: {env.agentos_version}")
+    print(f"OctopusOS 版本: {env.octopusos_version}")
     print(f"平台: {env.platform}")
     print(f"工作目录: {env.cwd}")
     print()
@@ -202,9 +202,9 @@ def demo_compare_environments():
         host="production-server",
         pid=54321,
         python_version="3.11.0",
-        agentos_version="0.3.0",
+        octopusos_version="0.3.0",
         platform="Linux-5.15.0-x86_64",
-        cwd="/opt/agentos"
+        cwd="/opt/octopusos"
     )
 
     results = []
@@ -272,7 +272,7 @@ def main():
     """运行所有演示"""
     print("\n")
     print("╔" + "=" * 58 + "╗")
-    print("║" + " " * 10 + "AgentOS Provenance System Demo" + " " * 17 + "║")
+    print("║" + " " * 10 + "OctopusOS Provenance System Demo" + " " * 17 + "║")
     print("╚" + "=" * 58 + "╝")
     print()
 

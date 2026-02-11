@@ -7,7 +7,7 @@
     "paths": [
       "docs/**",
       "examples/**",
-      "agentos/**",
+      "octopusos/**",
       "tests/**",
       "scripts/**"
     ],

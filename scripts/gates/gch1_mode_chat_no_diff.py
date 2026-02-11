@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.mode import get_mode
+from octopusos.core.mode import get_mode
 
 
 def save_evidence(gate_id: str, gate_name: str, evidence: dict):

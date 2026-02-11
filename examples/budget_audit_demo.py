@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.chat.budget_audit import (
+from octopusos.core.chat.budget_audit import (
     BudgetAuditAPI,
     get_budget_for_message,
     get_budget_for_task,

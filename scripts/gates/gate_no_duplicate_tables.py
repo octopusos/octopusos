@@ -28,7 +28,7 @@ DEFAULT_DB_PATH = Path("store/registry.sqlite")
 def get_db_path() -> Path:
     """Get database path from environment or default."""
     import os
-    env_path = os.getenv("AGENTOS_DB_PATH", str(DEFAULT_DB_PATH))
+    env_path = os.getenv("OCTOPUSOS_DB_PATH", str(DEFAULT_DB_PATH))
     return Path(env_path)
 
 

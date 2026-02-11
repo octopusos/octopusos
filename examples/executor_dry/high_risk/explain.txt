@@ -15,10 +15,10 @@ Swimlanes: 3 (database_engineer, security_engineer, sre_engineer)
 
 --- Patch Plan ---
 Files: 5
-  - modify: agentos/store/migrations/v010_add_user_credentials_table.sql (risk: high)
-  - modify: agentos/store/migrations/v010_rollback.sql (risk: critical)
-  - modify: agentos/models/user_credentials.py (risk: medium)
-  - modify: agentos/services/credentials_service.py (risk: high)
+  - modify: octopusos/store/migrations/v010_add_user_credentials_table.sql (risk: high)
+  - modify: octopusos/store/migrations/v010_rollback.sql (risk: critical)
+  - modify: octopusos/models/user_credentials.py (risk: medium)
+  - modify: octopusos/services/credentials_service.py (risk: high)
   - modify: tests/integration/test_credentials_migration.py (risk: medium)
 
 --- Commit Plan ---

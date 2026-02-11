@@ -11,13 +11,13 @@ TEST_DIR="/tmp/datetime_gate_test_$$"
 mkdir -p "$TEST_DIR"
 cd "$TEST_DIR"
 
-# Create a minimal agentos structure for testing
-mkdir -p agentos/core
+# Create a minimal octopusos structure for testing
+mkdir -p octopusos/core
 
 echo "Creating test cases..."
 
 # Test case 1: Should fail - datetime.utcnow()
-cat > agentos/core/bad_utcnow.py <<'EOF'
+cat > octopusos/core/bad_utcnow.py <<'EOF'
 from datetime import datetime
 
 def get_timestamp():
@@ -27,7 +27,7 @@ def get_timestamp():
 EOF
 
 # Test case 2: Should fail - datetime.now() without tz
-cat > agentos/core/bad_now.py <<'EOF'
+cat > octopusos/core/bad_now.py <<'EOF'
 from datetime import datetime
 
 def get_timestamp():
@@ -37,8 +37,8 @@ def get_timestamp():
 EOF
 
 # Test case 3: Should pass - clock.utc_now()
-cat > agentos/core/good_clock.py <<'EOF'
-from agentos.core.time import utc_now
+cat > octopusos/core/good_clock.py <<'EOF'
+from octopusos.core.time import utc_now
 
 def get_timestamp():
     # This is correct
@@ -47,7 +47,7 @@ def get_timestamp():
 EOF
 
 # Test case 4: Should pass - datetime.now(timezone.utc)
-cat > agentos/core/good_now_tz.py <<'EOF'
+cat > octopusos/core/good_now_tz.py <<'EOF'
 from datetime import datetime, timezone
 
 def get_timestamp():
@@ -57,7 +57,7 @@ def get_timestamp():
 EOF
 
 # Test case 5: Should pass - datetime.now(tz=...)
-cat > agentos/core/good_now_tz_kwarg.py <<'EOF'
+cat > octopusos/core/good_now_tz_kwarg.py <<'EOF'
 from datetime import datetime, timezone
 
 def get_timestamp():
@@ -68,7 +68,7 @@ EOF
 
 echo ""
 echo "Test 1: Detect datetime.utcnow()..."
-if grep -q "datetime\.utcnow()" agentos/core/bad_utcnow.py; then
+if grep -q "datetime\.utcnow()" octopusos/core/bad_utcnow.py; then
     echo "✅ Pattern detected correctly"
 else
     echo "❌ Failed to detect pattern"
@@ -76,7 +76,7 @@ fi
 
 echo ""
 echo "Test 2: Detect datetime.now() without tz..."
-if grep "datetime\.now()" agentos/core/bad_now.py | grep -qv "timezone"; then
+if grep "datetime\.now()" octopusos/core/bad_now.py | grep -qv "timezone"; then
     echo "✅ Pattern detected correctly"
 else
     echo "❌ Failed to detect pattern"
@@ -84,7 +84,7 @@ fi
 
 echo ""
 echo "Test 3: Allow clock.utc_now()..."
-if ! grep -q "datetime\.utcnow()" agentos/core/good_clock.py; then
+if ! grep -q "datetime\.utcnow()" octopusos/core/good_clock.py; then
     echo "✅ Correctly allowed"
 else
     echo "❌ False positive"
@@ -92,7 +92,7 @@ fi
 
 echo ""
 echo "Test 4: Allow datetime.now(timezone.utc)..."
-if grep "datetime\.now" agentos/core/good_now_tz.py | grep -q "timezone"; then
+if grep "datetime\.now" octopusos/core/good_now_tz.py | grep -q "timezone"; then
     echo "✅ Correctly allowed"
 else
     echo "❌ False positive"
@@ -100,7 +100,7 @@ fi
 
 echo ""
 echo "Test 5: Allow datetime.now(tz=...)..."
-if grep "datetime\.now" agentos/core/good_now_tz_kwarg.py | grep -q "tz="; then
+if grep "datetime\.now" octopusos/core/good_now_tz_kwarg.py | grep -q "tz="; then
     echo "✅ Correctly allowed"
 else
     echo "❌ False positive"

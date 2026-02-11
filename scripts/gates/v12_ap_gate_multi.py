@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root))
 
 def check_multi_depth_limit():
     """Check max depth limit is enforced."""
-    multi_file = project_root / "agentos" / "core" / "answers" / "multiround.py"
+    multi_file = project_root / "octopusos" / "core" / "answers" / "multiround.py"
     
     if not multi_file.exists():
         return False, "Multi-round file not found"
@@ -48,7 +48,7 @@ def check_multi_depth_limit():
 
 def check_multi_dependencies():
     """Check follow-up dependencies are tracked."""
-    multi_file = project_root / "agentos" / "core" / "answers" / "multiround.py"
+    multi_file = project_root / "octopusos" / "core" / "answers" / "multiround.py"
     content = multi_file.read_text()
     
     # Check dependency tracking structure
@@ -68,7 +68,7 @@ def check_multi_dependencies():
 
 def check_multi_full_auto_block():
     """Check full_auto mode blocks follow-up questions."""
-    multi_file = project_root / "agentos" / "core" / "answers" / "multiround.py"
+    multi_file = project_root / "octopusos" / "core" / "answers" / "multiround.py"
     content = multi_file.read_text()
     
     # Check for execution_mode check
@@ -103,7 +103,7 @@ def check_multi_full_auto_block():
 
 def check_multi_budget_enforcement():
     """Check question budget is enforced across rounds."""
-    multi_file = project_root / "agentos" / "core" / "answers" / "multiround.py"
+    multi_file = project_root / "octopusos" / "core" / "answers" / "multiround.py"
     content = multi_file.read_text()
     
     # Check budget is tracked
@@ -123,7 +123,7 @@ def check_multi_budget_enforcement():
 
 def check_multi_context_building():
     """Check context is built from previous rounds."""
-    multi_file = project_root / "agentos" / "core" / "answers" / "multiround.py"
+    multi_file = project_root / "octopusos" / "core" / "answers" / "multiround.py"
     content = multi_file.read_text()
     
     # Check rounds are tracked
@@ -143,7 +143,7 @@ def check_multi_context_building():
 
 def check_multi_consolidation():
     """Check multi-round answers can be consolidated."""
-    multi_file = project_root / "agentos" / "core" / "answers" / "multiround.py"
+    multi_file = project_root / "octopusos" / "core" / "answers" / "multiround.py"
     content = multi_file.read_text()
     
     # Check consolidation method exists

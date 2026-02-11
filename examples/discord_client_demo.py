@@ -18,7 +18,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.communicationos.channels.discord.client import (
+from octopusos.communicationos.channels.discord.client import (
     DiscordClient,
     DiscordAuthError,
     DiscordClientError,
@@ -70,7 +70,7 @@ async def demo_edit_response():
     interaction_token = "YOUR_INTERACTION_TOKEN"
 
     messages = [
-        "Hello from AgentOS!",
+        "Hello from OctopusOS!",
         "This is a test of the Discord integration.",
         "The bot can edit its previous responses."
     ]

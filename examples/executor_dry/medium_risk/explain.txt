@@ -15,9 +15,9 @@ Swimlanes: 2 (backend_engineer, qa_engineer)
 
 --- Patch Plan ---
 Files: 5
-  - modify: agentos/api/routes/notifications.py (risk: medium)
-  - modify: agentos/services/notification_service.py (risk: medium)
-  - modify: agentos/models/notification.py (risk: low)
+  - modify: octopusos/api/routes/notifications.py (risk: medium)
+  - modify: octopusos/services/notification_service.py (risk: medium)
+  - modify: octopusos/models/notification.py (risk: low)
   - modify: tests/unit/test_notification_service.py (risk: low)
   - modify: tests/integration/test_notifications_api.py (risk: medium)
 

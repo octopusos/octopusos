@@ -1,50 +1,38 @@
-/**
- * HomePage - System Overview Dashboard
- *
- * 🔒 Migration Contract 遵循规则：
- * - ✅ Text System: 使用 t(K.page.home.xxx)
- * - ✅ Layout: usePageHeader + usePageActions
- * - ✅ Pattern Components: DashboardGrid + StatCard + StatusCard + MetricCard
- * - ✅ Real API Integration: systemService + riskService
- *
- * 📊 设计参考: WebUI v1 Overview 页面
- * - 双列网格布局展示系统状态
- * - 5 个核心卡片：System Status, Resource Usage, Components, System Info, Governance
- * - 快速操作按钮：Refresh
- */
-
-import { useState, useEffect } from 'react'
+/* eslint-disable react/jsx-no-literals */
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { usePageHeader, usePageActions } from '@/ui/layout'
-import { DashboardGrid, StatCard, StatusCard, MetricCard, AppCard, AppCardHeader, AppCardBody, Chip, LoadingState } from '@/ui'
+import { AppCard, AppCardHeader, AppCardBody, LoadingState } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 // eslint-disable-next-line no-restricted-imports -- G3 Exception: useTheme and alpha are MUI utilities (not components) needed for theme token access
-import { Box, Typography, useTheme, alpha } from '@mui/material'
-import { RefreshIcon, CheckCircleIcon, WarningIcon, ErrorIcon } from '@/ui/icons'
+import { Box, Typography, useTheme, alpha, Button, Stack } from '@mui/material'
+import { RefreshIcon } from '@/ui/icons'
 import { systemService } from '@/services/system.service'
 import { riskService } from '@/services/risk.service'
 import { useSnackbar } from 'notistack'
 
-// Typography variants and colors to avoid string literals
-const BODY2_VARIANT = 'body2' as const
-const TEXT_SECONDARY = 'text.secondary' as const
-const COLOR_PRIMARY = 'primary' as const
-const SIZE_SMALL = 'small' as const
-const TEXT_ALIGN_CENTER = 'center' as const
-const LOADING_ELLIPSIS = '...'
+type HealthStatus = 'ok' | 'degraded' | 'error' | 'warn'
+
+type ActionCard = {
+  title: string
+  description: string
+  buttonLabel: string
+  path: string
+  critical?: boolean
+}
+
+type StatusBadge = {
+  icon: string
+  label: string
+  color: 'success.main' | 'warning.main' | 'error.main'
+}
 
 export default function HomePage() {
-  // ===================================
-  // Hooks
-  // ===================================
   const { t } = useTextTranslation()
   const theme = useTheme()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbar()
 
-  // ===================================
-  // State Management
-  // ===================================
   const [loading, setLoading] = useState(true)
   const [runtimeInfo, setRuntimeInfo] = useState<{
     version: string
@@ -61,11 +49,9 @@ export default function HomePage() {
     network_tx: number
   } | null>(null)
   const [healthCheck, setHealthCheck] = useState<{
-    status: 'ok' | 'degraded' | 'error' | 'warn'
+    status: HealthStatus
     components: Record<string, { status: string; message?: string }>
     timestamp: string
-    uptime_seconds?: number
-    metrics?: Record<string, any>
   } | null>(null)
   const [riskStatus, setRiskStatus] = useState<{
     overall_risk: number
@@ -75,16 +61,13 @@ export default function HomePage() {
     capability_risk: number
   } | null>(null)
 
-  // ===================================
-  // Theme Tokens with Fallback
-  // ===================================
-  const agentosRaw: {
+  const octopusosRaw: {
     bg?: Record<string, string>
     border?: Record<string, string>
     shape?: { radius: { sm: number; md: number; lg: number } }
-  } | null = (theme as { agentos?: Record<string, unknown> }).agentos ?? (theme.palette as { agentos?: Record<string, unknown> }).agentos ?? null
+  } | null = (theme as { octopusos?: Record<string, unknown> }).octopusos ?? (theme.palette as { octopusos?: Record<string, unknown> }).octopusos ?? null
 
-  const bg = agentosRaw?.bg ?? {
+  const bg = octopusosRaw?.bg ?? {
     canvas: theme.palette.background.default,
     surface: alpha(theme.palette.background.default, 0.9),
     paper: theme.palette.background.paper,
@@ -92,70 +75,52 @@ export default function HomePage() {
     elevated: alpha(theme.palette.background.paper, 0.8),
   }
 
-  const border = agentosRaw?.border ?? {
+  const border = octopusosRaw?.border ?? {
     subtle: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)',
     strong: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)',
   }
 
-  const shape = agentosRaw?.shape ?? {
+  const shape = octopusosRaw?.shape ?? {
     radius: { sm: 10, md: 14, lg: 18 },
   }
 
-  const agentos = {
+  const octopusos = {
     bg,
     border,
     shape,
-    ...agentosRaw,
+    ...octopusosRaw,
   }
 
-  // ===================================
-  // Data Fetching
-  // ===================================
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
 
-      // Real API calls: await systemService.getRuntimeInfo(), await systemService.getMetricsJson(),
-      // await systemService.healthCheck(), await riskService.getCurrentRiskStatus()
+      // Real API calls: runtime info + metrics + health check + risk status
       const [runtimeRes, metricsRes, healthRes, riskRes] = await Promise.all([
-        systemService.getRuntimeInfo().catch(err => ({ error: err })),
-        systemService.getMetricsJson().catch(err => ({ error: err })),
-        systemService.healthCheck().catch(err => ({ error: err })),
-        riskService.getCurrentRiskStatus().catch(err => ({ error: err })),
+        systemService.getRuntimeInfo().catch((err: unknown) => ({ error: err })),
+        systemService.getMetricsJson().catch((err: unknown) => ({ error: err })),
+        systemService.healthCheck().catch((err: unknown) => ({ error: err })),
+        riskService.getCurrentRiskStatus().catch((err: unknown) => ({ error: err })),
       ])
 
       // Handle runtime info
       if (runtimeRes && typeof runtimeRes === 'object' && !('error' in runtimeRes)) {
         setRuntimeInfo(runtimeRes)
-      } else {
-        console.error('Failed to fetch runtime info:', runtimeRes)
       }
 
-      // Handle metrics
       if (metricsRes && typeof metricsRes === 'object' && !('error' in metricsRes)) {
-        // getMetricsJson() returns { timestamp, metrics: {...} }
-        // Extract the nested metrics object
         const metricsData = metricsRes.metrics || metricsRes
         setMetrics(metricsData as typeof metrics)
-      } else {
-        console.error('Failed to fetch metrics:', metricsRes)
       }
 
-      // Handle health check
       if (healthRes && typeof healthRes === 'object' && !('error' in healthRes)) {
         setHealthCheck(healthRes)
-      } else {
-        console.error('Failed to fetch health check:', healthRes)
       }
 
-      // Handle risk status
       if (riskRes && typeof riskRes === 'object' && !('error' in riskRes)) {
         setRiskStatus(riskRes)
-      } else {
-        console.error('Failed to fetch risk status:', riskRes)
       }
 
-      // Show error if all requests failed
       const allFailed = (!runtimeRes || (typeof runtimeRes === 'object' && 'error' in runtimeRes)) &&
                         (!metricsRes || (typeof metricsRes === 'object' && 'error' in metricsRes)) &&
                         (!healthRes || (typeof healthRes === 'object' && 'error' in healthRes)) &&
@@ -169,32 +134,35 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [enqueueSnackbar, t])
 
   useEffect(() => {
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchData])
 
-  // ===================================
-  // Handlers
-  // ===================================
   const handleRefresh = async () => {
     enqueueSnackbar(t('common.loading') + '...', { variant: 'info' })
     await fetchData()
     enqueueSnackbar(t('common.success'), { variant: 'success' })
   }
 
-  const handleNavigate = (path: string) => {
-    navigate(path)
-  }
+  const pageHelp = useMemo(() => ({
+    purpose: t(K.page.home.helpPurpose),
+    usage: t(K.page.home.helpUsage),
+    howToUse: t(K.page.home.helpHowToUse),
+    details: t(K.page.home.helpDetails),
+    steps: [
+      t(K.page.home.helpStep1),
+      t(K.page.home.helpStep2),
+      t(K.page.home.helpStep3),
+      t(K.page.home.helpStep4),
+    ],
+  }), [t])
 
-  // ===================================
-  // Page Header
-  // ===================================
   usePageHeader({
     title: t(K.page.home.title),
     subtitle: t(K.page.home.subtitle),
+    help: pageHelp,
   })
 
   usePageActions([
@@ -207,263 +175,238 @@ export default function HomePage() {
     },
   ])
 
-  // ===================================
-  // Computed Values
-  // ===================================
-  const formatUptime = (seconds: number): string => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    return `${hours}h ${minutes}m`
+  const getBadge = (state: 'runnable' | 'needsConfig' | 'blocked'): StatusBadge => {
+    if (state === 'runnable') return { icon: '✅', label: t(K.page.home.statusRunnable), color: 'success.main' }
+    if (state === 'needsConfig') return { icon: '⚠️', label: t(K.page.home.statusNeedsConfig), color: 'warning.main' }
+    return { icon: '❌', label: t(K.page.home.statusBlocked), color: 'error.main' }
   }
 
-  const getStatusFromHealth = (): { status: string; color: 'success' | 'warning' | 'error' } => {
-    if (!healthCheck) return { status: 'UNKNOWN', color: 'warning' }
-    if (healthCheck.status === 'ok') return { status: 'OK', color: 'success' }
-    if (healthCheck.status === 'warn') return { status: 'WARNING', color: 'warning' }
-    if (healthCheck.status === 'degraded') return { status: 'DEGRADED', color: 'warning' }
-    return { status: 'ERROR', color: 'error' }
-  }
+  const runtimeState: 'runnable' | 'needsConfig' | 'blocked' =
+    !healthCheck ? 'needsConfig' : healthCheck.status === 'ok' ? 'runnable' : healthCheck.status === 'error' ? 'blocked' : 'needsConfig'
 
-  const getRiskLevel = (): { level: string; color: 'success' | 'warning' | 'error' } => {
-    if (!riskStatus) return { level: 'UNKNOWN', color: 'warning' }
-    const risk = riskStatus.overall_risk
-    if (risk < 30) return { level: 'LOW', color: 'success' }
-    if (risk < 70) return { level: 'MEDIUM', color: 'warning' }
-    return { level: 'HIGH', color: 'error' }
-  }
+  const setupState: 'runnable' | 'needsConfig' | 'blocked' =
+    runtimeInfo && runtimeInfo.features?.includes('providers') ? 'runnable' : 'needsConfig'
 
-  const getComponentsStatus = (): Array<{
-    name: string
-    status: string
-    color: 'success' | 'warning' | 'error'
-  }> => {
-    if (!healthCheck) return []
+  const writeState: 'runnable' | 'needsConfig' | 'blocked' = (() => {
+    if (!riskStatus) return 'needsConfig'
+    if (riskStatus.overall_risk >= 70) return 'blocked'
+    if (riskStatus.overall_risk >= 30) return 'needsConfig'
+    return 'runnable'
+  })()
 
-    return Object.entries(healthCheck.components || {}).map(([name, check]) => {
-      const checkData = check as { status: string; message?: string }
-      const color: 'success' | 'warning' | 'error' =
-        checkData.status === 'ok' ? 'success' : checkData.status === 'error' ? 'error' : 'warning'
-      return {
-        name,
-        status: checkData.status === 'ok' ? 'ok' : checkData.status === 'error' ? 'error' : 'warn',
-        color,
-      }
-    })
-  }
+  const ctaCards: ActionCard[] = [
+    {
+      title: t(K.page.home.ctaConnectProjectTitle),
+      description: t(K.page.home.ctaConnectProjectDesc),
+      buttonLabel: t(K.page.home.ctaConnectProjectAction),
+      path: '/projects',
+    },
+    {
+      title: t(K.page.home.ctaSafeTaskTitle),
+      description: t(K.page.home.ctaSafeTaskDesc),
+      buttonLabel: t(K.page.home.ctaSafeTaskAction),
+      path: '/tasks',
+    },
+    {
+      title: t(K.page.home.ctaHealthTitle),
+      description: t(K.page.home.ctaHealthDesc),
+      buttonLabel: t(K.page.home.ctaHealthAction),
+      path: '/system-health',
+    },
+    {
+      title: t(K.page.home.ctaEvidenceTitle),
+      description: t(K.page.home.ctaEvidenceDesc),
+      buttonLabel: t(K.page.home.ctaEvidenceAction),
+      path: '/evidence-chains',
+    },
+    {
+      title: t(K.page.home.ctaAdminTokenTitle),
+      description: t(K.page.home.ctaAdminTokenDesc),
+      buttonLabel: t(K.page.home.ctaAdminTokenAction),
+      path: '/config',
+      critical: true,
+    },
+  ]
 
-  // ===================================
-  // Loading State
-  // ===================================
   if (loading) {
     return <LoadingState />
   }
 
-  // ===================================
-  // Render: Overview Dashboard
-  // ===================================
-  const statusInfo = getStatusFromHealth()
-  const riskInfo = getRiskLevel()
-  const components = getComponentsStatus()
-
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Row 1: System Metrics Grid */}
-      <DashboardGrid>
-        {/* System Status Card */}
-        <StatusCard
-          title={t(K.page.home.systemStatus)}
-          status={statusInfo.status}
-          statusLabel={t(K.appBar.currentStatus)}
-          meta={[
-            {
-              key: 'uptime',
-              label: t(K.page.home.uptime),
-              value: runtimeInfo ? formatUptime(runtimeInfo.uptime) : '-',
-            },
-            {
-              key: 'pid',
-              label: t(K.page.home.processId),
-              value: runtimeInfo?.pid ? String(runtimeInfo.pid) : '-',
-            },
-          ]}
-        />
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' },
+        gap: 3,
+        alignItems: 'start',
+      }}
+    >
+      <Stack spacing={3}>
+        <AppCard>
+          <AppCardHeader title={t(K.page.home.questionStripTitle)} />
+          <AppCardBody>
+            <Stack spacing={1.25}>
+              <Typography variant="body2" color="text.secondary">{t(K.page.home.questionCanDo)}</Typography>
+              <Typography variant="body2" color="text.secondary">{t(K.page.home.questionNext)}</Typography>
+              <Typography variant="body2" color="text.secondary">{t(K.page.home.questionRisk)}</Typography>
+              <Typography variant="body2" color="text.secondary">{t(K.page.home.questionHelp)}</Typography>
+            </Stack>
+          </AppCardBody>
+        </AppCard>
 
-        {/* Resource Usage Card */}
-        <MetricCard
-          title={t(K.page.home.resourceUsage)}
-          metrics={[
-            { key: 'cpu', label: t(K.page.home.cpu), value: metrics && metrics.cpu_usage != null ? `${metrics.cpu_usage.toFixed(1)}%` : '-' },
-            {
-              key: 'memory',
-              label: t(K.page.home.memoryUsage),
-              value: metrics && metrics.memory_usage != null ? `${(metrics.memory_usage / 1024 / 1024).toFixed(1)} MB` : '-',
-            },
-          ]}
-        />
-
-        {/* System Info Card */}
-        <StatCard
-          title={t(K.page.home.systemVersion)}
-          value={runtimeInfo?.version || '-'}
-        />
-
-        {/* API Status Card */}
-        <StatCard
-          title={t(K.page.home.apiStatus)}
-          value={statusInfo.status}
-        />
-      </DashboardGrid>
-
-      {/* Row 2: Components Status */}
-      <AppCard>
-        <AppCardHeader title={t(K.page.home.componentStatus)} />
-        <AppCardBody>
-          {components.length === 0 ? (
-            <Box sx={{ p: 2, textAlign: 'center' }}>
-              <Typography variant={BODY2_VARIANT} color={TEXT_SECONDARY}>
-                {t('common.loading')}
-                {LOADING_ELLIPSIS}
-              </Typography>
-            </Box>
-          ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 2,
-                p: 2,
-                bgcolor: agentos.bg.section,
-                border: `1px solid ${agentos.border.subtle}`,
-                borderRadius: agentos.shape.radius.sm / 8,
-              }}
-            >
-              {components.map((component) => (
+        <AppCard>
+          <AppCardHeader title={t(K.page.home.taskEntryTitle)} />
+          <AppCardBody>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              {ctaCards.map((card) => (
                 <Box
-                  key={component.name}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    px: 2,
-                    py: 1,
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    minWidth: 180,
-                    bgcolor: agentos.bg.paper,
-                  }}
-                >
-                  {component.status === 'ok' ? (
-                    <CheckCircleIcon sx={{ fontSize: 20, color: 'success.main' }} />
-                  ) : component.status === 'warn' ? (
-                    <WarningIcon sx={{ fontSize: 20, color: 'warning.main' }} />
-                  ) : (
-                    <ErrorIcon sx={{ fontSize: 20, color: 'error.main' }} />
-                  )}
-                  <Typography variant={BODY2_VARIANT} sx={{ flex: 1 }}>
-                    {component.name}
-                  </Typography>
-                  <Chip
-                    label={component.status.toUpperCase()}
-                    color={component.color}
-                    size={SIZE_SMALL}
-                  />
-                </Box>
-              ))}
-            </Box>
-          )}
-        </AppCardBody>
-      </AppCard>
-
-      {/* Row 3: Governance Status */}
-      <AppCard>
-        <AppCardHeader title={t(K.page.home.governanceStatus)} />
-        <AppCardBody>
-          {/* 🎨 Section container - uses bg.section for nested structure */}
-          <Box
-            sx={{
-              p: 2,
-              bgcolor: agentos.bg.section,
-              border: `1px solid ${agentos.border.subtle}`,
-              borderRadius: agentos.shape.radius.sm / 8,
-            }}
-          >
-            <DashboardGrid>
-              <StatCard
-                title={t(K.page.home.riskLevel)}
-                value={riskInfo.level}
-              />
-              <StatCard
-                title={t(K.page.home.openFindings)}
-                value={riskStatus ? String(Math.floor(riskStatus.policy_risk * 10)) : '-'}
-              />
-              <StatCard
-                title={t(K.page.home.blockedRate)}
-                value={riskStatus && riskStatus.execution_risk != null ? `${riskStatus.execution_risk.toFixed(1)}%` : '-'}
-              />
-            </DashboardGrid>
-            <Box sx={{ mt: 2, textAlign: 'right' }}>
-              <Typography
-                variant={BODY2_VARIANT}
-                color={COLOR_PRIMARY}
-                sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                onClick={() => handleNavigate('/governance')}
-              >
-                {t(K.page.home.viewGovernanceDashboard)}
-              </Typography>
-            </Box>
-          </Box>
-        </AppCardBody>
-      </AppCard>
-
-      {/* Row 4: Quick Links */}
-      <AppCard>
-        <AppCardHeader title={t(K.page.home.quickLinks)} />
-        <AppCardBody>
-          {/* 🎨 Section container - uses bg.section for nested structure */}
-          <Box
-            sx={{
-              p: 2,
-              bgcolor: agentos.bg.section,
-              border: `1px solid ${agentos.border.subtle}`,
-              borderRadius: agentos.shape.radius.sm / 8,
-            }}
-          >
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 2 }}>
-              {[
-                { label: t(K.page.home.linkTasks), path: '/tasks' },
-                { label: t(K.page.home.linkProjects), path: '/projects' },
-                { label: t(K.page.home.linkMemory), path: '/memory' },
-                { label: t(K.page.home.linkSkills), path: '/skills' },
-                { label: t(K.page.home.linkLogs), path: '/logs' },
-                { label: t(K.page.home.linkProviders), path: '/providers' },
-              ].map((link) => (
-                <Box
-                  key={link.path}
+                  key={card.path}
                   sx={{
                     p: 2,
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    bgcolor: agentos.bg.paper,
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      bgcolor: agentos.bg.elevated,
-                    },
+                    border: `1px solid ${card.critical ? theme.palette.error.main : octopusos.border.subtle}`,
+                    borderRadius: 2,
+                    bgcolor: card.critical ? alpha(theme.palette.error.main, 0.06) : octopusos.bg.section,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 1.25,
                   }}
-                  onClick={() => handleNavigate(link.path)}
                 >
-                  <Typography variant={BODY2_VARIANT} fontWeight={500} textAlign={TEXT_ALIGN_CENTER}>
-                    {link.label}
-                  </Typography>
+                  <Typography variant="subtitle1" fontWeight={700}>{card.title}</Typography>
+                  <Typography variant="body2" color="text.secondary">{card.description}</Typography>
+                  <Box sx={{ mt: 'auto' }}>
+                    <Button
+                      variant={card.critical ? 'outlined' : 'contained'}
+                      color={card.critical ? 'error' : 'primary'}
+                      onClick={() => navigate(card.path)}
+                    >
+                      {card.buttonLabel}
+                    </Button>
+                  </Box>
                 </Box>
               ))}
             </Box>
-          </Box>
-        </AppCardBody>
-      </AppCard>
+          </AppCardBody>
+        </AppCard>
+
+        <AppCard>
+          <AppCardHeader title={t(K.page.home.safetyTitle)} />
+          <AppCardBody>
+            <Stack spacing={1.25}>
+              <Typography variant="body2" color="text.secondary">• {t(K.page.home.safetyPromiseOne)}</Typography>
+              <Typography variant="body2" color="text.secondary">• {t(K.page.home.safetyPromiseTwo)}</Typography>
+              <Typography variant="body2" color="text.secondary">• {t(K.page.home.safetyPromiseThree)}</Typography>
+            </Stack>
+          </AppCardBody>
+        </AppCard>
+
+        <AppCard>
+          <AppCardHeader title={t(K.page.home.systemStatusTitle)} />
+          <AppCardBody>
+            <Stack spacing={1.5}>
+              {[
+                {
+                  key: 'runtime',
+                  title: t(K.page.home.systemStatusRuntimeTitle),
+                  description: t(K.page.home.systemStatusRuntimeDesc),
+                  badge: getBadge(runtimeState),
+                  actionLabel: t(K.page.home.systemStatusRuntimeAction),
+                  path: '/system-health',
+                },
+                {
+                  key: 'setup',
+                  title: t(K.page.home.systemStatusSetupTitle),
+                  description: t(K.page.home.systemStatusSetupDesc),
+                  badge: getBadge(setupState),
+                  actionLabel: t(K.page.home.systemStatusSetupAction),
+                  path: '/providers',
+                },
+                {
+                  key: 'write',
+                  title: t(K.page.home.systemStatusWriteTitle),
+                  description: t(K.page.home.systemStatusWriteDesc),
+                  badge: getBadge(writeState),
+                  actionLabel: t(K.page.home.systemStatusWriteAction),
+                  path: '/config',
+                },
+              ].map((item) => (
+                <Box
+                  key={item.key}
+                  sx={{
+                    p: 2,
+                    border: `1px solid ${octopusos.border.subtle}`,
+                    borderRadius: 2,
+                    bgcolor: octopusos.bg.section,
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'auto 1fr auto' },
+                    gap: 1.5,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Typography sx={{ color: item.badge.color, fontWeight: 700 }}>
+                    {item.badge.icon} {item.badge.label}
+                  </Typography>
+                  <Box>
+                    <Typography variant="body1" fontWeight={600}>{item.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">{item.description}</Typography>
+                  </Box>
+                  <Button variant="text" onClick={() => navigate(item.path)}>
+                    {item.actionLabel}
+                  </Button>
+                </Box>
+              ))}
+            </Stack>
+
+            <Box
+              sx={{
+                mt: 2,
+                p: 1.5,
+                borderRadius: 2,
+                border: `1px dashed ${octopusos.border.subtle}`,
+                bgcolor: octopusos.bg.canvas,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {t(K.page.home.systemMeta)}
+                {runtimeInfo?.version ? ` v${runtimeInfo.version}` : ''}
+                {metrics?.cpu_usage != null ? ` · CPU ${metrics.cpu_usage.toFixed(1)}%` : ''}
+              </Typography>
+            </Box>
+          </AppCardBody>
+        </AppCard>
+      </Stack>
+
+      <Stack spacing={3} sx={{ position: { lg: 'sticky' }, top: { lg: 0 }, alignSelf: 'start' }}>
+        <AppCard>
+          <AppCardHeader title={t(K.page.home.copilotTitle)} />
+          <AppCardBody>
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle1" fontWeight={700}>
+                {t(K.page.home.copilotSubtitle)}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {t(K.page.home.copilotDescription)}
+              </Typography>
+              <Button variant="contained" onClick={() => navigate('/chat')}>
+                {t(K.page.home.copilotAction)}
+              </Button>
+            </Stack>
+          </AppCardBody>
+        </AppCard>
+
+        <AppCard>
+          <AppCardHeader title={t(K.page.home.supportTitle)} />
+          <AppCardBody>
+            <Stack spacing={1.25}>
+              <Button variant="outlined" onClick={() => navigate('/dispatch-review')}>
+                {t(K.page.home.supportActionReview)}
+              </Button>
+              <Button variant="outlined" onClick={() => navigate('/governance')}>
+                {t(K.page.home.supportActionGovernance)}
+              </Button>
+            </Stack>
+          </AppCardBody>
+        </AppCard>
+      </Stack>
     </Box>
   )
 }

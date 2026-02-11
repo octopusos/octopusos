@@ -3,7 +3,7 @@
  * IndexJobsPage - 索引任务页面
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getIndexJobs()
+ * ✅ API: brainosService.listKnowledgeJobsApiKnowledgeJobsGet()
  * ✅ States: loading, error, empty, success
  * 
  * 🔒 No-Interaction Contract:
@@ -16,7 +16,7 @@ import { TextField, Select, MenuItem } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
-import { agentosService } from '@/services'
+import { systemServiceGen } from '@/services/system.service.gen'
 import type { GridColDef } from '@/ui'
 import { toast } from '@/ui/feedback'
 
@@ -54,9 +54,10 @@ export default function IndexJobsPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const response = await agentosService.getIndexJobs()
+        const response = await systemServiceGen.listKnowledgeJobsApiKnowledgeJobsGet()
         // Transform backend data to frontend format
-        const transformedData = (response.data || []).map((job: any) => ({
+        const sourceRows = Array.isArray(response?.data) ? response.data : []
+        const transformedData = sourceRows.map((job: any) => ({
           id: job.job_id,
           source: job.type,
           status: job.status,

@@ -5,7 +5,7 @@
  * - ✅ Text System: 使用 t('xxx')（G7-G8）
  * - ✅ Layout: usePageHeader + usePageActions（G10-G11）
  * - ✅ Dashboard Contract: DashboardGrid + StatCard/MetricCard
- * - ✅ Real API: brainosService.getKnowledgeHealth()（Phase 6）
+ * - ✅ Real API: brainosService.brainKnowledgeHealthApiBrainKnowledgeHealthGet()（Phase 6）
  * - ✅ State Handling: Loading/Success/Error/Empty states
  */
 
@@ -25,7 +25,7 @@ import {
 } from '@/ui/icons'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { brainosService, type KnowledgeHealth } from '@/services/brainos.service'
+import { brainosService, type KnowledgeHealth } from '@services'
 
 /**
  * KnowledgeHealthPage 组件
@@ -52,7 +52,7 @@ export default function KnowledgeHealthPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await brainosService.getKnowledgeHealth()
+      const response = await brainosService.brainKnowledgeHealthApiBrainKnowledgeHealthGet()
       setHealth(response.health)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error'
@@ -178,9 +178,18 @@ export default function KnowledgeHealthPage() {
   // Calculate Overall Health Status
   // ===================================
   const getHealthStatus = (): 'success' | 'warning' | 'error' => {
-    if (health.index_health_score >= 80) return 'success'
-    if (health.index_health_score >= 60) return 'warning'
+    const score = Number.isFinite(health.index_health_score) ? health.index_health_score : 0
+    if (score >= 80) return 'success'
+    if (score >= 60) return 'warning'
     return 'error'
+  }
+
+  const safeMetric = (value: unknown): number => {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0
+  }
+
+  const safeCount = (value: unknown): number => {
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0
   }
 
   const getHealthLabel = (): string => {
@@ -196,7 +205,7 @@ export default function KnowledgeHealthPage() {
   const stats = [
     {
       title: t(K.page.knowledgeHealth.indexHealthScore),
-      value: `${health.index_health_score.toFixed(1)}%`,
+      value: `${safeMetric(health.index_health_score).toFixed(1)}%`,
       change: undefined,
       changeType: undefined as any,
       icon: getHealthStatus() === 'success' ? <CheckCircleIcon /> :
@@ -204,14 +213,14 @@ export default function KnowledgeHealthPage() {
     },
     {
       title: t(K.page.knowledgeHealth.orphanedNodes),
-      value: health.orphaned_nodes.toString(),
+      value: safeCount(health.orphaned_nodes).toString(),
       change: undefined,
       changeType: undefined as any,
       icon: <StorageIcon />,
     },
     {
       title: t(K.page.knowledgeHealth.brokenLinks),
-      value: health.broken_links.toString(),
+      value: safeCount(health.broken_links).toString(),
       change: undefined,
       changeType: undefined as any,
       icon: <ErrorIcon />,
@@ -221,63 +230,63 @@ export default function KnowledgeHealthPage() {
   const metrics = [
     {
       title: t(K.page.knowledgeHealth.overallHealth),
-      description: 'General health indicators',
+      description: t(K.page.knowledgeHealth.metricOverallHealthDesc),
       metrics: [
         {
           key: 'status',
-          label: 'Status',
+          label: t(K.page.knowledgeHealth.metricStatus),
           value: getHealthLabel(),
           valueColor: getHealthStatus() === 'success' ? 'success.main' :
                      getHealthStatus() === 'warning' ? 'warning.main' : 'error.main'
         },
         {
           key: 'score',
-          label: 'Health Score',
-          value: `${health.index_health_score.toFixed(1)}%`,
+          label: t(K.page.knowledgeHealth.indexHealthScore),
+          value: `${safeMetric(health.index_health_score).toFixed(1)}%`,
           valueColor: getHealthStatus() === 'success' ? 'success.main' :
                      getHealthStatus() === 'warning' ? 'warning.main' : 'error.main'
         },
       ],
     },
     {
-      title: 'Data Quality Issues',
-      description: 'Issues requiring attention',
+      title: t(K.page.knowledgeHealth.metricDataQualityIssues),
+      description: t(K.page.knowledgeHealth.metricDataQualityIssuesDesc),
       metrics: [
         {
           key: 'stale',
           label: t(K.page.knowledgeHealth.staleKnowledge),
-          value: health.stale_knowledge.toString(),
-          valueColor: health.stale_knowledge > 0 ? 'warning.main' : 'success.main'
+          value: safeCount(health.stale_knowledge).toString(),
+          valueColor: safeCount(health.stale_knowledge) > 0 ? 'warning.main' : 'success.main'
         },
         {
           key: 'duplicate',
           label: t(K.page.knowledgeHealth.duplicateEntries),
-          value: health.duplicate_entries.toString(),
-          valueColor: health.duplicate_entries > 0 ? 'warning.main' : 'success.main'
+          value: safeCount(health.duplicate_entries).toString(),
+          valueColor: safeCount(health.duplicate_entries) > 0 ? 'warning.main' : 'success.main'
         },
       ],
     },
     {
-      title: 'Vector Quality',
-      description: 'Embedding and vector metrics',
+      title: t(K.page.knowledgeHealth.metricVectorQuality),
+      description: t(K.page.knowledgeHealth.metricVectorQualityDesc),
       metrics: [
         {
           key: 'quality',
           label: t(K.page.knowledgeHealth.embeddingQuality),
-          value: `${health.embedding_quality.toFixed(1)}%`,
-          valueColor: health.embedding_quality >= 80 ? 'success.main' : 'warning.main'
+          value: `${safeMetric(health.embedding_quality).toFixed(1)}%`,
+          valueColor: safeMetric(health.embedding_quality) >= 80 ? 'success.main' : 'warning.main'
         },
         {
           key: 'coverage',
           label: t(K.page.knowledgeHealth.vectorCoverage),
-          value: `${health.vector_coverage.toFixed(1)}%`,
-          valueColor: health.vector_coverage >= 80 ? 'success.main' : 'warning.main'
+          value: `${safeMetric(health.vector_coverage).toFixed(1)}%`,
+          valueColor: safeMetric(health.vector_coverage) >= 80 ? 'success.main' : 'warning.main'
         },
         {
           key: 'accuracy',
           label: t(K.page.knowledgeHealth.retrievalAccuracy),
-          value: `${health.retrieval_accuracy.toFixed(1)}%`,
-          valueColor: health.retrieval_accuracy >= 80 ? 'success.main' : 'warning.main'
+          value: `${safeMetric(health.retrieval_accuracy).toFixed(1)}%`,
+          valueColor: safeMetric(health.retrieval_accuracy) >= 80 ? 'success.main' : 'warning.main'
         },
       ],
     },

@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "octopusos://schemas/executor/execution_graph.schema.json",
+  "title": "Execution Graph for Dry Executor (v0.10)",
+  "description": "Directed acyclic graph representing the planned execution steps (not actual execution)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "graph_id",
+    "schema_version",
+    "intent_id",
+    "created_at",
+    "nodes",
+    "edges",
+    "swimlanes",
+    "lineage",
+    "checksum"
+  ],
+  "properties": {
+    "graph_id": {
+      "type": "string",
+      "pattern": "^graph_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this execution graph"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.10.0",
+      "description": "Schema version for dry executor"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$",
+      "description": "Reference to the source Execution Intent (v0.9.1)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Graph creation timestamp"
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Graph nodes representing planned phases, actions, and decisions",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "node_type", "label", "evidence_refs"],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^node_[a-z0-9_]{4,32}$",
+            "description": "Unique node identifier within this graph"
+          },
+          "node_type": {
+            "type": "string",
+            "enum": ["phase", "action_plan", "decision_point", "review_checkpoint"],
+            "description": "Type of node (planning-focused, no execution types)"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "description": "Human-readable label for this node"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Detailed description of this node's purpose"
+          },
+          "phase_ref": {
+            "type": "string",
+            "description": "Reference to workflow phase (for phase nodes)"
+          },
+          "command_ref": {
+            "type": "string",
+            "description": "Reference to command from registry (for action_plan nodes)"
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["read", "write", "deploy", "delete", "configure"]
+            },
+            "description": "Planned effects of this action (for action_plan nodes)"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "Risk level (for action_plan nodes)"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "minItems": 1,
+            "description": "Evidence supporting this node (REQUIRED for all nodes per DE4)"
+          },
+          "rule_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Rules applied at this decision point (for decision_point nodes)"
+          },
+          "review_criteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Review criteria (for review_checkpoint nodes)"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "description": "Directed edges representing dependencies and execution order",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["edge_id", "from_node", "to_node", "edge_type"],
+        "properties": {
+          "edge_id": {
+            "type": "string",
+            "pattern": "^edge_[a-z0-9_]{4,32}$",
+            "description": "Unique edge identifier"
+          },
+          "from_node": {
+            "type": "string",
+            "pattern": "^node_[a-z0-9_]{4,32}$",
+            "description": "Source node ID"
+          },
+          "to_node": {
+            "type": "string",
+            "pattern": "^node_[a-z0-9_]{4,32}$",
+            "description": "Target node ID"
+          },
+          "edge_type": {
+            "type": "string",
+            "enum": ["sequential", "parallel", "conditional"],
+            "description": "Type of dependency"
+          },
+          "condition": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Condition for conditional edges"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optional edge label"
+          }
+        }
+      }
+    },
+    "swimlanes": {
+      "type": "array",
+      "description": "Agent role swimlanes showing responsibility mapping",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["swimlane_id", "agent_id", "role", "node_refs"],
+        "properties": {
+          "swimlane_id": {
+            "type": "string",
+            "pattern": "^swimlane_[a-z0-9_]{4,32}$",
+            "description": "Unique swimlane identifier"
+          },
+          "agent_id": {
+            "type": "string",
+            "description": "Reference to agent from registry"
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Role name for this agent"
+          },
+          "node_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^node_[a-z0-9_]{4,32}$"
+            },
+            "description": "Nodes assigned to this agent"
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["derived_from_intent", "dry_executor_version"],
+      "properties": {
+        "derived_from_intent": {
+          "type": "string",
+          "pattern": "^intent_[a-z0-9_]{6,64}$",
+          "description": "Source intent ID"
+        },
+        "intent_checksum": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 checksum of source intent"
+        },
+        "coordinator_run_id": {
+          "type": "string",
+          "pattern": "^run_[a-z0-9_]{6,64}$",
+          "description": "Optional coordinator run ID if graph was derived from coordinator output"
+        },
+        "dry_executor_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Dry executor version used"
+        }
+      }
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of graph structure (nodes + edges + swimlanes)"
+    }
+  }
+}

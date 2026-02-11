@@ -8,7 +8,7 @@ in different scenarios.
 import asyncio
 from pathlib import Path
 
-from agentos.core.communication.network_mode import NetworkMode, NetworkModeManager
+from octopusos.core.communication.network_mode import NetworkMode, NetworkModeManager
 
 
 async def example_basic_usage():
@@ -160,8 +160,8 @@ async def example_integration_service():
     print("Example 6: Integration with CommunicationService")
     print("=" * 70)
 
-    from agentos.core.communication.service import CommunicationService
-    from agentos.core.communication.models import ConnectorType
+    from octopusos.core.communication.service import CommunicationService
+    from octopusos.core.communication.models import ConnectorType
 
     # Create service (includes network mode manager)
     service = CommunicationService()

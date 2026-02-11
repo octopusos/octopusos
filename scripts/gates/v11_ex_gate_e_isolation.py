@@ -19,7 +19,7 @@ def scan_for_isolation_violations(filepath: Path) -> list:
         (r'os\.environ\[.HOME.', "Accessing HOME environment variable"),
         (r'Path\.home\(\)', "Using Path.home()"),
         (r'~/', "Using ~ path expansion"),
-        (r'\.agentos', "Accessing .agentos config"),
+        (r'\.octopusos', "Accessing .octopusos config"),
         (r'/Users/', "Hardcoded user path"),
         (r'/home/', "Hardcoded home path"),
     ]
@@ -59,7 +59,7 @@ def main():
     print()
     
     # 扫描Executor模块
-    executor_dir = PROJECT_ROOT / "agentos/core/executor"
+    executor_dir = PROJECT_ROOT / "octopusos/core/executor"
     
     if not executor_dir.exists():
         print("✗ Executor directory not found")

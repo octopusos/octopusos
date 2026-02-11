@@ -30,14 +30,14 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Set
 
 # Root directory for scanning
-ROOT_DIR = Path(__file__).parent.parent.parent / "agentos"
+ROOT_DIR = Path(__file__).parent.parent.parent / "octopusos"
 
 # Critical files where direct external I/O is FORBIDDEN
 CRITICAL_FILES = {
-    "agentos/core/chat/engine.py": "Chat Engine (orchestration only)",
-    "agentos/core/chat/service.py": "Chat Service (persistence only)",
-    "agentos/core/chat/context_builder.py": "Context Builder (local context only)",
-    "agentos/core/chat/models.py": "Chat Models (data structures only)",
+    "octopusos/core/chat/engine.py": "Chat Engine (orchestration only)",
+    "octopusos/core/chat/service.py": "Chat Service (persistence only)",
+    "octopusos/core/chat/context_builder.py": "Context Builder (local context only)",
+    "octopusos/core/chat/models.py": "Chat Models (data structures only)",
 }
 
 # Forbidden method calls in critical files
@@ -57,16 +57,16 @@ FORBIDDEN_METHODS = {
 # Whitelist: Files allowed to make external I/O calls
 WHITELIST = {
     # Command handlers (the ONLY sanctioned channel)
-    "agentos/core/chat/comm_commands.py",
+    "octopusos/core/chat/comm_commands.py",
 
     # Communication adapter (initialization only)
-    "agentos/core/chat/communication_adapter.py",
+    "octopusos/core/chat/communication_adapter.py",
 
     # Slash command router (routing only)
-    "agentos/core/chat/slash_command_router.py",
+    "octopusos/core/chat/slash_command_router.py",
 
     # Handler registration
-    "agentos/core/chat/handlers/__init__.py",
+    "octopusos/core/chat/handlers/__init__.py",
 
     # Test files (allowed for testing)
     "tests/",

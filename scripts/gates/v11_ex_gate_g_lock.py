@@ -19,7 +19,7 @@ def test_concurrent_execution_blocked():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import ExecutionLock
+        from octopusos.core.executor import ExecutionLock
         
         with tempfile.TemporaryDirectory() as tmpdir:
             lock_dir = Path(tmpdir) / "locks"

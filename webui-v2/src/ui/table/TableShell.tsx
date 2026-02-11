@@ -23,7 +23,7 @@
 
 import React from 'react'
 import { Box } from '@mui/material'
-import { DataGrid, GridColDef, GridRowsProp } from '@mui/x-data-grid'
+import { DataGrid, GridColDef, GridRowsProp, GridRowIdGetter } from '@mui/x-data-grid'
 import { EmptyState, EmptyStateProps } from '@/ui/layout'
 import { TOOLBAR_GAP } from '@/ui/layout/tokens'
 import { useTextTranslation } from '@/ui/text'
@@ -76,6 +76,11 @@ export interface TableShellProps {
   onRowClick?: (row: any) => void
 
   /**
+   * 自定义行 ID 获取函数（用于 rows 不含 id 字段的场景）
+   */
+  getRowId?: GridRowIdGetter
+
+  /**
    * 自动高度（默认 true）
    */
   autoHeight?: boolean
@@ -108,6 +113,7 @@ export function TableShell({
   emptyState,
   pagination,
   onRowClick,
+  getRowId,
   autoHeight = true,
   height,
 }: TableShellProps) {
@@ -116,6 +122,30 @@ export function TableShell({
   // ===================================
   const { language } = useTextTranslation()
   const localeText = language === 'zh' ? zhCN : enUS
+  const autoRowIdMapRef = React.useRef(new WeakMap<object, string>())
+  const autoRowIdSeqRef = React.useRef(0)
+
+  const resolvedGetRowId = React.useCallback<GridRowIdGetter>((row) => {
+    if (getRowId) {
+      return getRowId(row)
+    }
+
+    if (row?.id !== undefined && row?.id !== null) return row.id
+    if (row?.event_id !== undefined && row?.event_id !== null) return row.event_id
+    if (row?.uuid !== undefined && row?.uuid !== null) return row.uuid
+    if (row?.key !== undefined && row?.key !== null) return row.key
+
+    if (row && typeof row === 'object') {
+      const existing = autoRowIdMapRef.current.get(row as object)
+      if (existing) return existing
+      autoRowIdSeqRef.current += 1
+      const generated = `auto-row-${autoRowIdSeqRef.current}`
+      autoRowIdMapRef.current.set(row as object, generated)
+      return generated
+    }
+
+    return String(row)
+  }, [getRowId])
   // ===================================
   // Row 1: FilterBar
   // ===================================
@@ -159,6 +189,7 @@ export function TableShell({
         <DataGrid
           rows={rows || []}
           columns={columns}
+          getRowId={resolvedGetRowId}
           autoHeight={autoHeight}
           disableRowSelectionOnClick
           onRowClick={onRowClick ? (params) => onRowClick(params.row) : undefined}

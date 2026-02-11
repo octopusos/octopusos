@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://octopusos.dev/schemas/content/rule.schema.json",
+  "$version": "0.9.0",
+  "title": "Rule",
+  "description": "Governance rule for content quality and compliance (v0.9 catalog schema)",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "version",
+    "title",
+    "description",
+    "status",
+    "lineage",
+    "rule",
+    "constraints"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Rule identifier (lowercase, underscore separated, format: rule_r<nn>_<name>)",
+      "pattern": "^rule_r\\d{2}_[a-z0-9_]+$"
+    },
+    "type": {
+      "type": "string",
+      "description": "Content type (must be 'rule')",
+      "enum": ["rule"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version number",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable rule title",
+      "minLength": 5,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the rule",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "status": {
+      "type": "string",
+      "description": "Rule lifecycle status",
+      "enum": ["draft", "active", "deprecated"]
+    },
+    "lineage": {
+      "type": "object",
+      "description": "Rule lineage information (🚨 RED LINE RL5: required field)",
+      "required": ["introduced_in", "derived_from", "supersedes"],
+      "properties": {
+        "introduced_in": {
+          "type": "string",
+          "description": "Version when rule was introduced (e.g., v0.9)",
+          "pattern": "^v\\d+\\.\\d+$"
+        },
+        "derived_from": {
+          "type": ["string", "null"],
+          "description": "Parent rule ID if evolved (null for root rules)",
+          "pattern": "^(rule_r\\d{2}_[a-z0-9_]+|null)$"
+        },
+        "supersedes": {
+          "type": "array",
+          "description": "List of rule IDs that this rule supersedes (empty array if none)",
+          "items": {
+            "type": "string",
+            "pattern": "^rule_r\\d{2}_[a-z0-9_]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "rule": {
+      "type": "object",
+      "description": "Rule logic and enforcement specification",
+      "required": ["severity", "scope", "when", "then", "evidence_required"],
+      "properties": {
+        "severity": {
+          "type": "string",
+          "description": "🚨 RED LINE RL3: Rule severity level (required for machine judgment)",
+          "enum": ["info", "warn", "error", "block"]
+        },
+        "scope": {
+          "type": "object",
+          "description": "🚨 RED LINE RL4: Rule applicability scope (at least one field must be non-empty)",
+          "properties": {
+            "applies_to_types": {
+              "type": "array",
+              "description": "Content types this rule applies to",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "workflow",
+                  "agent",
+                  "command",
+                  "policy",
+                  "memory",
+                  "fact",
+                  "rule"
+                ]
+              }
+            },
+            "applies_to_risk": {
+              "type": "array",
+              "description": "Risk levels this rule applies to",
+              "items": {
+                "type": "string",
+                "enum": ["low", "medium", "high", "critical"]
+              }
+            },
+            "applies_to_phases": {
+              "type": "array",
+              "description": "Workflow phases this rule applies to",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "setup",
+                  "analysis",
+                  "design",
+                  "implementation",
+                  "validation",
+                  "review",
+                  "release",
+                  "operations",
+                  "postmortem"
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "when": {
+          "type": "object",
+          "description": "🚨 RED LINE RL3: Structured condition (when to apply rule)",
+          "minProperties": 1
+        },
+        "then": {
+          "type": "object",
+          "description": "🚨 RED LINE RL3: Structured decision (what happens when rule triggers)",
+          "required": ["decision"],
+          "properties": {
+            "decision": {
+              "type": "string",
+              "description": "Gate decision outcome",
+              "enum": ["allow", "deny", "warn", "require_review"]
+            },
+            "reason": {
+              "type": "string",
+              "description": "Human-readable reason for the decision"
+            },
+            "required_changes": {
+              "type": "array",
+              "description": "Required changes to satisfy the rule",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "evidence_required": {
+          "type": "array",
+          "description": "🚨 RED LINE RL2: Types of evidence required to judge this rule (must be non-empty)",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Rule constraints (red line enforcement)",
+      "required": ["execution"],
+      "properties": {
+        "execution": {
+          "type": "string",
+          "description": "🚨 RED LINE RL1: Rule must not contain executable payload",
+          "enum": ["forbidden"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata (extensibility)",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "description": "Rule tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_rules": {
+          "type": "array",
+          "description": "IDs of related rules",
+          "items": {
+            "type": "string",
+            "pattern": "^rule_r\\d{2}_[a-z0-9_]+$"
+          }
+        },
+        "documentation_url": {
+          "type": "string",
+          "description": "URL to additional documentation",
+          "format": "uri"
+        },
+        "author": {
+          "type": "string",
+          "description": "Rule definition author"
+        },
+        "examples": {
+          "type": "array",
+          "description": "Usage examples",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

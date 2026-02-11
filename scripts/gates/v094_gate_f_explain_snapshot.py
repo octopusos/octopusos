@@ -38,7 +38,7 @@ def init_temp_db_and_content(db_path: Path) -> bool:
         
         # 读取 v0.5 schema
         project_root = Path(__file__).parent.parent.parent
-        schema_file = project_root / "agentos" / "store" / "schema_v05.sql"
+        schema_file = project_root / "octopusos" / "store" / "schema_v05.sql"
         
         if not schema_file.exists():
             print(f"   ❌ Schema file not found: {schema_file}")
@@ -133,7 +133,7 @@ def generate_explain_output(db_path: Path) -> dict:
             sys.path.insert(0, str(project_root))
         
         import yaml
-        from agentos.core.intent_builder.nl_parser import NLParser
+        from octopusos.core.intent_builder.nl_parser import NLParser
         
         # 加载 NL request
         with open(NL_INPUT, "r", encoding="utf-8") as f:
@@ -254,7 +254,7 @@ def main():
         print("✅ Gate F: PASSED (冻结级 - 临时 DB 自举)")
         print("=" * 70)
         print("\nℹ️  Explain output verified:")
-        print("   - Used temp DB (no ~/.agentos dependency)")
+        print("   - Used temp DB (no ~/.octopusos dependency)")
         print("   - Fixed input (nl_001.yaml)")
         print("   - Stable output structure")
         print("   - Snapshot created/verified")

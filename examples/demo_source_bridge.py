@@ -14,8 +14,8 @@ Workflow:
 import tempfile
 from pathlib import Path
 
-from agentos.core.knowledge.source_bridge import SourceBridge
-from agentos.core.knowledge.source_repo import KnowledgeSourceRepo
+from octopusos.core.knowledge.source_bridge import SourceBridge
+from octopusos.core.knowledge.source_repo import KnowledgeSourceRepo
 
 
 def main():
@@ -28,11 +28,11 @@ def main():
     print("[Step 1] Creating test documents...")
     temp_dir = Path(tempfile.mkdtemp())
     test_file = temp_dir / "test_doc.md"
-    test_content = """# AgentOS Knowledge Base
+    test_content = """# OctopusOS Knowledge Base
 
 ## Introduction
 
-AgentOS is a modern agent orchestration system.
+OctopusOS is a modern agent orchestration system.
 
 ## Features
 

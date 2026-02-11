@@ -12,8 +12,8 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.chat.memory_extractor import MemoryExtractor
-from agentos.core.chat.models_base import ChatMessage
+from octopusos.core.chat.memory_extractor import MemoryExtractor
+from octopusos.core.chat.models_base import ChatMessage
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -51,7 +51,7 @@ def demo_extraction():
         ("我不喜欢Java", "Chinese: Tech dislike"),
 
         # Project context
-        ("我的项目叫AgentOS", "Chinese: Project name"),
+        ("我的项目叫OctopusOS", "Chinese: Project name"),
         ("This project is called MyApp", "English: Project name"),
 
         # Multiple extractions

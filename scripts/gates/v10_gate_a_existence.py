@@ -16,20 +16,20 @@ from pathlib import Path
 
 # Expected schemas
 SCHEMAS = [
-    "agentos/schemas/executor/execution_graph.schema.json",
-    "agentos/schemas/executor/patch_plan.schema.json",
-    "agentos/schemas/executor/commit_plan.schema.json",
-    "agentos/schemas/executor/dry_execution_result.schema.json",
+    "octopusos/schemas/executor/execution_graph.schema.json",
+    "octopusos/schemas/executor/patch_plan.schema.json",
+    "octopusos/schemas/executor/commit_plan.schema.json",
+    "octopusos/schemas/executor/dry_execution_result.schema.json",
 ]
 
 # Expected core modules
 CORE_MODULES = [
-    "agentos/core/executor_dry/__init__.py",
-    "agentos/core/executor_dry/dry_executor.py",
-    "agentos/core/executor_dry/graph_builder.py",
-    "agentos/core/executor_dry/patch_planner.py",
-    "agentos/core/executor_dry/commit_planner.py",
-    "agentos/core/executor_dry/review_pack_stub.py",
+    "octopusos/core/executor_dry/__init__.py",
+    "octopusos/core/executor_dry/dry_executor.py",
+    "octopusos/core/executor_dry/graph_builder.py",
+    "octopusos/core/executor_dry/patch_planner.py",
+    "octopusos/core/executor_dry/commit_planner.py",
+    "octopusos/core/executor_dry/review_pack_stub.py",
 ]
 
 # Expected examples
@@ -56,7 +56,7 @@ INVALID_FIXTURES = [
 
 # Expected CLI and docs
 CLI_FILES = [
-    "agentos/cli/dry_executor.py",
+    "octopusos/cli/dry_executor.py",
 ]
 
 DOCS = [

@@ -2,7 +2,7 @@
 """
 API Contract Usage Examples
 
-Demonstrates how to use the unified API contract in AgentOS WebUI.
+Demonstrates how to use the unified API contract in OctopusOS WebUI.
 
 Created for Agent-API-Contract demonstration
 """
@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends
 from typing import Dict, Any
 
 # Import the standard contracts
-from agentos.webui.api.contracts import (
+from octopusos.webui.api.contracts import (
     success,
     error,
     not_found_error,
@@ -142,7 +142,7 @@ async def delete_resource(
         curl -H "X-Admin-Token: secret" http://localhost:8000/api/example/resources/123
 
     Requires:
-        export AGENTOS_ADMIN_TOKEN=secret
+        export OCTOPUSOS_ADMIN_TOKEN=secret
     """
     # Admin token validated by dependency
     # Proceed with deletion
@@ -170,7 +170,7 @@ async def claim_resource(
         curl -H "X-User-Token: user-123" http://localhost:8000/api/example/resources/123/claim
 
     User authentication can be enabled with:
-        export AGENTOS_REQUIRE_USER_AUTH=true
+        export OCTOPUSOS_REQUIRE_USER_AUTH=true
     """
     return success({
         "resource_id": resource_id,
@@ -241,7 +241,7 @@ async def check_resource(resource_id: str) -> Dict[str, Any]:
 
     Demonstrates when to use error_response vs raising error
     """
-    from agentos.webui.api.contracts import error_response
+    from octopusos.webui.api.contracts import error_response
 
     # Validate resource
     is_valid = len(resource_id) >= 5

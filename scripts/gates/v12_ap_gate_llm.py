@@ -19,7 +19,7 @@ sys.path.insert(0, str(project_root))
 
 def check_llm_source_tracking():
     """Check LLM suggestions track source."""
-    llm_file = project_root / "agentos" / "core" / "answers" / "llm_suggester.py"
+    llm_file = project_root / "octopusos" / "core" / "answers" / "llm_suggester.py"
     
     if not llm_file.exists():
         return False, "LLM suggester file not found"
@@ -39,7 +39,7 @@ def check_llm_source_tracking():
 
 def check_llm_prompt_hash():
     """Check LLM suggestions include prompt hash."""
-    llm_file = project_root / "agentos" / "core" / "answers" / "llm_suggester.py"
+    llm_file = project_root / "octopusos" / "core" / "answers" / "llm_suggester.py"
     content = llm_file.read_text()
     
     # Check for prompt_hash field
@@ -59,7 +59,7 @@ def check_llm_prompt_hash():
 
 def check_llm_dual_providers():
     """Check support for both OpenAI and Anthropic."""
-    llm_file = project_root / "agentos" / "core" / "answers" / "llm_suggester.py"
+    llm_file = project_root / "octopusos" / "core" / "answers" / "llm_suggester.py"
     content = llm_file.read_text()
     
     # Check OpenAI support
@@ -88,7 +88,7 @@ def check_llm_dual_providers():
 
 def check_llm_fallback():
     """Check automatic fallback mechanism."""
-    llm_file = project_root / "agentos" / "core" / "answers" / "llm_suggester.py"
+    llm_file = project_root / "octopusos" / "core" / "answers" / "llm_suggester.py"
     content = llm_file.read_text()
     
     # Check for fallback function
@@ -112,7 +112,7 @@ def check_llm_fallback():
 
 def check_llm_metadata():
     """Check LLM suggestions include required metadata."""
-    llm_file = project_root / "agentos" / "core" / "answers" / "llm_suggester.py"
+    llm_file = project_root / "octopusos" / "core" / "answers" / "llm_suggester.py"
     content = llm_file.read_text()
     
     required_fields = [

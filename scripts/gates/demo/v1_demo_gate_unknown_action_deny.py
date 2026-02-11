@@ -93,7 +93,7 @@ def gate_p0_n1_unknown_action_deny() -> tuple[bool, str]:
         
         # 执行（预期失败）
         cmd = [
-            "uv", "run", "agentos", "exec", "run",
+            "uv", "run", "octopusos", "exec", "run",
             "--request", str(request_path),
             "--policy", str(policy_path),
             "--out", str(output_dir)

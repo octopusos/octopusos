@@ -11,7 +11,7 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.mode.mode_policy import (
+from octopusos.core.mode.mode_policy import (
     ModePolicy,
     ModePermissions,
     get_global_policy,

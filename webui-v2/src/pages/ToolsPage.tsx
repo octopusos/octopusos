@@ -2,7 +2,7 @@
  * ToolsPage - MCP 工具管理
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getTools()
+ * ✅ API: systemService.listToolsApiToolsGet()
  * ✅ States: loading, error, empty, success
  * 
  * 🔒 No-Interaction Contract:
@@ -16,7 +16,7 @@ import type { GridColDef } from '@/ui'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui/table'
 import { AddIcon, RefreshIcon } from '@/ui/icons'
-import { agentosService } from '@/services'
+import { systemService } from '@services'
 import { useTextTranslation, K } from '@/ui/text'
 
 // ===================================
@@ -64,7 +64,7 @@ export default function ToolsPage() {
       setLoading(true)
       setError(null)
       try {
-        const response = await agentosService.getTools()
+        const response = await systemService.listToolsApiToolsGet()
         setData(response.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch tools')

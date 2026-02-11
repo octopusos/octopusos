@@ -63,9 +63,9 @@ The `priority_reason` field has special rules:
 
 ## Files Checked
 
-1. `agentos/core/communication/connectors/web_search.py` - Web search connector
-2. `agentos/core/communication/priority/priority_scoring.py` - Priority scoring logic
-3. `agentos/core/chat/comm_commands.py` - Communication command handlers (search/fetch only, brief is exempt)
+1. `octopusos/core/communication/connectors/web_search.py` - Web search connector
+2. `octopusos/core/communication/priority/priority_scoring.py` - Priority scoring logic
+3. `octopusos/core/chat/comm_commands.py` - Communication command handlers (search/fetch only, brief is exempt)
 
 ## Whitelisting
 

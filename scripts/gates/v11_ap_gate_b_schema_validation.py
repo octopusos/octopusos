@@ -16,7 +16,7 @@ import jsonschema
 
 # Assume script is in scripts/gates/
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-SCHEMAS_DIR = PROJECT_ROOT / "agentos/schemas/execution"
+SCHEMAS_DIR = PROJECT_ROOT / "octopusos/schemas/execution"
 EXIT_CODE = 0
 
 
@@ -131,7 +131,7 @@ def main():
             {
                 "step_number": 1,
                 "action": "Create answer pack",
-                "command": "agentos answers create ..."
+                "command": "octopusos answers create ..."
             }
         ],
         "lineage": {

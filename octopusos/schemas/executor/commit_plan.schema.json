@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "octopusos://schemas/executor/commit_plan.schema.json",
+  "title": "Commit Plan (v0.10)",
+  "description": "Plan for how file changes will be grouped into commits with dependencies",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plan_id",
+    "schema_version",
+    "intent_id",
+    "created_at",
+    "commits",
+    "rules_applied",
+    "freeze_checksum"
+  ],
+  "properties": {
+    "plan_id": {
+      "type": "string",
+      "pattern": "^commitplan_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this commit plan"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.10.0",
+      "description": "Schema version"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$",
+      "description": "Reference to the source Execution Intent"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Plan creation timestamp"
+    },
+    "commits": {
+      "type": "array",
+      "description": "Planned commits in execution order",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["commit_id", "title", "scope", "files", "rationale", "depends_on", "risk", "evidence_refs"],
+        "properties": {
+          "commit_id": {
+            "type": "string",
+            "pattern": "^commit_[a-z0-9_]{6,32}$",
+            "description": "Unique commit identifier in this plan"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 160,
+            "description": "Commit message title (conventional commits format recommended)"
+          },
+          "scope": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Scope of this commit (e.g., module, subsystem, feature)"
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "minItems": 1,
+            "maxItems": 100,
+            "description": "Files included in this commit"
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 2000,
+            "description": "Why these files are grouped together"
+          },
+          "depends_on": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^commit_[a-z0-9_]{6,32}$"
+            },
+            "description": "Commit IDs this commit depends on (for ordering)"
+          },
+          "risk": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "Risk level of this commit"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "minItems": 1,
+            "description": "Evidence supporting this commit grouping (REQUIRED per DE4)"
+          },
+          "rollback_strategy": {
+            "type": "string",
+            "enum": ["revert", "forward_fix", "requires_manual"],
+            "description": "How this commit can be rolled back if needed"
+          },
+          "estimated_review_time": {
+            "type": "string",
+            "enum": ["quick", "moderate", "thorough", "extended"],
+            "description": "Estimated review time needed"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["breaking", "security", "data", "infra", "docs", "tests", "refactor"]
+            },
+            "description": "Tags for categorizing this commit"
+          }
+        }
+      }
+    },
+    "rules_applied": {
+      "type": "array",
+      "description": "Rule IDs that were applied during commit planning",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule_id", "application_context"],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{2,80}$",
+            "description": "ID of the rule from registry"
+          },
+          "application_context": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500,
+            "description": "How this rule influenced the commit plan"
+          },
+          "affected_commits": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^commit_[a-z0-9_]{6,32}$"
+            },
+            "description": "Commits affected by this rule"
+          }
+        }
+      }
+    },
+    "freeze_checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of the entire commit plan (for freezing)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the commit plan",
+      "properties": {
+        "total_files": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of files across all commits"
+        },
+        "max_files_per_commit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum files in any single commit"
+        },
+        "respects_max_commits_budget": {
+          "type": "boolean",
+          "description": "Whether this plan respects intent.budgets.max_commits"
+        },
+        "commit_dag_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Longest dependency chain depth"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "Commits must respect budget from intent if specified",
+      "if": {
+        "properties": {
+          "metadata": {
+            "properties": {
+              "respects_max_commits_budget": {
+                "const": false
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "$comment": "This should trigger validation failure if budget not respected"
+      }
+    }
+  ]
+}

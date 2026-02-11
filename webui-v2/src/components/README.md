@@ -1,4 +1,4 @@
-# AgentOS WebUI v2 - Component Library
+# OctopusOS WebUI v2 - Component Library
 
 无业务逻辑的原子组件库，用于构建统一的 UI 界面。
 

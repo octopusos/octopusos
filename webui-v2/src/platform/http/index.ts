@@ -17,6 +17,7 @@ export {
   ValidationError,
   ClientError,
   TimeoutError,
+  ContractOperationUnavailableError,
 } from './errors';
 
 // Re-export Axios types for convenience

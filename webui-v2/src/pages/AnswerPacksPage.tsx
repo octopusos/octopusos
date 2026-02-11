@@ -66,7 +66,7 @@ export default function AnswerPacksPage() {
     const fetchAnswerPacks = async () => {
       setLoading(true)
       try {
-        const response = await systemService.listAnswerPacks({ limit: 100 })
+        const response = await systemService.listAnswerPacksApiAnswersPacksGet({ limit: 100 })
         if (response.ok) {
           const packs = (response.data || []) as unknown as AnswerPack[]
           setAnswerPacks(packs)
@@ -103,7 +103,7 @@ export default function AnswerPacksPage() {
         setLoading(true)
         // setError removed(null)
         try {
-          const response = await systemService.listAnswerPacks({ limit: 100 })
+          const response = await systemService.listAnswerPacksApiAnswersPacksGet({ limit: 100 })
           if (response.ok) {
             const packs = (response.data || []) as unknown as AnswerPack[]
             setAnswerPacks(packs)
@@ -193,7 +193,7 @@ export default function AnswerPacksPage() {
   // ===================================
   const handleCreateSubmit = async () => {
     try {
-      const response = await systemService.createAnswerPack({
+      const response = await systemService.createAnswerPackApiAnswersPacksPost({
         name: packName,
         description: `Domain: ${packDomain}`,
         answers: [{ question: 'Sample question', answer: 'Sample answer', type: 'general' }]
@@ -204,7 +204,7 @@ export default function AnswerPacksPage() {
         setPackName('')
         setPackDomain('customer-service')
         // Reload list
-        const listResponse = await systemService.listAnswerPacks({ limit: 100 })
+        const listResponse = await systemService.listAnswerPacksApiAnswersPacksGet({ limit: 100 })
         if (listResponse.ok) {
           const packs = (listResponse.data || []) as unknown as AnswerPack[]
           setAnswerPacks(packs)
@@ -304,7 +304,7 @@ export default function AnswerPacksPage() {
       }}
       onRowClick={async (row) => {
         try {
-          const response = await systemService.getAnswerPack(row.id)
+          const response = await systemService.getAnswerPackApiAnswersPacksPackIdGet(row.id)
           if (response.ok && response.data) {
             setSelectedPack(response.data)
             setDetailDialogOpen(true)

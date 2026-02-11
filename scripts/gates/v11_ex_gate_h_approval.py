@@ -19,7 +19,7 @@ def test_unapproved_execution_blocked():
     global EXIT_CODE
     
     try:
-        from agentos.core.executor import ReviewGate
+        from octopusos.core.executor import ReviewGate
         
         with tempfile.TemporaryDirectory() as tmpdir:
             approval_dir = Path(tmpdir) / "approvals"

@@ -18,7 +18,7 @@ sys.path.insert(0, str(project_root))
 
 def check_allowlist_package_ops():
     """Check npm/pip install support."""
-    allowlist_file = project_root / "agentos" / "core" / "executor" / "allowlist.py"
+    allowlist_file = project_root / "octopusos" / "core" / "executor" / "allowlist.py"
     
     if not allowlist_file.exists():
         return False, "Allowlist file not found"
@@ -36,7 +36,7 @@ def check_allowlist_package_ops():
 
 def check_allowlist_env_ops():
     """Check environment variable operations."""
-    allowlist_file = project_root / "agentos" / "core" / "executor" / "allowlist.py"
+    allowlist_file = project_root / "octopusos" / "core" / "executor" / "allowlist.py"
     content = allowlist_file.read_text()
     
     if "env_operations" not in content:
@@ -53,7 +53,7 @@ def check_allowlist_env_ops():
 
 def check_allowlist_risk_levels():
     """Check risk level marking."""
-    allowlist_file = project_root / "agentos" / "core" / "executor" / "allowlist.py"
+    allowlist_file = project_root / "octopusos" / "core" / "executor" / "allowlist.py"
     content = allowlist_file.read_text()
     
     if "RiskLevel" not in content:
@@ -72,7 +72,7 @@ def check_allowlist_risk_levels():
 
 def check_allowlist_protected_vars():
     """Check protected env vars cannot be modified."""
-    allowlist_file = project_root / "agentos" / "core" / "executor" / "allowlist.py"
+    allowlist_file = project_root / "octopusos" / "core" / "executor" / "allowlist.py"
     content = allowlist_file.read_text()
     
     if "_op_set_env" not in content:

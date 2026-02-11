@@ -7,7 +7,7 @@ This script demonstrates how to use the new sync API endpoints:
 3. POST /api/knowledge/jobs (enhanced with source_id)
 
 Prerequisites:
-    - AgentOS WebUI server running on http://localhost:8000
+    - OctopusOS WebUI server running on http://localhost:8000
     - At least one knowledge source configured in the system
 
 Usage:
@@ -211,7 +211,7 @@ def demo_create_test_source() -> str:
     import os
 
     # Create temporary directory with test content
-    test_dir = tempfile.mkdtemp(prefix="agentos_demo_")
+    test_dir = tempfile.mkdtemp(prefix="octopusos_demo_")
     test_file = os.path.join(test_dir, "README.md")
 
     with open(test_file, "w") as f:
@@ -263,7 +263,7 @@ This source will be synced to demonstrate the new API endpoints.
 def main():
     """Main demo function"""
     print("\n" + "╔" + "=" * 68 + "╗")
-    print("║  AgentOS - Task 7 SourceBridge API Integration Demo           ║")
+    print("║  OctopusOS - Task 7 SourceBridge API Integration Demo           ║")
     print("╚" + "=" * 68 + "╝")
 
     try:
@@ -272,8 +272,8 @@ def main():
         response = requests.get(f"{API_BASE}/sources", timeout=2)
         if response.status_code != 200:
             print(f"✗ Server returned unexpected status: {response.status_code}")
-            print("\nPlease start the AgentOS WebUI server:")
-            print("  python -m agentos.webui.app")
+            print("\nPlease start the OctopusOS WebUI server:")
+            print("  python -m octopusos.webui.app")
             return
         print("✓ Server is running")
 
@@ -314,8 +314,8 @@ def main():
 
     except requests.exceptions.ConnectionError:
         print("\n✗ Could not connect to server at", BASE_URL)
-        print("\nPlease start the AgentOS WebUI server:")
-        print("  python -m agentos.webui.app")
+        print("\nPlease start the OctopusOS WebUI server:")
+        print("  python -m octopusos.webui.app")
     except KeyboardInterrupt:
         print("\n\n✗ Demo interrupted by user")
     except Exception as e:

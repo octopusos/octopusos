@@ -21,8 +21,8 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 
-from agentos.core.extensions.registry import ExtensionRegistry
-from agentos.core.capabilities import (
+from octopusos.core.extensions.registry import ExtensionRegistry
+from octopusos.core.capabilities import (
     CapabilityRegistry,
     ToolRouter,
     ToolInvocation,

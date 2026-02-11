@@ -15,7 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-# Add agentos to path
+# Add octopusos to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
@@ -25,7 +25,7 @@ def test_db_init():
     
     try:
         import sqlite3
-        from agentos.core.content import ContentRegistry
+        from octopusos.core.content import ContentRegistry
         
         with tempfile.TemporaryDirectory() as tmpdir:
             # 1. 初始化临时 DB
@@ -34,7 +34,7 @@ def test_db_init():
             print(f"  Creating test DB at: {db_path}")
             
             # Load schema
-            schema_path = Path("agentos/store/schema_v05.sql")
+            schema_path = Path("octopusos/store/schema_v05.sql")
             if not schema_path.exists():
                 print(f"  ❌ Schema file not found: {schema_path}")
                 return False

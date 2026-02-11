@@ -12,15 +12,15 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
-        "agentos/api/routes.py",
-        "agentos/api/handlers.py"
+        "octopusos/api/routes.py",
+        "octopusos/api/handlers.py"
       ],
       "modules": [
-        "agentos.api"
+        "octopusos.api"
       ],
       "areas": [
         "backend"
@@ -71,7 +71,7 @@
       ],
       "risk_level": "medium",
       "evidence_refs": [
-        "scan://file/agentos/api/routes.py",
+        "scan://file/octopusos/api/routes.py",
         "doc://architecture/api_patterns.md"
       ]
     },
@@ -83,7 +83,7 @@
       ],
       "risk_level": "medium",
       "evidence_refs": [
-        "scan://file/agentos/api/handlers.py"
+        "scan://file/octopusos/api/handlers.py"
       ]
     }
   ],
@@ -110,8 +110,8 @@
     "max_cost_usd": 5.0
   },
   "evidence_refs": [
-    "scan://file/agentos/api/routes.py",
-    "scan://file/agentos/api/handlers.py",
+    "scan://file/octopusos/api/routes.py",
+    "scan://file/octopusos/api/handlers.py",
     "doc://architecture/api_patterns.md"
   ],
   "constraints": {
@@ -121,8 +121,8 @@
     "lock_scope": {
       "mode": "files",
       "paths": [
-        "agentos/api/routes.py",
-        "agentos/api/handlers.py"
+        "octopusos/api/routes.py",
+        "octopusos/api/handlers.py"
       ]
     }
   },

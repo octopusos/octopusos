@@ -16,7 +16,7 @@ sys.path.insert(0, str(project_root))
 from scripts.validate_intents import IntentValidator
 
 FIXTURES_DIR = Path("fixtures/intents/invalid")
-SCHEMA_PATH = Path("agentos/schemas/execution/intent.schema.json")
+SCHEMA_PATH = Path("octopusos/schemas/execution/intent.schema.json")
 EXPECTED_FIXTURES = {
     "intent_has_execute_field.json": "I1 violation (has execute field)",
     "intent_full_auto_with_questions.json": "I2 violation (full_auto with questions)",

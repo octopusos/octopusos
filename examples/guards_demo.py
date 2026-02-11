@@ -6,7 +6,7 @@ This script shows how to use Phase Gate, Attribution Guard, and Content Fence
 to secure Chat ↔ CommunicationOS integration.
 """
 
-from agentos.core.chat.guards import (
+from octopusos.core.chat.guards import (
     PhaseGate, PhaseGateError,
     AttributionGuard, AttributionViolation,
     ContentFence

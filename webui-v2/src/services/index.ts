@@ -5,11 +5,11 @@
  * Each service contains typed API functions that communicate with the backend.
  *
  * Usage:
- *   import { agentosService, memoryosService } from '@services';
- *   const projects = await agentosService.listProjects();
+ *   import { octopusosService, memoryosService } from '@services';
+ *   const projects = await octopusosService.listProjectsApiProjectsGet();
  *
  * Organization:
- * - agentos.service.ts: Projects, Tasks, Repos, Sessions, Task Templates, Dependencies, Events, Audit
+ * - octopusos.service.ts: Projects, Tasks, Repos, Sessions, Task Templates, Dependencies, Events, Audit
  * - memoryos.service.ts: Memory search, timeline, proposals
  * - brainos.service.ts: Knowledge, decisions, review queue, governance, intent, metrics
  * - skillos.service.ts: Skills, extensions, templates, execution, governance
@@ -19,34 +19,60 @@
  * - system.service.ts: Config, providers, models, health, secrets, auth, history, logs, share, preview, snippets, budget, mode, demo, metrics
  */
 
-// AgentOS - Core project and task management
-export { agentosService } from './agentos.service';
-export type * from './agentos.service';
+// OctopusOS - generated default
+export { octopusosServiceGen as octopusosService } from './octopusos.service.gen';
+export type * from './octopusos.service';
 
-// MemoryOS - Memory management and proposals
-export { memoryosService } from './memoryos.service';
+// MemoryOS - generated default
+export { memoryosServiceGen as memoryosService } from './memoryos.service.gen';
 export type * from './memoryos.service';
 
-// BrainOS - Knowledge and decision management
-export { brainosService } from './brainos.service';
+// BrainOS - generated default
+export { brainosServiceGen as brainosService } from './brainos.service.gen';
 export type * from './brainos.service';
 
-// SkillOS - Skills and extensions management
-export { skillosService } from './skillos.service';
+// SkillOS - generated default
+export { skillosServiceGen as skillosService } from './skillos.service.gen';
 export type * from './skillos.service';
 
-// NetworkOS - Governance and capability management
-export { networkosService } from './networkos.service';
+// NetworkOS - generated default
+export { networkosServiceGen as networkosService } from './networkos.service.gen';
 export type * from './networkos.service';
 
-// CommunicationOS - Channels and external communication
-export { communicationosService } from './communicationos.service';
+// CommunicationOS - generated default
+export { communicationosServiceGen as communicationosService } from './communicationos.service.gen';
 export type * from './communicationos.service';
 
-// AppOS - Application lifecycle management
-export { apposService } from './appos.service';
+// AppOS - generated default
+export { apposServiceGen as apposService } from './appos.service.gen';
 export type * from './appos.service';
 
-// System - Configuration, providers, models, and system utilities
-export { systemService } from './system.service';
+// System - generated default
+export { systemServiceGen as systemService } from './system.service.gen';
 export type * from './system.service';
+
+// Frontdesk - Global frontdesk chat
+export { frontdeskService } from './frontdesk.service';
+export type * from './frontdesk.service';
+
+// Inbox - Attention cards (Phase 2)
+export { inboxService } from './inbox.service';
+export type * from './inbox.service';
+
+// Work items + exec tasks (Phase 4)
+export { workItemsService } from './work_items.service';
+export type * from './work_items.service';
+export { execTasksService } from './exec_tasks.service';
+export type * from './exec_tasks.service';
+
+// ChangeLog (MD-backed)
+export { changelogService } from './changelog.service';
+export type * from './changelog.service';
+
+// Dispatch - Proposal hub
+export { dispatchService } from './dispatch.service';
+export type * from './dispatch.service';
+
+// Email channel (backed by MCP providers/instances)
+export { emailService } from './email.service';
+export type * from './email.service';

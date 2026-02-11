@@ -12,12 +12,12 @@ import asyncio
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from agentos.core.audit import (
+from octopusos.core.audit import (
     log_decision_set,
     log_shadow_evaluation,
     log_user_behavior_signal,
 )
-from agentos.core.chat.decision_comparator import get_comparator
+from octopusos.core.chat.decision_comparator import get_comparator
 
 
 async def setup_demo_data():

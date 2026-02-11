@@ -229,7 +229,7 @@ def run_gates(
     with open(result_pack_path, "r", encoding="utf-8") as f:
         result_pack = json.load(f)
     
-    adapters_dir = repo_root / "agentos" / "ext" / "tools"
+    adapters_dir = repo_root / "octopusos" / "ext" / "tools"
     
     gates = [
         ("TL-A: Pack completeness", lambda: gate_tl_a_pack_completeness(task_pack)),

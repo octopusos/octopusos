@@ -2,7 +2,7 @@
  * SessionsPage - 会话管理页面
  *
  * Phase 6: Real API Integration
- * - API: agentosService.listSessions(), deleteSession()
+ * - API: systemService.listSessionsApiSessionsGet(), deleteSession()
  * - States: Loading/Success/Error/Empty
  * - Interactions: Delete API, DetailDrawer, Filter Logic
  * - i18n: Full translation support
@@ -17,8 +17,8 @@ import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
 import { httpClient } from '@platform/http'
-import { agentosService } from '@/services'
-import type { Session as ApiSession } from '@/services/agentos.service'
+import { systemService } from '@services'
+import type { Session as ApiSession } from '@services'
 
 
 /**
@@ -112,7 +112,7 @@ export default function SessionsPage() {
     setLoading(true)
     try {
       // Backend returns array directly: Session[]
-      const sessions = await agentosService.listSessions()
+      const sessions = await systemService.listSessionsApiSessionsGet()
       // Map API sessions to our display format
       const mappedSessions = sessions.map((s: ApiSession, index: number) => ({
         id: index + 1,

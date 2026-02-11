@@ -9,11 +9,11 @@
 // Example 1: Import from namespace (Recommended)
 // ============================================================================
 
-import type { AgentOS, MemoryOS, SkillOS, System } from '@modules'
+import type { OctopusOS, MemoryOS, SkillOS, System } from '@modules'
 import type { PaginationParams, ApiResponse } from '@modules/common'
 
 // Use types with namespace prefix for clarity
-async function exampleServiceWithNamespace(params: AgentOS.ListProjectsRequest): Promise<AgentOS.ListProjectsResponse> {
+async function exampleServiceWithNamespace(params: OctopusOS.ListProjectsRequest): Promise<OctopusOS.ListProjectsResponse> {
   // Implementation would use httpClient here
   return {
     projects: [],
@@ -33,7 +33,7 @@ import type {
   Task,
   ListProjectsRequest,
   TaskCreateRequest,
-} from '@modules/agentos'
+} from '@modules/octopusos'
 
 async function exampleServiceDirect(request: TaskCreateRequest): Promise<Task> {
   // Implementation
@@ -53,7 +53,7 @@ async function exampleServiceDirect(request: TaskCreateRequest): Promise<Task> {
 
 import { TaskStatus, ProjectStatus } from '@modules/common'
 
-function getTasksByStatus(status: TaskStatus): Promise<AgentOS.Task[]> {
+function getTasksByStatus(status: TaskStatus): Promise<OctopusOS.Task[]> {
   // Using enum for type-safe status values
   console.log('Filtering by status:', status)
   if (status === TaskStatus.COMPLETED) {
@@ -62,7 +62,7 @@ function getTasksByStatus(status: TaskStatus): Promise<AgentOS.Task[]> {
   return Promise.resolve([])
 }
 
-function filterProjects(status: ProjectStatus): Promise<AgentOS.Project[]> {
+function filterProjects(status: ProjectStatus): Promise<OctopusOS.Project[]> {
   // Type-safe project status filtering
   console.log('Filtering projects:', status)
   return Promise.resolve([])
@@ -74,7 +74,7 @@ function filterProjects(status: ProjectStatus): Promise<AgentOS.Project[]> {
 
 import type { PaginationWithSortParams } from '@modules/common'
 
-async function listTasksWithSort(params: PaginationWithSortParams & { project_id?: string }): Promise<AgentOS.ListTasksResponse> {
+async function listTasksWithSort(params: PaginationWithSortParams & { project_id?: string }): Promise<OctopusOS.ListTasksResponse> {
   // Combine pagination + sort + custom filters
   console.log('Sorting:', params.sortBy, params.sortOrder)
   return {
@@ -158,7 +158,7 @@ async function getProviderStatus(provider_id: string): Promise<System.ProviderSt
 // Example 8: Batch operations
 // ============================================================================
 
-async function createTasksBatch(req: AgentOS.TaskBatchCreateRequest): Promise<AgentOS.TaskBatchCreateResponse> {
+async function createTasksBatch(req: OctopusOS.TaskBatchCreateRequest): Promise<OctopusOS.TaskBatchCreateResponse> {
   // Create multiple tasks at once
   console.log('Creating batch:', req.tasks.length, 'tasks')
   return {
@@ -174,7 +174,7 @@ async function createTasksBatch(req: AgentOS.TaskBatchCreateRequest): Promise<Ag
 // Example 9: Type guards (Runtime type checking)
 // ============================================================================
 
-function isProject(obj: unknown): obj is AgentOS.Project {
+function isProject(obj: unknown): obj is OctopusOS.Project {
   return (
     typeof obj === 'object' &&
     obj !== null &&
@@ -184,7 +184,7 @@ function isProject(obj: unknown): obj is AgentOS.Project {
   )
 }
 
-function isTask(obj: unknown): obj is AgentOS.Task {
+function isTask(obj: unknown): obj is OctopusOS.Task {
   return (
     typeof obj === 'object' &&
     obj !== null &&
@@ -205,7 +205,7 @@ type ProjectListParams = PaginationParams & {
   tags?: string[]
 }
 
-async function advancedProjectList(params: ProjectListParams): Promise<AgentOS.ListProjectsResponse> {
+async function advancedProjectList(params: ProjectListParams): Promise<OctopusOS.ListProjectsResponse> {
   // Advanced filtering with custom params
   return {
     projects: [],

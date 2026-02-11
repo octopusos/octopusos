@@ -157,7 +157,7 @@ print(quicksort([3, 6, 8, 10, 1, 2, 1]))
 ````json
 ```json
 {
-    "name": "AgentOS",
+    "name": "OctopusOS",
     "version": "0.3.0",
     "config": {
         "debug": true,
@@ -170,7 +170,7 @@ print(quicksort([3, 6, 8, 10, 1, 2, 1]))
 
 **验证点**：
 - [ ] 键名（字符串） `"name"`, `"version"` 显示为绿色
-- [ ] 字符串值 `"AgentOS"` 显示为绿色
+- [ ] 字符串值 `"OctopusOS"` 显示为绿色
 - [ ] 布尔值 `true` 显示为红色
 - [ ] 数字 `8080` 显示为红色
 - [ ] 括号 `{}`, `[]` 正确高亮

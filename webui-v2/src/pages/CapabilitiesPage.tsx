@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, Typography, Button, Divider, Chip } from '@mui/material'
 /**
- * CapabilitiesPage - Capability Governance Dashboard (AgentOS v3)
+ * CapabilitiesPage - Capability Governance Dashboard (OctopusOS v3)
  *
  * Aligned with WebUI v1: CapabilityDashboardView.js
  * Displays real-time governance statistics:
@@ -36,7 +36,7 @@ import {
   GroupIcon,
   LineChartIcon
 } from '@/ui/icons'
-import { agentosService } from '@/services/agentos.service'
+import { networkosService } from '@services'
 import type { CapabilityDashboardStats } from '@/types/capability'
 
 // Domain configuration - icons and colors (labels will be translated inline)
@@ -56,6 +56,81 @@ interface DetailData {
   id: string
   title: string
   data: any
+}
+
+const DEFAULT_STATS: CapabilityDashboardStats = {
+  domains: {
+    state: { count: 0, active_agents: 0 },
+    decision: { count: 0, active_agents: 0 },
+    action: { count: 0, active_agents: 0 },
+    governance: { count: 0, active_agents: 0 },
+    evidence: { count: 0, active_agents: 0 },
+  },
+  today_stats: {
+    total_invocations: 0,
+    allowed: 0,
+    denied: 0,
+  },
+  risk_distribution: {
+    LOW: 0,
+    MEDIUM: 0,
+    HIGH: 0,
+    CRITICAL: 0,
+  },
+}
+
+const toSafeNumber = (value: unknown): number => {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+const normalizeCapabilityDashboardStats = (response: unknown): CapabilityDashboardStats | null => {
+  if (!response || typeof response !== 'object') return null
+
+  const result: CapabilityDashboardStats = {
+    domains: { ...DEFAULT_STATS.domains },
+    today_stats: { ...DEFAULT_STATS.today_stats },
+    risk_distribution: { ...DEFAULT_STATS.risk_distribution },
+  }
+
+  const payload = response as Record<string, unknown>
+  const stats = payload.stats && typeof payload.stats === 'object'
+    ? payload.stats as Record<string, unknown>
+    : {}
+
+  const domains = stats.domains
+  if (domains && typeof domains === 'object') {
+    for (const [domain, domainValue] of Object.entries(domains as Record<string, unknown>)) {
+      const normalizedDomainValue =
+        domainValue && typeof domainValue === 'object' ? domainValue as Record<string, unknown> : {}
+      result.domains[domain] = {
+        count: toSafeNumber(normalizedDomainValue.count),
+        active_agents: toSafeNumber(normalizedDomainValue.active_agents),
+      }
+    }
+  }
+
+  const todayStats = stats.today_stats
+  if (todayStats && typeof todayStats === 'object') {
+    const normalizedTodayStats = todayStats as Record<string, unknown>
+    result.today_stats = {
+      total_invocations: toSafeNumber(normalizedTodayStats.total_invocations),
+      allowed: toSafeNumber(normalizedTodayStats.allowed),
+      denied: toSafeNumber(normalizedTodayStats.denied),
+    }
+  }
+
+  const riskDistribution = stats.risk_distribution
+  if (riskDistribution && typeof riskDistribution === 'object') {
+    const normalizedRiskDistribution = riskDistribution as Record<string, unknown>
+    result.risk_distribution = {
+      LOW: toSafeNumber(normalizedRiskDistribution.LOW),
+      MEDIUM: toSafeNumber(normalizedRiskDistribution.MEDIUM),
+      HIGH: toSafeNumber(normalizedRiskDistribution.HIGH),
+      CRITICAL: toSafeNumber(normalizedRiskDistribution.CRITICAL),
+    }
+  }
+
+  return result
 }
 
 export default function CapabilitiesPage() {
@@ -88,13 +163,14 @@ export default function CapabilitiesPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await agentosService.getCapabilityDashboardStats()
-
-      if (response.ok && response.data) {
-        setStats(response.data)
-      } else {
-        setError(response.error || 'Failed to load dashboard stats')
+      const response = await networkosService.capabilityDashboardStatsApiCapabilityDashboardStatsGet()
+      const normalizedStats = normalizeCapabilityDashboardStats(response)
+      if (!normalizedStats) {
+        setError('Failed to load dashboard stats')
+        return
       }
+
+      setStats(normalizedStats)
     } catch (err) {
       console.error('Failed to fetch capability dashboard stats:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
@@ -528,7 +604,7 @@ export default function CapabilitiesPage() {
       <div className="flex justify-end space-x-2">
         <button
           onClick={loadStats}
-          className="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center"
+          className="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-700 disabled:text-gray-400 flex items-center"
           disabled={loading}
         >
           <RefreshIcon className="mr-2" style={{ fontSize: 18 }} />
@@ -536,7 +612,7 @@ export default function CapabilitiesPage() {
         </button>
         <button
           onClick={() => navigate('/audit-log')}
-          className="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 flex items-center"
+          className="px-4 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-gray-700 flex items-center"
         >
           <SecurityIcon className="mr-2" style={{ fontSize: 18 }} />
           {t(K.page.capabilities.actionAuditLog)}

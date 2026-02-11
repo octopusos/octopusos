@@ -18,11 +18,11 @@ import { useTextTranslation } from '@/ui/text'
 import { DetailDrawer } from '@/ui/interaction'
 import { toast } from '@/ui/feedback'
 import type { GridColDef } from '@/ui'
-import { brainosService } from '@/services/brainos.service'
+import { brainosService } from '@services'
 import type {
   GovernanceDecision,
   ReplayDecisionResponse,
-} from '@/services/brainos.service'
+} from '@services'
 
 // ===================================
 // Types
@@ -125,7 +125,7 @@ export default function DecisionReviewPage() {
       const apiStatus = statusFilter === STATUS_ALL ? undefined : (statusFilter as 'PENDING' | 'APPROVED' | 'BLOCKED' | 'SIGNED' | 'FAILED')
       const apiType = typeFilter === 'all' ? undefined : (typeFilter as 'NAVIGATION' | 'COMPARE' | 'HEALTH')
 
-      const response = await brainosService.listGovernanceDecisions({
+      const response = await brainosService.listBrainGovernanceDecisionsApiBrainGovernanceDecisionsGet({
         status: apiStatus,
         decision_type: apiType,
         limit: 100, // governance API doesn't have pagination yet
@@ -133,7 +133,7 @@ export default function DecisionReviewPage() {
 
       // Map governance decisions to table rows
       const records = response?.records || []
-      const rows: DecisionRow[] = records.map((record) => ({
+      const rows: DecisionRow[] = records.map((record: any) => ({
         id: record.decision_id,
         decision_type: record.decision_type,
         seed: record.seed,
@@ -164,8 +164,8 @@ export default function DecisionReviewPage() {
     try {
       // Load both detail and replay data in parallel
       const [detailResponse, replayResponse] = await Promise.all([
-        brainosService.getGovernanceDecision(decisionId),
-        brainosService.replayGovernanceDecision(decisionId).catch(() => null),
+        brainosService.getBrainGovernanceDecisionApiBrainGovernanceDecisionsDecisionIdGet(decisionId),
+        brainosService.replayBrainGovernanceDecisionApiBrainGovernanceDecisionsDecisionIdReplayGet(decisionId).catch(() => null),
       ])
 
       setSelectedDetail(detailResponse.decision)
@@ -188,7 +188,7 @@ export default function DecisionReviewPage() {
 
     setActionLoading(true)
     try {
-      await brainosService.signoffGovernanceDecision(selectedDecision.id, {
+      await brainosService.signoffBrainGovernanceDecisionApiBrainGovernanceDecisionsDecisionIdSignoffPost(selectedDecision.id, {
         signed_by: signoffSigner,
         note: signoffNote,
       })

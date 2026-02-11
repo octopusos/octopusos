@@ -121,7 +121,7 @@ export default function TasksPage() {
         filters.status = statusFilter
       }
 
-      // Real API call: await agentosService.listTasks()
+      // Real API call: await octopusosService.listTasksApiTasksGet()
       const response = await tasksApi.listTasks(filters)
       setTasks(response.tasks)
       setTotal(response.total)

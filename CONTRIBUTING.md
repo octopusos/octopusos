@@ -1,6 +1,6 @@
-# Contributing to AgentOS
+# Contributing to OctopusOS
 
-Thank you for your interest in contributing to AgentOS! We welcome contributions from the community.
+Thank you for your interest in contributing to OctopusOS! We welcome contributions from the community.
 
 ## Table of Contents
 
@@ -35,8 +35,8 @@ This project adheres to a code of conduct that all contributors are expected to 
 1. **Fork and Clone**
 
    ```bash
-   git clone https://github.com/YOUR-USERNAME/agentos.git
-   cd agentos
+   git clone https://github.com/YOUR-USERNAME/octopusos.git
+   cd octopusos
    ```
 
 2. **Set Up Environment**
@@ -54,13 +54,13 @@ This project adheres to a code of conduct that all contributors are expected to 
 3. **Initialize Database**
 
    ```bash
-   uv run agentos init
+   uv run octopusos init
    ```
 
 4. **Verify Setup**
 
    ```bash
-   uv run agentos doctor
+   uv run octopusos doctor
    uv run pytest tests/
    ```
 
@@ -79,7 +79,7 @@ We welcome:
 
 ### Finding Work
 
-- Check [Issues](https://github.com/seacow-technology/agentos/issues) labeled `good first issue`
+- Check [Issues](https://github.com/seacow-technology/octopusos/issues) labeled `good first issue`
 - Look for `help wanted` labels
 - Review the [roadmap](docs/ROADMAP.md) for planned features
 
@@ -194,7 +194,7 @@ uv run ruff check --fix .
 
 ### Architecture Guidelines
 
-AgentOS has strict architectural contracts. Please read:
+OctopusOS has strict architectural contracts. Please read:
 
 - [Architecture Contracts](docs/cli/CLI_ARCHITECTURE_CONTRACTS.md) - **Required reading**
 - [Validation Layers](docs/architecture/VALIDATION_LAYERS.md)
@@ -210,13 +210,13 @@ AgentOS has strict architectural contracts. Please read:
 
 ### Time & Timestamp Contract
 
-AgentOS enforces strict time handling rules through CI gates:
+OctopusOS enforces strict time handling rules through CI gates:
 
 **Rules:**
 
 1. ❌ **NEVER** use `datetime.utcnow()` - it's deprecated in Python 3.12+
 2. ❌ **NEVER** use `datetime.now()` without timezone parameter
-3. ✅ **ALWAYS** use `utc_now()` from `agentos.core.time`
+3. ✅ **ALWAYS** use `utc_now()` from `octopusos.core.time`
 
 **Example:**
 
@@ -227,11 +227,11 @@ timestamp = datetime.utcnow()
 timestamp = datetime.now()
 
 # ✅ Correct
-from agentos.core.time import utc_now
+from octopusos.core.time import utc_now
 timestamp = utc_now()
 
 # Additional helpers available:
-from agentos.core.time import (
+from octopusos.core.time import (
     utc_now_ms,      # Get current time as epoch milliseconds
     utc_now_iso,     # Get current time as ISO 8601 string with Z
     from_epoch_ms,   # Convert epoch ms to datetime
@@ -328,7 +328,7 @@ If you need a breaking change:
 ### File Organization
 
 ```
-agentos/
+octopusos/
 ├── cli/                  # CLI commands and interface
 ├── core/                 # Core orchestration logic
 ├── webui/                # Web UI components
@@ -363,7 +363,7 @@ Example:
 
 ```python
 import pytest
-from agentos.core.task import TaskManager
+from octopusos.core.task import TaskManager
 
 def test_task_creation():
     # Arrange
@@ -384,7 +384,7 @@ def test_task_creation():
 - Run coverage report:
 
 ```bash
-uv run pytest --cov=agentos --cov-report=html
+uv run pytest --cov=octopusos --cov-report=html
 ```
 
 ## Documentation
@@ -439,9 +439,9 @@ If you're developing a new Channel Adapter for CommunicationOS, please follow th
    - **Status: FROZEN** - Changes require RFC and community review
 
 2. **Review Reference Implementations**
-   - Slack Adapter: `agentos/communicationos/channels/slack/adapter.py` (recommended template)
-   - Telegram Adapter: `agentos/communicationos/channels/telegram/adapter.py` (simple template)
-   - Email Adapter: `agentos/communicationos/channels/email/adapter.py` (async template)
+   - Slack Adapter: `octopusos/communicationos/channels/slack/adapter.py` (recommended template)
+   - Telegram Adapter: `octopusos/communicationos/channels/telegram/adapter.py` (simple template)
+   - Email Adapter: `octopusos/communicationos/channels/email/adapter.py` (async template)
 
 ### Core Principles (Do NOT Violate)
 
@@ -474,11 +474,11 @@ Before submitting a PR for a new adapter:
 
 ```bash
 # 1. Run the adapter specification linter
-python scripts/lint_adapter_spec.py agentos/communicationos/channels/your_channel/adapter.py
+python scripts/lint_adapter_spec.py octopusos/communicationos/channels/your_channel/adapter.py
 
 # 2. Run code quality checks
-ruff check agentos/communicationos/channels/your_channel/
-ruff format agentos/communicationos/channels/your_channel/
+ruff check octopusos/communicationos/channels/your_channel/
+ruff format octopusos/communicationos/channels/your_channel/
 
 # 3. Run tests
 pytest tests/unit/communicationos/channels/your_channel/ -v
@@ -516,12 +516,12 @@ See examples in existing adapter directories.
 - Only send messages (OutboundMessage → webhook)
 - Handle channel-specific idempotency/retry/dedup
 - Filter bot's own messages (loop prevention)
-- Use `utc_now()` from `agentos.core.time` for timestamps
+- Use `utc_now()` from `octopusos.core.time` for timestamps
 
 ### Directory Structure
 
 ```
-agentos/communicationos/channels/your_channel/
+octopusos/communicationos/channels/your_channel/
 ├── __init__.py
 ├── adapter.py           # Main adapter implementation
 ├── client.py           # Optional: API client wrapper
@@ -535,17 +535,17 @@ tests/unit/communicationos/channels/your_channel/
 ### Questions about Adapters?
 
 - 📖 Read the full spec: [CHANNEL_ADAPTER_SPECIFICATION_V1.md](docs/CHANNEL_ADAPTER_SPECIFICATION_V1.md)
-- 💬 Ask in [Discussions](https://github.com/seacow-technology/agentos/discussions)
-- 🐛 Report issues: [GitHub Issues](https://github.com/seacow-technology/agentos/issues)
+- 💬 Ask in [Discussions](https://github.com/seacow-technology/octopusos/discussions)
+- 🐛 Report issues: [GitHub Issues](https://github.com/seacow-technology/octopusos/issues)
 
 ---
 
 ## Questions?
 
-- 💬 Open a [Discussion](https://github.com/seacow-technology/agentos/discussions)
-- 🐛 Report bugs via [Issues](https://github.com/seacow-technology/agentos/issues)
+- 💬 Open a [Discussion](https://github.com/seacow-technology/octopusos/discussions)
+- 🐛 Report bugs via [Issues](https://github.com/seacow-technology/octopusos/issues)
 - 📧 Email: dev@seacow.tech (replace with actual contact)
 
 ---
 
-Thank you for contributing to AgentOS! 🚀
+Thank you for contributing to OctopusOS! 🚀

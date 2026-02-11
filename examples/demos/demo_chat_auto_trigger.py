@@ -33,8 +33,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import core modules
-from agentos.core.task.service import TaskService
-from agentos.core.runner.launcher import TaskLauncher
+from octopusos.core.task.service import TaskService
+from octopusos.core.runner.launcher import TaskLauncher
 
 
 def simulate_chat_task_command(title: str) -> str:

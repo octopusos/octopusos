@@ -12,19 +12,19 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
-        "agentos/api/routes/notifications.py",
-        "agentos/services/notification_service.py",
-        "agentos/models/notification.py",
+        "octopusos/api/routes/notifications.py",
+        "octopusos/services/notification_service.py",
+        "octopusos/models/notification.py",
         "tests/unit/test_notification_service.py",
         "tests/integration/test_notifications_api.py"
       ],
       "modules": [
-        "agentos.api",
-        "agentos.services"
+        "octopusos.api",
+        "octopusos.services"
       ],
       "areas": [
         "backend",
@@ -88,7 +88,7 @@
       ],
       "risk_level": "medium",
       "evidence_refs": [
-        "scan://file/agentos/api/routes/notifications.py",
+        "scan://file/octopusos/api/routes/notifications.py",
         "api_spec://notifications_endpoint"
       ]
     },
@@ -100,7 +100,7 @@
       ],
       "risk_level": "medium",
       "evidence_refs": [
-        "scan://file/agentos/services/notification_service.py",
+        "scan://file/octopusos/services/notification_service.py",
         "design://notification_service_spec"
       ]
     },
@@ -112,7 +112,7 @@
       ],
       "risk_level": "low",
       "evidence_refs": [
-        "scan://file/agentos/models/notification.py"
+        "scan://file/octopusos/models/notification.py"
       ]
     },
     {
@@ -173,9 +173,9 @@
     "lock_scope": {
       "mode": "files",
       "paths": [
-        "agentos/api/routes/notifications.py",
-        "agentos/services/notification_service.py",
-        "agentos/models/notification.py"
+        "octopusos/api/routes/notifications.py",
+        "octopusos/services/notification_service.py",
+        "octopusos/models/notification.py"
       ]
     }
   },

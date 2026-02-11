@@ -14,10 +14,10 @@ echo "v0.9.4 Gate D: No Execution Symbols Scan"
 echo "======================================================================"
 
 SCAN_DIRS=(
-    "agentos/schemas/execution/nl_request.schema.json"
-    "agentos/schemas/execution/intent_builder_output.schema.json"
-    "agentos/core/intent_builder"
-    "agentos/cli/intent_builder.py"
+    "octopusos/schemas/execution/nl_request.schema.json"
+    "octopusos/schemas/execution/intent_builder_output.schema.json"
+    "octopusos/core/intent_builder"
+    "octopusos/cli/intent_builder.py"
     "examples/nl"
 )
 

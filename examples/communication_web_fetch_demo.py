@@ -5,9 +5,9 @@ through the CommunicationService with security policies and auditing.
 """
 
 import asyncio
-from agentos.core.communication.service import CommunicationService
-from agentos.core.communication.connectors.web_fetch import WebFetchConnector
-from agentos.core.communication.models import ConnectorType
+from octopusos.core.communication.service import CommunicationService
+from octopusos.core.communication.connectors.web_fetch import WebFetchConnector
+from octopusos.core.communication.models import ConnectorType
 
 
 async def demo_basic_fetch():
@@ -21,7 +21,7 @@ async def demo_basic_fetch():
     connector = WebFetchConnector(config={
         "timeout": 30,
         "max_size": 10 * 1024 * 1024,  # 10MB
-        "user_agent": "AgentOS/1.0 Demo",
+        "user_agent": "OctopusOS/1.0 Demo",
     })
     service.register_connector(ConnectorType.WEB_FETCH, connector)
 

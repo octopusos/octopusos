@@ -16,13 +16,13 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.communicationos.channels.email import EmailAdapter, CursorStore
-from agentos.communicationos.providers.email import (
+from octopusos.communicationos.channels.email import EmailAdapter, CursorStore
+from octopusos.communicationos.providers.email import (
     EmailEnvelope,
     ValidationResult,
     SendResult,
 )
-from agentos.communicationos.models import OutboundMessage
+from octopusos.communicationos.models import OutboundMessage
 
 
 class MockEmailProvider:
@@ -94,9 +94,9 @@ async def demo_basic_polling():
             from_address="user@example.com",
             from_name="John Doe",
             to_addresses=["agent@example.com"],
-            subject="Question about AgentOS",
+            subject="Question about OctopusOS",
             date=now,
-            text_body="Hello, I have a question about AgentOS features.",
+            text_body="Hello, I have a question about OctopusOS features.",
         ),
         EmailEnvelope(
             provider_message_id="mock-002",
@@ -105,7 +105,7 @@ async def demo_basic_polling():
             references="<test-001@user.example.com>",
             from_address="user@example.com",
             to_addresses=["agent@example.com"],
-            subject="Re: Question about AgentOS",
+            subject="Re: Question about OctopusOS",
             date=now,
             text_body="Following up on my previous question...",
         ),
@@ -164,8 +164,8 @@ async def demo_send_reply():
         user_key="user@example.com",
         conversation_key="test-001@user.example.com",
         reply_to_message_id="email_test-001@user.example.com",
-        text="Thank you for your question! AgentOS provides...",
-        metadata={"subject": "Question about AgentOS"}
+        text="Thank you for your question! OctopusOS provides...",
+        metadata={"subject": "Question about OctopusOS"}
     )
 
     print("\n[Adapter] Sending reply...")

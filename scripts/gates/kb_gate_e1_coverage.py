@@ -12,7 +12,7 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.core.project_kb.service import ProjectKBService
+from octopusos.core.project_kb.service import ProjectKBService
 
 
 def check_embedding_coverage():
@@ -50,7 +50,7 @@ def check_embedding_coverage():
         else:
             print(f"✗ Gate E1: FAIL (coverage {coverage:.1f}% < {threshold}%)")
             print(f"  Chunks: {total_chunks}, Embeddings: {total_embeddings}")
-            print(f"  Run: agentos kb embed build")
+            print(f"  Run: octopusos kb embed build")
             return False
 
     except Exception as e:

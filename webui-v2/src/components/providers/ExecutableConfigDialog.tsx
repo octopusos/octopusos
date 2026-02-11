@@ -146,8 +146,11 @@ export function ExecutableConfigDialog({
     if (!source) return t(K.page.providers.executableSourceUnknown)
     const labels: Record<string, string> = {
       config: t(K.page.providers.executableSourceUserConfig),
+      configured: t(K.page.providers.executableSourceUserConfig),
       standard: t(K.page.providers.executableSourceStandard),
+      auto_detect: t(K.page.providers.executableSourceStandard),
       path: t(K.page.providers.executableSourcePath),
+      path_env: t(K.page.providers.executableSourcePath),
     }
     return labels[source] || source
   }

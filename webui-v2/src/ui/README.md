@@ -359,4 +359,4 @@ src/ui/
 
 ## 📄 许可证
 
-Internal use only - AgentOS WebUIv2
+Internal use only - OctopusOS WebUIv2

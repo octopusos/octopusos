@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "octopusos://schemas/execution/answer_pack.schema.json",
+  "title": "Answer Pack (v0.11.0)",
+  "description": "Structured answers to questions with evidence requirements for execution pipeline resumption",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "answer_pack_id",
+    "schema_version",
+    "question_pack_id",
+    "intent_id",
+    "answers",
+    "provided_at",
+    "lineage",
+    "checksum"
+  ],
+  "properties": {
+    "answer_pack_id": {
+      "type": "string",
+      "pattern": "^apack_[a-z0-9_]{6,64}$",
+      "description": "Unique identifier for this answer pack"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.11.0",
+      "description": "Schema version"
+    },
+    "question_pack_id": {
+      "type": "string",
+      "pattern": "^qpack_[a-z0-9_]{6,64}$",
+      "description": "Reference to the question pack being answered (RED LINE: AP1)"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$",
+      "description": "Reference to the source intent"
+    },
+    "answers": {
+      "type": "array",
+      "description": "Array of answers corresponding to questions",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question_id",
+          "answer_type",
+          "answer_text",
+          "evidence_refs",
+          "provided_at",
+          "provided_by"
+        ],
+        "properties": {
+          "question_id": {
+            "type": "string",
+            "pattern": "^q_[a-z0-9_]{4,32}$",
+            "description": "Reference to question being answered (RED LINE: AP1)"
+          },
+          "answer_type": {
+            "type": "string",
+            "enum": ["text", "choice", "structured", "fallback"],
+            "description": "Type of answer provided"
+          },
+          "answer_text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000,
+            "description": "The actual answer content"
+          },
+          "answer_data": {
+            "type": "object",
+            "description": "Structured answer data (for structured type)"
+          },
+          "evidence_refs": {
+            "type": "array",
+            "description": "Evidence supporting this answer (RED LINE: AP2 - REQUIRED)",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence level (0-1) if applicable"
+          },
+          "provided_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this answer was provided"
+          },
+          "provided_by": {
+            "type": "string",
+            "enum": ["human", "fallback", "policy_default"],
+            "description": "Source of the answer"
+          },
+          "rationale": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Optional rationale for this answer"
+          }
+        }
+      }
+    },
+    "provided_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this answer pack was provided"
+    },
+    "completeness": {
+      "type": "object",
+      "description": "Tracking of answer completeness",
+      "required": ["total_questions", "answered"],
+      "properties": {
+        "total_questions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total questions in the pack"
+        },
+        "answered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of questions answered"
+        },
+        "unanswered_question_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^q_[a-z0-9_]{4,32}$"
+          },
+          "description": "IDs of unanswered questions"
+        },
+        "fallback_used": {
+          "type": "boolean",
+          "description": "Whether fallback strategies were used"
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "description": "Lineage tracking for audit",
+      "required": ["nl_request_id", "created_by"],
+      "properties": {
+        "nl_request_id": {
+          "type": "string",
+          "pattern": "^nl_req_[a-z0-9_]{6,64}$",
+          "description": "Source NL request"
+        },
+        "pipeline_run_id": {
+          "type": "string",
+          "description": "Pipeline run that was blocked"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "Who/what created this answer pack"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        }
+      }
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 checksum of answers (excluding this field)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional answer pack metadata",
+      "properties": {
+        "answerer_id": {
+          "type": "string",
+          "description": "Identifier of who provided answers"
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Session identifier if applicable"
+        },
+        "tool_used": {
+          "type": "string",
+          "description": "Tool used to create this pack (e.g., 'cli', 'api', 'interactive')"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "RED LINE AP3: AnswerPack cannot modify command/workflow/agent definitions - check manually in validator",
+      "not": {
+        "properties": {
+          "answers": {
+            "contains": {
+              "properties": {
+                "answer_data": {
+                  "properties": {
+                    "command_override": {},
+                    "workflow_override": {},
+                    "agent_override": {}
+                  },
+                  "minProperties": 1
+                }
+              },
+              "required": ["answer_data"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

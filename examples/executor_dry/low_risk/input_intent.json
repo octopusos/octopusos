@@ -2,7 +2,7 @@
   "id": "intent_example_low_risk",
   "type": "execution_intent",
   "title": "Add documentation comments to utility functions",
-  "description": "Add docstrings to utility functions in agentos/utils/ module for better code documentation and maintainability.",
+  "description": "Add docstrings to utility functions in octopusos/utils/ module for better code documentation and maintainability.",
   "version": "0.9.1",
   "status": "draft",
   "created_at": "2026-01-25T10:00:00Z",
@@ -12,15 +12,15 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
-        "agentos/utils/format.py",
-        "agentos/utils/validation.py"
+        "octopusos/utils/format.py",
+        "octopusos/utils/validation.py"
       ],
       "modules": [
-        "agentos.utils"
+        "octopusos.utils"
       ],
       "areas": [
         "backend"
@@ -71,7 +71,7 @@
       ],
       "risk_level": "low",
       "evidence_refs": [
-        "scan://python_modules/agentos.utils"
+        "scan://python_modules/octopusos.utils"
       ]
     },
     {
@@ -82,8 +82,8 @@
       ],
       "risk_level": "low",
       "evidence_refs": [
-        "scan://file/agentos/utils/format.py",
-        "scan://file/agentos/utils/validation.py"
+        "scan://file/octopusos/utils/format.py",
+        "scan://file/octopusos/utils/validation.py"
       ]
     }
   ],
@@ -108,7 +108,7 @@
     "max_cost_usd": 2.0
   },
   "evidence_refs": [
-    "scan://python_modules/agentos.utils",
+    "scan://python_modules/octopusos.utils",
     "doc://contributing/docstring_style.md"
   ],
   "constraints": {
@@ -118,8 +118,8 @@
     "lock_scope": {
       "mode": "files",
       "paths": [
-        "agentos/utils/format.py",
-        "agentos/utils/validation.py"
+        "octopusos/utils/format.py",
+        "octopusos/utils/validation.py"
       ]
     }
   },

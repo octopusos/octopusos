@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>OctopusOS Mobile</title>
+    <link rel="manifest" href="/h5/manifest.webmanifest" />
+    <link rel="stylesheet" href="/h5/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="brand">OctopusOS Mobile</div>
+        <div id="status" class="status">Unpaired</div>
+      </header>
+
+      <section id="pairing" class="card">
+        <h2>Pair Device</h2>
+        <p class="muted">Scan the QR shown in WebUI: Security → Devices.</p>
+        <div class="row">
+          <button id="btnStartScan" class="btn primary">Scan QR</button>
+          <button id="btnUseCode" class="btn">Enter Code</button>
+        </div>
+        <div id="scanArea" class="scanArea hidden">
+          <video id="video" playsinline></video>
+          <canvas id="canvas" class="hidden"></canvas>
+          <div class="row">
+            <button id="btnStopScan" class="btn">Stop</button>
+          </div>
+          <div id="scanHint" class="muted small"></div>
+        </div>
+        <div id="manualArea" class="hidden">
+          <input id="codeInput" class="input" placeholder="Pairing code" />
+          <div class="row">
+            <button id="btnSubmitCode" class="btn primary">Pair</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="chat" class="card hidden">
+        <h2>Chat</h2>
+        <div id="messages" class="messages"></div>
+        <div class="composer">
+          <input id="chatInput" class="input" placeholder="Type a message" />
+          <button id="btnSend" class="btn primary">Send</button>
+        </div>
+        <div class="row">
+          <button id="btnDisconnect" class="btn danger">Forget Device Token</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="/h5/app.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "octopusos://schemas/executor/execution_request.schema.json",
+  "title": "Execution Request (v0.11.1)",
+  "description": "Request for real execution based on dry run results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "execution_request_id",
+    "schema_version",
+    "dry_execution_result_id",
+    "intent_id",
+    "execution_mode",
+    "created_at"
+  ],
+  "properties": {
+    "execution_request_id": {
+      "type": "string",
+      "pattern": "^exec_req_[a-z0-9_]{6,64}$"
+    },
+    "schema_version": {
+      "type": "string",
+      "const": "0.11.1"
+    },
+    "dry_execution_result_id": {
+      "type": "string",
+      "pattern": "^dryexec_[a-z0-9_]{6,64}$"
+    },
+    "intent_id": {
+      "type": "string",
+      "pattern": "^intent_[a-z0-9_]{6,64}$"
+    },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["controlled", "dry_run_only"]
+    },
+    "allowed_operations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["file_write", "file_update", "file_patch", "lint", "test", "build", "git_branch", "git_commit"]
+      }
+    },
+    "requires_review": {
+      "type": "boolean",
+      "description": "Whether this execution requires manual approval"
+    },
+    "approval_ref": {
+      "type": "string",
+      "description": "Reference to approval pack if requires_review"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

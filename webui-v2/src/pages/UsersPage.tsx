@@ -2,7 +2,7 @@
  * UsersPage - 用户管理页面
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getUsers()
+ * ✅ API: systemService.listUsersApiUsersGet()
  * ✅ States: loading, error, empty, success
  *
  * 🔒 Migration Contract 遵循规则：
@@ -18,7 +18,7 @@ import { TextField, Select, MenuItem } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { useTextTranslation, K } from '@/ui/text'
-import { agentosService } from '@/services'
+import { systemService } from '@services'
 import type { GridColDef } from '@/ui'
 
 /**
@@ -54,10 +54,12 @@ export default function UsersPage() {
       setLoading(true)
       setError(null)
       try {
-        const response = await agentosService.getUsers()
-        setData(response.data)
+        const response = await systemService.listUsersApiUsersGet()
+        const rows = Array.isArray(response?.data) ? response.data : []
+        setData(rows)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch users')
+        setData([])
       } finally {
         setLoading(false)
       }

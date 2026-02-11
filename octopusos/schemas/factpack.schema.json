@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://octopusos.dev/schemas/factpack.schema.json",
+  "$version": "1.0.0",
+  "title": "FactPack",
+  "description": "Project scan result with evidence-based facts",
+  "type": "object",
+  "required": ["schema_version", "project_id", "repo_root", "detected_projects", "evidence"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "FactPack schema version (semver)",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "project_id": {
+      "type": "string",
+      "description": "Unique identifier for the project"
+    },
+    "repo_root": {
+      "type": "string",
+      "description": "Absolute path to repository root"
+    },
+    "repo_fingerprint": {
+      "type": "object",
+      "description": "Repository identity information",
+      "properties": {
+        "hash": {
+          "type": "string",
+          "description": "SHA256 hash of file list + sizes"
+        },
+        "git_commit": {
+          "type": "string",
+          "description": "Current git commit hash (if available)"
+        }
+      }
+    },
+    "detected_projects": {
+      "type": "array",
+      "description": "Detected sub-projects within the repository",
+      "items": {
+        "type": "object",
+        "required": ["type", "framework", "root_path"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["frontend", "backend", "fullstack", "library", "cli"],
+            "description": "Project type"
+          },
+          "framework": {
+            "type": "string",
+            "description": "Framework identifier (e.g., vite-react, dotnet-8)"
+          },
+          "root_path": {
+            "type": "string",
+            "description": "Relative path from repo root"
+          },
+          "language": {
+            "type": "string",
+            "description": "Primary programming language"
+          },
+          "version": {
+            "type": "string",
+            "description": "Framework/runtime version"
+          }
+        }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "description": "Available commands (key=command name, value=shell command)",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "governance": {
+      "type": "object",
+      "description": "Governance and documentation information",
+      "properties": {
+        "docs_root": {
+          "type": "string",
+          "description": "Documentation root directory"
+        },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Gate script locations"
+        },
+        "ci_config": {
+          "type": "string",
+          "description": "CI configuration file path"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Rule file locations"
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Project constraints and configuration",
+      "additionalProperties": true
+    },
+    "evidence": {
+      "type": "array",
+      "description": "Evidence supporting the facts in this FactPack",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "source_file", "category"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique evidence identifier (e.g., ev001)",
+            "pattern": "^ev[0-9]+$"
+          },
+          "source_file": {
+            "type": "string",
+            "description": "Source file path (relative to repo root)"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["dependency", "config", "script", "documentation", "code", "constraint"],
+            "description": "Evidence category"
+          },
+          "snippet": {
+            "type": "string",
+            "description": "Relevant code/text snippet"
+          },
+          "line_range": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Line range [start, end]"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the evidence"
+          }
+        }
+      }
+    },
+    "scanned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp of scan"
+    }
+  }
+}

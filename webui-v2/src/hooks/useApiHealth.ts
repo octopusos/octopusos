@@ -4,7 +4,7 @@
  * Monitors API connection status with automatic polling
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { httpClient } from '@platform/http'
 import type { ApiStatusType } from '@/ui'
 
@@ -49,29 +49,69 @@ export function useApiHealth(options: UseApiHealthOptions = {}): UseApiHealthRet
   const [lastCheck, setLastCheck] = useState<Date | null>(null)
   const [details, setDetails] = useState<ApiHealthResponse | null>(null)
   const [error, setError] = useState<Error | null>(null)
+  const inFlightRef = useRef(false)
 
-  const checkHealth = useCallback(async () => {
-    setStatus('checking')
+  const checkHealth = useCallback(async (showChecking = false) => {
+    if (inFlightRef.current) {
+      if (import.meta.env.DEV) {
+        console.debug('[ApiHealth] skip duplicated check (in flight)')
+      }
+      return
+    }
+    inFlightRef.current = true
+    let timeoutId: number | undefined
+
+    if (showChecking) {
+      setStatus('checking')
+    }
     setError(null)
+    const startedAt = Date.now()
+    if (import.meta.env.DEV) {
+      console.debug('[ApiHealth] check started', {
+        showChecking,
+        pollInterval,
+        endpoint: '/api/health',
+      })
+    }
 
     try {
-      // Try to check API health using httpClient
-      const response = await httpClient.get<ApiHealthResponse>('/api/health', {
-        timeout: 5000,
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error('Health check timeout')), 5500)
       })
+      const response = await Promise.race([
+        httpClient.get<ApiHealthResponse>('/api/health', { timeout: 5000 }),
+        timeoutPromise,
+      ])
 
-      // httpClient returns response.data directly for 2xx responses
       setStatus('connected')
-      setDetails(response.data)
-      setLastCheck(new Date())
+      setDetails(response.data ?? null)
+      if (import.meta.env.DEV) {
+        console.debug('[ApiHealth] check success', {
+          elapsedMs: Date.now() - startedAt,
+          apiStatus: response.data?.status,
+          hasDetails: !!response.data?.details,
+        })
+      }
     } catch (err) {
-      // If API is not reachable or times out
       setStatus('disconnected')
       setDetails(null)
-      setError(err instanceof Error ? err : new Error('Unknown error'))
+      const normalizedError = err instanceof Error ? err : new Error('Unknown error')
+      setError(normalizedError)
+      if (import.meta.env.DEV) {
+        console.warn('[ApiHealth] check failed', {
+          elapsedMs: Date.now() - startedAt,
+          message: normalizedError.message,
+          name: normalizedError.name,
+        })
+      }
+    } finally {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId)
+      }
       setLastCheck(new Date())
+      inFlightRef.current = false
     }
-  }, [])
+  }, [pollInterval])
 
   // Initial check and polling
   useEffect(() => {
@@ -79,13 +119,24 @@ export function useApiHealth(options: UseApiHealthOptions = {}): UseApiHealthRet
       return
     }
 
+    if (import.meta.env.DEV) {
+      console.debug('[ApiHealth] polling enabled', { pollInterval })
+    }
+
     // Initial check
-    checkHealth()
+    void checkHealth(true)
 
     // Set up polling
-    const interval = setInterval(checkHealth, pollInterval)
+    const interval = setInterval(() => {
+      void checkHealth(false)
+    }, pollInterval)
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      if (import.meta.env.DEV) {
+        console.debug('[ApiHealth] polling disabled')
+      }
+    }
   }, [checkHealth, pollInterval, enabled])
 
   return {
@@ -93,6 +144,6 @@ export function useApiHealth(options: UseApiHealthOptions = {}): UseApiHealthRet
     lastCheck,
     details,
     error,
-    refresh: checkHealth,
+    refresh: () => checkHealth(true),
   }
 }

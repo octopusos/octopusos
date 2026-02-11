@@ -33,8 +33,8 @@ FORBIDDEN_SYMBOLS = {
 DEMO_SCOPE_PATTERNS = [
     "scripts/demo/**/*.py",
     "scripts/gates/v12_demo_*.py",
-    "agentos/core/executor/executor_engine.py",
-    "agentos/core/infra/**/*.py",
+    "octopusos/core/executor/executor_engine.py",
+    "octopusos/core/infra/**/*.py",
     "tests/integration/test_executor_e2e_landing.py"
 ]
 

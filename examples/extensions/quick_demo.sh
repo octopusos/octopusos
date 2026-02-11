@@ -69,7 +69,7 @@ check_prerequisites() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-print_header "AgentOS Extension System - Quick Demo"
+print_header "OctopusOS Extension System - Quick Demo"
 echo "Project: $PROJECT_ROOT"
 echo "Examples: $SCRIPT_DIR"
 
@@ -100,7 +100,7 @@ cd "$PROJECT_ROOT"
 
 if [ ! -f "store/registry.sqlite" ]; then
     print_info "Creating database..."
-    python3 -c "from agentos.store import init_db; init_db()"
+    python3 -c "from octopusos.store import init_db; init_db()"
     print_success "Database initialized"
 else
     print_info "Database already exists"
@@ -108,7 +108,7 @@ else
 fi
 
 # Step 4: Start server in background
-print_header "Step 3: Starting AgentOS Server"
+print_header "Step 3: Starting OctopusOS Server"
 
 # Check if server is already running
 if curl -s http://localhost:8000/health > /dev/null 2>&1; then
@@ -117,7 +117,7 @@ if curl -s http://localhost:8000/health > /dev/null 2>&1; then
     SERVER_STARTED=false
 else
     print_info "Starting server in background..."
-    python3 -m agentos.webui.server > /tmp/agentos_demo.log 2>&1 &
+    python3 -m octopusos.webui.server > /tmp/octopusos_demo.log 2>&1 &
     SERVER_PID=$!
     SERVER_STARTED=true
 
@@ -131,7 +131,7 @@ else
         sleep 1
         if [ $i -eq 30 ]; then
             print_error "Server failed to start"
-            cat /tmp/agentos_demo.log
+            cat /tmp/octopusos_demo.log
             exit 1
         fi
     done
@@ -192,7 +192,7 @@ echo ""
 echo "3. Test slash commands in chat:"
 echo "   ${GREEN}http://localhost:8000/chat${NC}"
 echo "   - Type: ${YELLOW}/hello${NC}"
-echo "   - Type: ${YELLOW}/hello AgentOS${NC}"
+echo "   - Type: ${YELLOW}/hello OctopusOS${NC}"
 echo ""
 echo "4. View extension details:"
 echo "   - Click on the installed extension"
@@ -225,5 +225,5 @@ else
 fi
 
 print_header "Demo Complete!"
-echo "Thank you for trying the AgentOS Extension System!"
+echo "Thank you for trying the OctopusOS Extension System!"
 echo ""

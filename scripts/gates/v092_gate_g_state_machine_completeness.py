@@ -11,7 +11,7 @@ Validates:
 import sys
 from pathlib import Path
 
-COORDINATOR_ENGINE_FILE = Path("agentos/core/coordinator/engine.py")
+COORDINATOR_ENGINE_FILE = Path("octopusos/core/coordinator/engine.py")
 
 REQUIRED_STATES = [
     "RECEIVED",

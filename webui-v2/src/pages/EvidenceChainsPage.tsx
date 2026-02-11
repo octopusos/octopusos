@@ -16,13 +16,14 @@ import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { useTextTranslation } from '@/ui/text'
 import { DetailDrawer, DeleteConfirmDialog } from '@/ui/interaction'
+import { httpClient } from '@platform/http'
 import type { GridColDef } from '@/ui'
 
 /**
  * Types
  */
 interface EvidenceChainRow {
-  id: number
+  id: string
   claim: string
   evidenceCount: number
   confidence: number
@@ -31,66 +32,13 @@ interface EvidenceChainRow {
 }
 
 /**
- * Mock 数据（迁移阶段）
- */
-const MOCK_EVIDENCE_CHAINS: EvidenceChainRow[] = [
-  {
-    id: 1,
-    claim: 'User has admin privileges',
-    evidenceCount: 5,
-    confidence: 0.95,
-    timestamp: '2026-02-02 09:30:15',
-    status: 'Verified',
-  },
-  {
-    id: 2,
-    claim: 'Code change is safe to deploy',
-    evidenceCount: 12,
-    confidence: 0.88,
-    timestamp: '2026-02-02 09:25:42',
-    status: 'Verified',
-  },
-  {
-    id: 3,
-    claim: 'API endpoint is rate-limited',
-    evidenceCount: 3,
-    confidence: 0.72,
-    timestamp: '2026-02-02 09:20:18',
-    status: 'Pending',
-  },
-  {
-    id: 4,
-    claim: 'Database migration is reversible',
-    evidenceCount: 8,
-    confidence: 0.91,
-    timestamp: '2026-02-02 09:15:33',
-    status: 'Verified',
-  },
-  {
-    id: 5,
-    claim: 'External API is stable',
-    evidenceCount: 2,
-    confidence: 0.45,
-    timestamp: '2026-02-02 09:10:05',
-    status: 'Rejected',
-  },
-  {
-    id: 6,
-    claim: 'User input is sanitized',
-    evidenceCount: 7,
-    confidence: 0.96,
-    timestamp: '2026-02-02 09:05:47',
-    status: 'Verified',
-  },
-]
-
-/**
  * EvidenceChainsPage 组件
  *
  * 📊 Pattern: TablePage（FilterBar + Table + Pagination）
  */
 export default function EvidenceChainsPage() {
-  const [evidenceChains, setEvidenceChains] = useState<any[]>(MOCK_EVIDENCE_CHAINS)
+  const [evidenceChains, setEvidenceChains] = useState<EvidenceChainRow[]>([])
+  const [loading, setLoading] = useState(true)
 
   // ===================================
   // i18n Hook - Subscribe to language changes
@@ -108,26 +56,38 @@ export default function EvidenceChainsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
+  const loadEvidenceChains = async () => {
+    setLoading(true)
+    try {
+      const response = await httpClient.get<{ proposals?: Array<Record<string, any>> }>('/api/dispatch/proposals')
+      const proposals = Array.isArray(response?.data?.proposals) ? response.data.proposals : []
+      const records: EvidenceChainRow[] = proposals.map((proposal) => {
+        const risk = String(proposal?.risk_level || '').toLowerCase()
+        const confidence = risk === 'low' ? 0.9 : risk === 'medium' ? 0.75 : risk === 'high' ? 0.55 : 0.35
+
+        return {
+          id: String(proposal?.proposal_id || ''),
+          claim: String(proposal?.reason || proposal?.proposal_type || 'N/A'),
+          evidenceCount: Array.isArray(proposal?.evidence_refs) ? proposal.evidence_refs.length : 0,
+          confidence,
+          timestamp: String(proposal?.created_at || ''),
+          status: String(proposal?.status || 'pending'),
+        }
+      })
+      setEvidenceChains(records)
+    } catch (err) {
+      console.error('Failed to fetch evidence chains:', err)
+      setEvidenceChains([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // ===================================
-  // Data Fetching - Real API (mock data until backend ready)
+  // Data Fetching
   // ===================================
   useEffect(() => {
-    const fetchEvidencechains = async () => {
-      try {
-        // Ready for real API integration
-        // const response = await agentosService.getEvidenceChains()
-        // setEvidenceChains(response.data)
-
-        // Use mock data for now
-        setEvidenceChains(MOCK_EVIDENCE_CHAINS)
-      } catch (err) {
-        console.error('Failed to fetch evidenceChains:', err)
-      } finally {
-        // no-op
-      }
-    }
-
-    fetchEvidencechains()
+    void loadEvidenceChains()
   }, [])
 
   // ===================================
@@ -143,7 +103,9 @@ export default function EvidenceChainsPage() {
       key: 'refresh',
       label: t('common.refresh'),
       variant: 'outlined',
-      onClick: () => console.log('Refresh evidence chains'),
+      onClick: () => {
+        void loadEvidenceChains()
+      },
     },
     {
       key: 'export',
@@ -221,7 +183,7 @@ export default function EvidenceChainsPage() {
   return (
     <>
       <TableShell
-        loading={false}
+        loading={loading}
         rows={evidenceChains}
         columns={columns}
         filterBar={

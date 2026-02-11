@@ -17,8 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 def check_incremental_consistency():
     """检查增量一致性"""
     try:
-        from agentos.core.project_kb.config import ProjectKBConfig, VectorRerankConfig
-        from agentos.core.project_kb.service import ProjectKBService
+        from octopusos.core.project_kb.config import ProjectKBConfig, VectorRerankConfig
+        from octopusos.core.project_kb.service import ProjectKBService
 
         # 只在 vector 依赖Available时检查
         try:

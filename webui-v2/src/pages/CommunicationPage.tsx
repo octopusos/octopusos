@@ -21,7 +21,8 @@ import {
   ToggleButton,
   CircularProgress,
 } from '@/ui'
-import { communicationosService } from '@/services/communicationos.service'
+import { communicationosService } from '@services'
+import { hasToken } from '@platform/auth/adminToken'
 
 // ===================================
 // Constants
@@ -56,14 +57,15 @@ export default function CommunicationPage() {
   // API Handlers
   // ===================================
   const loadNetworkMode = useCallback(async () => {
+    if (!hasToken()) return
     try {
-      const response = await communicationosService.getNetworkMode()
+      const response = await communicationosService.getCommModeApiCommunicationModeGet()
       if (response?.current_state?.mode) {
         const mode = response.current_state.mode.toUpperCase() as 'OFF' | 'READONLY' | 'ON'
         setNetworkMode(mode)
       }
       // Also load status for active connections count
-      const statusResponse = await communicationosService.getCommunicationStatus()
+      const statusResponse = await communicationosService.getCommStatusApiCommunicationStatusGet()
       // Count active connections from statistics
       if (statusResponse?.statistics?.total_requests !== undefined) {
         setActiveConnections(statusResponse.statistics.total_requests || 0)
@@ -75,10 +77,11 @@ export default function CommunicationPage() {
   }, [])
 
   const loadAuditLogs = useCallback(async () => {
+    if (!hasToken()) return
     setAuditsLoading(true)
     try {
-      const response = await communicationosService.listCommunicationAudits({ limit: 50 })
-      const logs = (response?.audits || []).map(audit => ({
+      const response = await communicationosService.listCommAuditsApiCommunicationAuditsGet({ limit: 50 })
+      const logs = (response?.audits || []).map((audit: any) => ({
         id: audit.id,
         timestamp: audit.created_at,
         requestId: audit.request_id,
@@ -97,8 +100,9 @@ export default function CommunicationPage() {
   }, [t])
 
   const loadServiceStatus = useCallback(async () => {
+    if (!hasToken()) return
     try {
-      const response = await communicationosService.getCommunicationStatus()
+      const response = await communicationosService.getCommStatusApiCommunicationStatusGet()
       setServiceStatus(response)
     } catch (error) {
       console.error('Failed to load service status:', error)
@@ -106,8 +110,9 @@ export default function CommunicationPage() {
   }, [])
 
   const loadPolicyConfig = useCallback(async () => {
+    if (!hasToken()) return
     try {
-      const response = await communicationosService.getCommunicationPolicy()
+      const response = await communicationosService.getCommPolicyApiCommunicationPolicyGet()
       setPolicyConfig(response)
     } catch (error) {
       console.error('Failed to load policy config:', error)
@@ -115,6 +120,7 @@ export default function CommunicationPage() {
   }, [])
 
   const handleRefresh = useCallback(async () => {
+    if (!hasToken()) return
     setLoading(true)
     try {
       await Promise.all([
@@ -162,9 +168,10 @@ export default function CommunicationPage() {
 
   const handleModeChange = useCallback(
     async (newMode: 'OFF' | 'READONLY' | 'ON') => {
+      if (!hasToken()) return
       setModeChanging(true)
       try {
-        const response = await communicationosService.setNetworkMode({
+        const response = await communicationosService.setCommModeApiCommunicationModePut({
           mode: newMode.toLowerCase(),
           reason: 'Manual change from WebUI',
           updated_by: 'webui_user',
@@ -187,6 +194,12 @@ export default function CommunicationPage() {
   // Effects
   // ===================================
   useEffect(() => {
+    if (!hasToken()) {
+      setAuditLogs([])
+      setLoading(false)
+      setAuditsLoading(false)
+      return
+    }
     loadNetworkMode()
     loadAuditLogs()
     loadServiceStatus()

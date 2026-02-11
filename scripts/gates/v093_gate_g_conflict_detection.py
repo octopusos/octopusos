@@ -18,7 +18,7 @@ def main():
     
     try:
         sys.path.insert(0, str(REPO_ROOT))
-        from agentos.core.evaluator import ConflictDetector
+        from octopusos.core.evaluator import ConflictDetector
         
         detector = ConflictDetector()
         

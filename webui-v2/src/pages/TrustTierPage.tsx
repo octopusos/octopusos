@@ -2,7 +2,7 @@
  * TrustTierPage - Trust Tier Management
  *
  * Phase 6: Real API Integration
- * 使用 networkosService.listTrustTiers()
+ * 使用 networkosService.listTrustTiersApiGovernanceTrustTiersGet()
  * CardCollectionWrap + StatusCard
  *
  * Features:
@@ -25,13 +25,13 @@ import { Button, Chip } from '@/ui'
 import { Box, Typography } from '@mui/material'
 import { SecurityIcon, VerifiedIcon, LockIcon, RefreshIcon } from '@/ui/icons'
 import { networkosService } from '@/services'
-import type { TrustTierInfo } from '@/services/networkos.service'
+import type { TrustTierInfo } from '@services'
 
 /**
  * TrustTierPage Component
  *
  * Pattern: CardGridPage with API Integration
- * - Uses networkosService.listTrustTiers()
+ * - Uses networkosService.listTrustTiersApiGovernanceTrustTiersGet()
  * - CardCollectionWrap + StatusCard display
  * - DetailDrawer for tier details
  */
@@ -57,7 +57,7 @@ export default function TrustTierPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await networkosService.listTrustTiers()
+      const response = await networkosService.listTrustTiersApiGovernanceTrustTiersGet()
       setTiers(response.tiers || [])
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : t(K.page.trustTier.errorLoadData)

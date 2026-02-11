@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "octopusos://schemas/coordinator/coordinator_audit_log.schema.json",
+  "title": "Coordinator Audit Log (v0.9.2)",
+  "description": "Audit log entry for coordinator operations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "log_id",
+    "schema_version",
+    "event_type",
+    "coordinator_run_id",
+    "timestamp",
+    "operator"
+  ],
+  "properties": {
+    "log_id": {
+      "type": "string",
+      "pattern": "^audit_[a-z0-9_]{6,64}$",
+      "description": "Unique audit log entry identifier"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "const": "0.9.2",
+      "description": "Schema version"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "run_started",
+        "run_completed",
+        "run_failed",
+        "state_transition",
+        "rule_adjudication",
+        "model_selected",
+        "question_emitted",
+        "answer_received",
+        "conflict_detected",
+        "conflict_resolved",
+        "red_line_check",
+        "policy_enforcement"
+      ],
+      "description": "Type of audited event"
+    },
+    "coordinator_run_id": {
+      "type": "string",
+      "pattern": "^coord_run_[a-z0-9_]{6,64}$",
+      "description": "Reference to coordinator run"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp"
+    },
+    "operator": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Who/what triggered this event (user, system, policy, etc.)"
+    },
+    "model_selection_record": {
+      "type": "object",
+      "description": "Model selection details (for model_selected events)",
+      "properties": {
+        "model": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Model identifier"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Selection reason"
+        },
+        "budget_used": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Budget consumed"
+        },
+        "data_sensitivity": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"],
+          "description": "Data sensitivity level"
+        },
+        "compliance_check": {
+          "type": "boolean",
+          "description": "Whether compliance check passed"
+        }
+      }
+    },
+    "rule_adjudication_record": {
+      "type": "object",
+      "description": "Rule adjudication details (for rule_adjudication events)",
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "description": "Rule identifier"
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny", "warn", "require_review"],
+          "description": "Adjudication decision"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Evidence used"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Decision reason"
+        },
+        "target": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "What was adjudicated"
+        }
+      }
+    },
+    "question_trigger_record": {
+      "type": "object",
+      "description": "Question emission details (for question_emitted events)",
+      "properties": {
+        "question_id": {
+          "type": "string",
+          "pattern": "^q_[a-z0-9_]{4,32}$",
+          "description": "Question identifier"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Why question was emitted"
+        },
+        "policy_check": {
+          "type": "object",
+          "properties": {
+            "question_budget": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "budget_remaining": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "allowed_by_policy": {
+              "type": "boolean"
+            }
+          },
+          "description": "Policy check results"
+        },
+        "blocking_level": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"],
+          "description": "Question blocking level"
+        }
+      }
+    },
+    "conflict_handling_record": {
+      "type": "object",
+      "description": "Conflict handling details (for conflict_* events)",
+      "properties": {
+        "conflict_type": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Type of conflict"
+        },
+        "conflicting_entities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Entities in conflict"
+        },
+        "resolution": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "How conflict was resolved"
+        },
+        "resolution_strategy": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Strategy used for resolution"
+        }
+      }
+    },
+    "red_line_check_record": {
+      "type": "object",
+      "description": "Red line check details (for red_line_check events)",
+      "properties": {
+        "red_line": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Red line being checked"
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether check passed"
+        },
+        "violation_details": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Details if violation detected"
+        },
+        "enforcement_action": {
+          "type": "string",
+          "enum": ["abort", "block", "warn", "log"],
+          "description": "Action taken"
+        }
+      }
+    },
+    "policy_enforcement_record": {
+      "type": "object",
+      "description": "Policy enforcement details (for policy_enforcement events)",
+      "properties": {
+        "policy_type": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Type of policy"
+        },
+        "policy_rule": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Specific policy rule"
+        },
+        "enforced": {
+          "type": "boolean",
+          "description": "Whether policy was enforced"
+        },
+        "enforcement_reason": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Reason for enforcement decision"
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional audit metadata",
+      "properties": {
+        "intent_id": {
+          "type": "string",
+          "pattern": "^intent_[a-z0-9_]{6,64}$",
+          "description": "Associated intent"
+        },
+        "execution_mode": {
+          "type": "string",
+          "enum": ["interactive", "semi_auto", "full_auto"],
+          "description": "Execution mode"
+        },
+        "coordinator_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Coordinator version"
+        }
+      }
+    }
+  }
+}

@@ -30,7 +30,7 @@ export interface AppChatShellProps {
   onSessionClear?: (sessionId: string) => void
   onClearAll?: () => void
   onSearchSessions?: (keyword: string) => void
-  onSendMessage?: (text: string) => void
+  onSendMessage?: (text: string) => boolean | void | Promise<boolean | void>
   inputPlaceholder?: string
   disabled?: boolean
   emptyState?: EmptyStateProps
@@ -38,10 +38,13 @@ export interface AppChatShellProps {
   // Model Selection (pass through to ChatShell)
   modelSelection?: ChatShellProps['modelSelection']
   showModelSelection?: boolean
+  contextSelection?: ChatShellProps['contextSelection']
 
   // Streaming message (pass through to ChatShell)
   streamingMessage?: string
   isStreaming?: boolean
+  awaitingReply?: boolean
+  awaitingReplyMessage?: string
 
   // Banner (displayed at top of chat area)
   banner?: React.ReactNode
@@ -49,6 +52,10 @@ export interface AppChatShellProps {
   // 🎯 受控输入支持（用于 Draft 保护）
   inputValue?: string
   onInputChange?: (value: string) => void
+  onStopStreaming?: () => void
+  onEditMessage?: (message: ChatMessageType) => void
+  suppressAutoFollow?: boolean
+  onInputFocusChange?: (focused: boolean) => void
 }
 
 /**
@@ -73,11 +80,18 @@ export function AppChatShell({
   emptyState,
   modelSelection,
   showModelSelection = true,
+  contextSelection,
   streamingMessage = '',
   isStreaming = false,
+  awaitingReply = false,
+  awaitingReplyMessage,
   banner,
   inputValue,
   onInputChange,
+  onStopStreaming,
+  onEditMessage,
+  suppressAutoFollow = false,
+  onInputFocusChange,
 }: AppChatShellProps) {
   const [selectedSessions, setSelectedSessions] = useState<string[]>([])
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -130,10 +144,11 @@ export function AppChatShell({
       sx={{
         display: 'flex',
         height: '100%',
+        minHeight: 0,
+        boxSizing: 'border-box',
         gap: 2,
         // ✅ 去掉 px: 2，防止 flex 容器 + padding 导致宽度溢出
         // 边距由子元素自己处理
-        pb: 2, // 底部边距
       }}
     >
       {/* Left Column - Session List */}
@@ -145,7 +160,6 @@ export function AppChatShell({
           flexDirection: 'column',
           overflow: 'hidden',
           minWidth: 0, // ✅ 防止子元素撑破
-          ml: 2, // ✅ 左边距
         }}
       >
         <SessionList
@@ -162,7 +176,7 @@ export function AppChatShell({
       </Paper>
 
       {/* Right Column - Chat Conversation */}
-      <Box sx={{ flex: 1, minWidth: 0, mr: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Banner (if provided) */}
         {banner}
 
@@ -177,10 +191,17 @@ export function AppChatShell({
             emptyState={emptyState}
             modelSelection={modelSelection}
             showModelSelection={showModelSelection}
+            contextSelection={contextSelection}
             streamingMessage={streamingMessage}
             isStreaming={isStreaming}
+            awaitingReply={awaitingReply}
+            awaitingReplyMessage={awaitingReplyMessage}
             inputValue={inputValue}
             onInputChange={onInputChange}
+            onStopStreaming={onStopStreaming}
+            onEditMessage={onEditMessage}
+            suppressAutoFollow={suppressAutoFollow}
+            onInputFocusChange={onInputFocusChange}
           />
         </Box>
       </Box>

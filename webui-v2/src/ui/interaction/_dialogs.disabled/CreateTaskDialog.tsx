@@ -9,7 +9,7 @@ import { useState } from 'react'
 import { Grid, TextField, MenuItem } from '@mui/material'
 import { DialogForm } from '../DialogForm'
 import { K, t } from '@/ui/text'
-import type { TaskCreateRequest } from '@/modules/agentos/dto'
+import type { TaskCreateRequest } from '@/modules/octopusos/dto'
 
 export interface CreateTaskDialogProps {
   /**

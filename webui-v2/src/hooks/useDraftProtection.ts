@@ -22,10 +22,16 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { draftService } from '@/services/draftService'
 
+export interface DraftRestoreConfirmPayload {
+  preview: string
+  contentLength: number
+}
+
 export function useDraftProtection(
   sessionId: string,
   content: string,
-  onRestore: (content: string) => void
+  onRestore: (content: string) => void,
+  confirmRestore: (payload: DraftRestoreConfirmPayload) => Promise<boolean>
 ) {
   const hasShownRestorePrompt = useRef(false)
   const isRestoringRef = useRef(false)
@@ -58,29 +64,30 @@ export function useDraftProtection(
           ? trimmedContent.substring(0, 100) + '...'
           : trimmedContent
 
-      const shouldRestore = window.confirm(
-        `💾 检测到未发送的内容（${trimmedContent.length} 字）：\n\n` +
-          `"${preview}"\n\n` +
-          `是否恢复？`
-      )
+      void (async () => {
+        const shouldRestore = await confirmRestore({
+          preview,
+          contentLength: trimmedContent.length,
+        })
 
-      if (shouldRestore) {
-        isRestoringRef.current = true
-        onRestore(draft.content)
-        console.log('[DraftProtection] ✅ Draft restored')
+        if (shouldRestore) {
+          isRestoringRef.current = true
+          onRestore(draft.content)
+          console.log('[DraftProtection] ✅ Draft restored')
 
-        // 恢复完成后重置标志
-        setTimeout(() => {
-          isRestoringRef.current = false
-        }, 100)
-      } else {
-        draftService.clearDraft()
-        console.log('[DraftProtection] ❌ Draft discarded by user')
-      }
+          // 恢复完成后重置标志
+          setTimeout(() => {
+            isRestoringRef.current = false
+          }, 100)
+        } else {
+          draftService.clearDraft()
+          console.log('[DraftProtection] ❌ Draft discarded by user')
+        }
+      })()
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [sessionId, onRestore])
+  }, [sessionId, onRestore, confirmRestore])
 
   // ===================================
   // 2. 监听内容变化，自动保存（debounced）

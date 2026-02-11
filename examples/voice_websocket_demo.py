@@ -10,8 +10,8 @@ This script demonstrates how to use the Voice WebSocket API:
 5. Stop the session
 
 Usage:
-    # Start the AgentOS WebUI server first:
-    uvicorn agentos.webui.app:app --reload
+    # Start the OctopusOS WebUI server first:
+    uvicorn octopusos.webui.app:app --reload
 
     # Then run this demo:
     python3 examples/voice_websocket_demo.py
@@ -217,7 +217,7 @@ async def main():
     """Main demo flow"""
 
     print("=" * 60)
-    print("Voice WebSocket Demo - AgentOS VoiceOS")
+    print("Voice WebSocket Demo - OctopusOS VoiceOS")
     print("=" * 60)
 
     try:
@@ -239,7 +239,7 @@ async def main():
     except requests.exceptions.ConnectionError:
         print("\n✗ Error: Could not connect to API server")
         print("  Make sure the server is running:")
-        print("  uvicorn agentos.webui.app:app --reload")
+        print("  uvicorn octopusos.webui.app:app --reload")
         exit(1)
 
     except Exception as e:

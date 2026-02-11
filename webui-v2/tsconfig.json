@@ -38,7 +38,7 @@
       "@modules/*": ["./src/modules/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "vite-env.d.ts"],
   "exclude": [
     "src/**/__examples__/**",
     "src/**/__tests__/**",

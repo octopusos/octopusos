@@ -23,7 +23,7 @@ Evidence:
     - outputs/gates/tl_r2_cap_sanity/reports/cap_sanity.json
 
 Usage:
-    AGENTOS_GATE_MODE=1 python scripts/gates/tl_r2_cap_sanity.py
+    OCTOPUSOS_GATE_MODE=1 python scripts/gates/tl_r2_cap_sanity.py
 """
 
 import sys
@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentos.ext.tools import (
+from octopusos.ext.tools import (
     LMStudioAdapter,
     OpenAIChatAdapter,
     OllamaAdapter,

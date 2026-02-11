@@ -57,7 +57,7 @@
         ],
         "risk_level": "low",
         "evidence_refs": [
-          "scan://python_modules/agentos.utils"
+          "scan://python_modules/octopusos.utils"
         ]
       },
       {
@@ -71,8 +71,8 @@
         ],
         "risk_level": "low",
         "evidence_refs": [
-          "scan://file/agentos/utils/format.py",
-          "scan://file/agentos/utils/validation.py"
+          "scan://file/octopusos/utils/format.py",
+          "scan://file/octopusos/utils/validation.py"
         ]
       },
       {
@@ -151,14 +151,14 @@
     "created_at": "2026-01-25T10:20:19.655534Z",
     "files": [
       {
-        "path": "agentos/utils/format.py",
+        "path": "octopusos/utils/format.py",
         "action": "modify",
-        "rationale": "Modify agentos/utils/format.py to: Add docstrings to all public utility functions for better code documentation",
+        "rationale": "Modify octopusos/utils/format.py to: Add docstrings to all public utility functions for better code documentation",
         "risk": "low",
         "evidence_refs": [
-          "intent://intent_example_low_risk/scope/targets/files/agentos/utils/format.py",
-          "scan://file/agentos/utils/format.py",
-          "scan://file/agentos/utils/validation.py"
+          "intent://intent_example_low_risk/scope/targets/files/octopusos/utils/format.py",
+          "scan://file/octopusos/utils/format.py",
+          "scan://file/octopusos/utils/validation.py"
         ],
         "lock_intent": {
           "mode": "exclusive",
@@ -168,14 +168,14 @@
         "estimated_impact": "minimal"
       },
       {
-        "path": "agentos/utils/validation.py",
+        "path": "octopusos/utils/validation.py",
         "action": "modify",
-        "rationale": "Modify agentos/utils/validation.py to: Add docstrings to all public utility functions for better code documentation",
+        "rationale": "Modify octopusos/utils/validation.py to: Add docstrings to all public utility functions for better code documentation",
         "risk": "low",
         "evidence_refs": [
-          "intent://intent_example_low_risk/scope/targets/files/agentos/utils/validation.py",
-          "scan://file/agentos/utils/format.py",
-          "scan://file/agentos/utils/validation.py"
+          "intent://intent_example_low_risk/scope/targets/files/octopusos/utils/validation.py",
+          "scan://file/octopusos/utils/format.py",
+          "scan://file/octopusos/utils/validation.py"
         ],
         "lock_intent": {
           "mode": "exclusive",
@@ -187,9 +187,9 @@
     ],
     "estimated_diffs": [
       {
-        "file_path": "agentos/utils/format.py",
+        "file_path": "octopusos/utils/format.py",
         "diff_hash_placeholder": "placeholder_decd74352d7b565a",
-        "intent_summary": "Changes to agentos/utils/format.py for: Add docstrings to all public utility functions for better code documentation",
+        "intent_summary": "Changes to octopusos/utils/format.py for: Add docstrings to all public utility functions for better code documentation",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -197,9 +197,9 @@
         }
       },
       {
-        "file_path": "agentos/utils/validation.py",
+        "file_path": "octopusos/utils/validation.py",
         "diff_hash_placeholder": "placeholder_62fc100459605afb",
-        "intent_summary": "Changes to agentos/utils/validation.py for: Add docstrings to all public utility functions for better code documentation",
+        "intent_summary": "Changes to octopusos/utils/validation.py for: Add docstrings to all public utility functions for better code documentation",
         "estimated_lines_changed": {
           "added": 10,
           "removed": 5,
@@ -223,20 +223,20 @@
     "commits": [
       {
         "commit_id": "commit_0001",
-        "title": "feat(agentos): update 2 file(s)",
-        "scope": "agentos",
+        "title": "feat(octopusos): update 2 file(s)",
+        "scope": "octopusos",
         "files": [
-          "agentos/utils/format.py",
-          "agentos/utils/validation.py"
+          "octopusos/utils/format.py",
+          "octopusos/utils/validation.py"
         ],
-        "rationale": "Grouped 2 files from agentos directory",
+        "rationale": "Grouped 2 files from octopusos directory",
         "depends_on": [],
         "risk": "low",
         "evidence_refs": [
-          "intent://intent_example_low_risk/scope/targets/files/agentos/utils/format.py",
-          "intent://intent_example_low_risk/scope/targets/files/agentos/utils/validation.py",
-          "scan://file/agentos/utils/format.py",
-          "scan://file/agentos/utils/validation.py"
+          "intent://intent_example_low_risk/scope/targets/files/octopusos/utils/format.py",
+          "intent://intent_example_low_risk/scope/targets/files/octopusos/utils/validation.py",
+          "scan://file/octopusos/utils/format.py",
+          "scan://file/octopusos/utils/validation.py"
         ],
         "rollback_strategy": "revert",
         "estimated_review_time": "quick",
@@ -295,10 +295,10 @@
       "decision": "Planned changes for 2 files",
       "rationale": "Files from intent scope.targets.files",
       "evidence_refs": [
-        "scan://python_modules/agentos.utils",
+        "scan://python_modules/octopusos.utils",
         "doc://contributing/docstring_style.md",
-        "scan://file/agentos/utils/format.py",
-        "scan://file/agentos/utils/validation.py"
+        "scan://file/octopusos/utils/format.py",
+        "scan://file/octopusos/utils/validation.py"
       ]
     },
     {

@@ -1,0 +1,298 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://octopusos.dev/schemas/content/command.schema.json",
+  "$version": "0.8.0",
+  "title": "Command",
+  "description": "Command definition for organizational operations (v0.8 catalog schema)",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "version",
+    "category",
+    "title",
+    "description",
+    "recommended_roles",
+    "inputs",
+    "outputs",
+    "preconditions",
+    "effects",
+    "risk_level",
+    "evidence_required",
+    "constraints",
+    "lineage"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Command identifier (lowercase, underscore separated, format: cmd_<category>_<action>)",
+      "pattern": "^cmd_[a-z0-9_]+$"
+    },
+    "type": {
+      "type": "string",
+      "description": "Content type (must be 'command')",
+      "enum": ["command"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version number",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "category": {
+      "type": "string",
+      "description": "Command category (corresponds to directory)",
+      "enum": [
+        "git",
+        "product",
+        "design",
+        "architecture",
+        "data",
+        "engineering",
+        "quality",
+        "security",
+        "operations",
+        "incident",
+        "documentation"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "description": "Human-readable command title",
+      "minLength": 3,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the command",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "recommended_roles": {
+      "type": "array",
+      "description": "Recommended agent roles for this command (NOT binding, only recommendation)",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9_]+$"
+      }
+    },
+    "workflow_links": {
+      "type": "array",
+      "description": "Workflows where this command is commonly used (informational only)",
+      "items": {
+        "type": "object",
+        "required": ["workflow", "phases"],
+        "properties": {
+          "workflow": {
+            "type": "string",
+            "description": "Workflow identifier",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "phases": {
+            "type": "array",
+            "description": "Workflow phases where this command is used",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "inputs": {
+      "type": "array",
+      "description": "Command inputs",
+      "items": {
+        "type": "object",
+        "required": ["name", "type", "required"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Input parameter name",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "type": {
+            "type": "string",
+            "description": "Input parameter type",
+            "enum": ["string", "integer", "boolean", "array", "object", "string[]"]
+          },
+          "required": {
+            "type": "boolean",
+            "description": "Whether this input is required"
+          },
+          "description": {
+            "type": "string",
+            "description": "Input parameter description"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "description": "Command outputs",
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Output parameter name",
+            "pattern": "^[a-z0-9_]+$"
+          },
+          "type": {
+            "type": "string",
+            "description": "Output parameter type",
+            "enum": ["string", "integer", "boolean", "array", "object"]
+          },
+          "description": {
+            "type": "string",
+            "description": "Output parameter description"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "preconditions": {
+      "type": "array",
+      "description": "Preconditions that must be satisfied before executing this command",
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 200
+      }
+    },
+    "effects": {
+      "type": "array",
+      "description": "Side effects of this command (🚨 RED LINE C3: required field)",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["scope", "kind", "description"],
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "Effect scope (what is affected)",
+            "enum": [
+              "repo",
+              "environment",
+              "docs",
+              "network",
+              "vcs_platform",
+              "design_system",
+              "database",
+              "artifact",
+              "observability"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "description": "Effect kind (type of operation)",
+            "enum": ["read", "write", "network", "delete"]
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the effect",
+            "minLength": 10,
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "risk_level": {
+      "type": "string",
+      "description": "Risk level of this command (🚨 RED LINE C3: required field)",
+      "enum": ["low", "medium", "high"]
+    },
+    "evidence_required": {
+      "type": "boolean",
+      "description": "Whether evidence (logs/screenshots) is required when executing this command (🚨 RED LINE C3: required field)"
+    },
+    "constraints": {
+      "type": "object",
+      "description": "Command constraints (red line enforcement)",
+      "required": ["executable_payload", "agent_binding"],
+      "properties": {
+        "executable_payload": {
+          "type": "string",
+          "description": "🚨 RED LINE C1: Command must not contain executable payload",
+          "enum": ["forbidden"]
+        },
+        "agent_binding": {
+          "type": "string",
+          "description": "🚨 RED LINE C2: Command must not bind to specific agent for execution",
+          "enum": ["forbidden"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "lineage": {
+      "type": "object",
+      "description": "Command lineage information (🚨 RED LINE C4: required field)",
+      "required": ["introduced_in", "derived_from", "supersedes"],
+      "properties": {
+        "introduced_in": {
+          "type": "string",
+          "description": "Version when command was introduced (e.g., v0.8)",
+          "pattern": "^v\\d+\\.\\d+$"
+        },
+        "derived_from": {
+          "type": ["string", "null"],
+          "description": "Parent command ID if evolved (null for root commands)",
+          "pattern": "^(cmd_[a-z0-9_]+|null)$"
+        },
+        "supersedes": {
+          "type": "array",
+          "description": "List of command IDs that this command supersedes (empty array if none)",
+          "items": {
+            "type": "string",
+            "pattern": "^cmd_[a-z0-9_]+$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata (extensibility)",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "description": "Command tags for categorization",
+          "items": {
+            "type": "string"
+          }
+        },
+        "related_commands": {
+          "type": "array",
+          "description": "IDs of related commands",
+          "items": {
+            "type": "string",
+            "pattern": "^cmd_[a-z0-9_]+$"
+          }
+        },
+        "documentation_url": {
+          "type": "string",
+          "description": "URL to additional documentation",
+          "format": "uri"
+        },
+        "author": {
+          "type": "string",
+          "description": "Command definition author"
+        },
+        "examples": {
+          "type": "array",
+          "description": "Usage examples",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

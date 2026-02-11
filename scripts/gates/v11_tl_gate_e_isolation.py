@@ -7,7 +7,7 @@ EXIT_CODE, PROJECT_ROOT = 0, Path(__file__).parent.parent.parent
 
 def scan_adapters():
     global EXIT_CODE
-    adapters_dir = PROJECT_ROOT / "agentos/ext/tools"
+    adapters_dir = PROJECT_ROOT / "octopusos/ext/tools"
     
     violations = []
     for py_file in adapters_dir.glob("*.py"):
@@ -17,9 +17,9 @@ def scan_adapters():
         with open(py_file, encoding="utf-8") as f:
             content = f.read()
         
-        # 检查是否泄漏AgentOS内部配置
-        if re.search(r'\.agentos', content):
-            violations.append(f"{py_file.name}: References .agentos config")
+        # 检查是否泄漏OctopusOS内部配置
+        if re.search(r'\.octopusos', content):
+            violations.append(f"{py_file.name}: References .octopusos config")
         
     if violations:
         for v in violations:

@@ -1,0 +1,5 @@
+version: 1
+steps:
+  - name: declare-capability
+    action: noop
+    description: Capability-only shell extension for communication.web_search

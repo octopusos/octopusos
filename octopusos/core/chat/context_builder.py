@@ -1,0 +1,1325 @@
+"""Context builder for Chat Mode - assembles context from multiple sources"""
+
+from typing import List, Dict, Any, Optional, Literal
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from enum import Enum
+import logging
+import hashlib
+import json
+import sqlite3
+import re
+
+from octopusos.core.chat.models import ChatMessage
+from octopusos.core.chat.service import ChatService
+from octopusos.core.evidence import normalize_evidence_refs
+from octopusos.core.memory.service import MemoryService
+from octopusos.core.project_kb.service import ProjectKBService
+from octopusos.core.audit import log_audit_event
+from octopusos.util.ulid import ulid
+from octopusos.core.time import utc_now, utc_now_ms
+
+
+logger = logging.getLogger(__name__)
+
+
+class UsageWatermark(Enum):
+    """Token usage watermarks for auto-summary trigger"""
+    SAFE = "safe"          # < 80%
+    WARNING = "warning"    # 80-95%
+    CRITICAL = "critical"  # >= 95%
+
+
+@dataclass
+class ContextBudget:
+    """Context budget configuration"""
+    max_tokens: int = 8000
+    system_tokens: int = 1000
+    window_tokens: int = 4000
+    rag_tokens: int = 2000
+    memory_tokens: int = 1000
+    summary_tokens: int = 0  # Reserved for summary messages
+    mcc_recovery_tokens: int = 1200  # Reserved MCC recovery budget on truncation
+    rag_recovery_tokens: int = 900  # Reserved RAG recovery budget on truncation
+
+    # NEW: Generation parameters
+    generation_max_tokens: int = 2000  # Maximum tokens for model generation
+
+    # NEW: Metadata fields
+    auto_derived: bool = False  # Whether this budget was auto-derived from model window
+    model_context_window: Optional[int] = None  # Original model context window (if auto-derived)
+
+    # Watermark thresholds (as ratio of budget)
+    safe_threshold: float = 0.8      # 80%
+    critical_threshold: float = 0.95  # 95%
+
+
+@dataclass
+class ContextUsage:
+    """Context usage statistics"""
+    budget_tokens: int
+    total_tokens_est: int
+    tokens_system: int
+    tokens_window: int
+    tokens_rag: int
+    tokens_memory: int
+    tokens_summary: int
+    tokens_policy: int = 0
+    
+    @property
+    def usage_ratio(self) -> float:
+        """Calculate usage ratio (0.0 to 1.0+)"""
+        if self.budget_tokens == 0:
+            return 0.0
+        return self.total_tokens_est / self.budget_tokens
+    
+    @property
+    def watermark(self) -> UsageWatermark:
+        """Determine usage watermark level"""
+        ratio = self.usage_ratio
+        if ratio >= 0.95:
+            return UsageWatermark.CRITICAL
+        elif ratio >= 0.8:
+            return UsageWatermark.WARNING
+        else:
+            return UsageWatermark.SAFE
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            "budget_tokens": self.budget_tokens,
+            "total_tokens_est": self.total_tokens_est,
+            "tokens_system": self.tokens_system,
+            "tokens_window": self.tokens_window,
+            "tokens_rag": self.tokens_rag,
+            "tokens_memory": self.tokens_memory,
+            "tokens_summary": self.tokens_summary,
+            "tokens_policy": self.tokens_policy,
+            "usage_ratio": self.usage_ratio,
+            "watermark": self.watermark.value,
+            # NEW: Add breakdown for frontend
+            "breakdown": {
+                "system": self.tokens_system,
+                "window": self.tokens_window,
+                "rag": self.tokens_rag,
+                "memory": self.tokens_memory
+            }
+        }
+
+
+@dataclass
+class ContextPack:
+    """Assembled context ready for model"""
+    messages: List[Dict[str, str]]  # OpenAI format
+    metadata: Dict[str, Any]
+    audit: Dict[str, Any]
+    usage: ContextUsage  # NEW: Usage statistics
+    snapshot_id: Optional[str] = None  # NEW: Snapshot ID if saved
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary"""
+        return {
+            "messages": self.messages,
+            "metadata": self.metadata,
+            "audit": self.audit,
+            "usage": self.usage.to_dict(),
+            "snapshot_id": self.snapshot_id
+        }
+
+
+class ContextBuilder:
+    """Builds context for Chat Mode with RAG, Memory, and budget management"""
+    
+    def __init__(
+        self,
+        chat_service: Optional[ChatService] = None,
+        memory_service: Optional[MemoryService] = None,
+        kb_service: Optional[ProjectKBService] = None,
+        budget: Optional[ContextBudget] = None,
+        budget_resolver: Optional['BudgetResolver'] = None,
+        db_path: Optional[str] = None,
+        enable_auto_summary: bool = True,
+        enable_snapshots: bool = True
+    ):
+        """Initialize ContextBuilder
+
+        Args:
+            chat_service: ChatService instance
+            memory_service: MemoryService instance
+            kb_service: ProjectKBService instance
+            budget: Context budget configuration (if None, uses budget_resolver)
+            budget_resolver: BudgetResolver for auto-deriving budgets
+            db_path: Database path (for snapshots)
+            enable_auto_summary: Whether to auto-trigger summaries
+            enable_snapshots: Whether to save context snapshots
+        """
+        self.chat_service = chat_service or ChatService()
+        self.memory_service = memory_service or MemoryService()
+        self.kb_service = kb_service or ProjectKBService()
+
+        # Get db_path from registry_db if not provided
+        if db_path is None:
+            from octopusos.core.db import registry_db
+            try:
+                # Get the database path from registry_db
+                conn = registry_db.get_db()
+                # SQLite connection has a way to get the database file path
+                import sqlite3
+                db_file = conn.execute("PRAGMA database_list").fetchone()
+                if db_file and len(db_file) > 2:
+                    self.db_path = db_file[2]  # The file path is the 3rd element
+                else:
+                    # Fallback to default registry path
+                    from octopusos.core.storage.paths import component_db_path
+                    self.db_path = str(component_db_path("octopusos"))
+            except Exception as e:
+                # Fallback to default registry path
+                from octopusos.core.storage.paths import component_db_path
+                self.db_path = str(component_db_path("octopusos"))
+        else:
+            self.db_path = db_path
+
+        # Budget resolution: use provided budget or resolve via budget_resolver
+        if budget is not None:
+            self.budget = budget
+        else:
+            # Import here to avoid circular dependency
+            from octopusos.core.chat.budget_resolver import BudgetResolver
+            resolver = budget_resolver or BudgetResolver(db_path=self.db_path)
+            self.budget = resolver.get_default_budget()
+
+        self.enable_auto_summary = enable_auto_summary
+        self.enable_snapshots = enable_snapshots
+
+        # Summary artifacts cache (artifact_id -> message range)
+        self._summary_cache: Dict[str, tuple[int, int]] = {}
+    
+    def build(
+        self,
+        session_id: str,
+        user_input: str,
+        rag_enabled: bool = True,
+        memory_enabled: bool = True,
+        reason: Literal["send", "dry_run", "audit"] = "send"
+    ) -> ContextPack:
+        """Build context for a chat message
+
+        Args:
+            session_id: Chat session ID
+            user_input: User's input message
+            rag_enabled: Whether to include RAG context
+            memory_enabled: Whether to include Memory facts
+            reason: Reason for building context (send/dry_run/audit)
+
+        Returns:
+            ContextPack with assembled context
+        """
+        logger.info(f"Building context for session {session_id} (reason: {reason})")
+
+        # NEW: Log budget source
+        logger.info(
+            f"Budget: {self.budget.max_tokens} tokens "
+            f"(source: {'auto-derived' if self.budget.auto_derived else 'configured'}, "
+            f"model_window: {self.budget.model_context_window})"
+        )
+        
+        # 1. Load session window (recent messages)
+        window_messages = self._load_session_window(session_id)
+        
+        # 2. Check if auto-summary should be triggered
+        summary_artifacts = []
+        if self.enable_auto_summary and reason == "send":
+            summary_trigger = self._check_summary_trigger(session_id, window_messages)
+            if summary_trigger:
+                logger.info(f"Auto-summary triggered: {summary_trigger['reason']}")
+                # Create summary (this will be handled after context build)
+                # For now, load existing summaries
+                summary_artifacts = self._load_summary_artifacts(session_id)
+        else:
+            summary_artifacts = self._load_summary_artifacts(session_id)
+        
+        # 3. Load pinned facts from Memory
+        memory_facts = []
+        if memory_enabled:
+            memory_facts = self._load_memory_facts(session_id)
+
+            # Log memory context injection for observability
+            if memory_facts:
+                # Check if preferred_name exists
+                has_preferred_name = any(
+                    fact.get("content", {}).get("key") == "preferred_name"
+                    for fact in memory_facts
+                    if fact.get("type") in ("preference", "user_preference")
+                )
+
+                logger.info(
+                    f"Memory context loaded: {len(memory_facts)} facts "
+                    f"(preferred_name={'present' if has_preferred_name else 'absent'})"
+                )
+
+        # 4. Load RAG context
+        rag_chunks = []
+        rag_trace = {}
+        if rag_enabled:
+            rag_chunks, rag_trace = self._load_rag_context(session_id=session_id, query=user_input)
+        
+        # 5. Check budget and trim if needed
+        context_parts = {
+            "window": window_messages,
+            "memory": memory_facts,
+            "rag": rag_chunks,
+            "summaries": summary_artifacts
+        }
+        
+        trimmed_parts, trim_debug = self._apply_budget(context_parts)
+        
+        # 6. Load policy rules (system prompt)
+        system_prompt = self._build_system_prompt(trimmed_parts, session_id)
+        
+        # 7. Assemble messages
+        messages = self._assemble_messages(
+            system_prompt=system_prompt,
+            window_messages=trimmed_parts["window"],
+            memory_facts=trimmed_parts["memory"],
+            rag_chunks=trimmed_parts["rag"],
+            summary_artifacts=trimmed_parts["summaries"],
+            user_input=user_input
+        )
+        
+        # 8. Calculate usage statistics
+        usage = self._calculate_usage(
+            system_prompt=system_prompt,
+            window_messages=trimmed_parts["window"],
+            memory_facts=trimmed_parts["memory"],
+            rag_chunks=trimmed_parts["rag"],
+            summary_artifacts=trimmed_parts["summaries"],
+            user_input=user_input
+        )
+
+        # Log audit event for memory context injection
+        if trimmed_parts["memory"]:
+            self._log_memory_injection_audit(
+                session_id=session_id,
+                memory_facts=trimmed_parts["memory"],
+                usage=usage
+            )
+        
+        # 9. Generate audit trail
+        audit = self._generate_audit(
+            session_id=session_id,
+            messages=messages,
+            rag_chunks=rag_chunks,
+            rag_trace=rag_trace,
+            used_kb=bool(rag_enabled),
+            memory_facts=memory_facts,
+            summary_artifacts=summary_artifacts,
+            usage=usage
+        )
+        
+        # 10. Build metadata
+        metadata = {
+            "session_id": session_id,
+            "total_tokens": usage.total_tokens_est,
+            "rag_enabled": rag_enabled,
+            "used_kb": bool(rag_enabled),
+            "retrieval_run_id": rag_trace.get("retrieval_run_id"),
+            "policy_snapshot_hash": rag_trace.get("policy_snapshot_hash"),
+            "evidence_refs": [ref.to_dict() for ref in self._build_evidence_refs(rag_chunks)],
+            "memory_enabled": memory_enabled,
+            "window_count": len(trimmed_parts["window"]),
+            "rag_count": len(rag_chunks),
+            "memory_count": len(memory_facts),
+            "summary_count": len(summary_artifacts),
+            "usage_ratio": usage.usage_ratio,
+            "watermark": usage.watermark.value,
+            "trimming": trim_debug,
+            "integrity_budget": {
+                "mcc_recovery_tokens": self.budget.mcc_recovery_tokens,
+                "rag_recovery_tokens": self.budget.rag_recovery_tokens,
+            },
+        }
+        
+        # 11. Save context snapshot (if enabled)
+        snapshot_id = None
+        if self.enable_snapshots:
+            snapshot_id = self._save_snapshot(
+                session_id=session_id,
+                reason=reason,
+                usage=usage,
+                composition={
+                    "window_msg_ids": [m.message_id for m in trimmed_parts["window"]],
+                    "summary_artifact_ids": [s["artifact_id"] for s in summary_artifacts],
+                    "rag_chunk_ids": [c.get("chunk_id") for c in rag_chunks],
+                    "memory_ids": [f.get("id") for f in memory_facts]
+                },
+                assembled_hash=audit["context_hash"]
+            )
+        
+        return ContextPack(
+            messages=messages,
+            metadata=metadata,
+            audit=audit,
+            usage=usage,
+            snapshot_id=snapshot_id
+        )
+    
+    def _load_session_window(self, session_id: str) -> List[ChatMessage]:
+        """Load recent messages from session
+        
+        Args:
+            session_id: Session ID
+        
+        Returns:
+            List of recent messages
+        """
+        # Load a wider rolling window; budget trimming handles final prompt size.
+        messages = self.chat_service.get_recent_messages(session_id, count=60)
+        logger.debug(f"Loaded {len(messages)} messages from window")
+        return messages
+    
+    def _load_memory_facts(self, session_id: str) -> List[Dict[str, Any]]:
+        """Load pinned facts from Memory
+
+        Supports three scenarios:
+        1. With explicit project_id: Load global + project + agent scope
+        2. project_id is None: Load only global + agent scope
+        3. "All Projects": Special handling, load all visible memories
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            List of memory items
+        """
+        project_id = None
+        try:
+            # Get session to find project_id
+            session = self.chat_service.get_session(session_id)
+            project_id = session.metadata.get("project_id")
+
+            if not project_id:
+                logger.info("No project_id, falling back to global + agent scope memories")
+                # Allow None to be passed to build_context
+                project_id = None
+
+            # Build memory context (project_id can be None)
+            from octopusos.core.memory.budgeter import ContextBudget as MemoryBudget
+            memory_context = self.memory_service.build_context(
+                agent_id="webui_chat",
+                project_id=project_id,
+                agent_type="chat",
+                confidence_threshold=0.3,
+                budget=MemoryBudget(max_memories=10, max_tokens=self.budget.memory_tokens)
+            )
+
+            memories = memory_context.get("memories", [])
+            scopes = memory_context.get("summary", {}).get("by_scope", {})
+            logger.info(
+                f"Loaded {len(memories)} memory facts "
+                f"(project_id={project_id or 'None/global'}, scopes={scopes})"
+            )
+            return memories
+
+        except Exception as e:
+            logger.warning(
+                f"Failed to load memory facts: {e} (session_id={session_id}, project_id={project_id})",
+                exc_info=True
+            )
+            return []
+    
+    def _load_rag_context(
+        self,
+        session_id: str,
+        query: str,
+        top_k: int = 5
+    ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """Load RAG context from ProjectKB
+        
+        Args:
+            query: Search query
+            top_k: Number of chunks to retrieve
+        
+        Returns:
+            Tuple of (chunk results, retrieval trace metadata)
+        """
+        try:
+            search_with_trace = getattr(self.kb_service, "search_with_trace", None)
+            if callable(search_with_trace):
+                response = search_with_trace(
+                    query=query,
+                    scope="current_repo",
+                    top_k=top_k,
+                    explain=True
+                )
+                if isinstance(response, tuple) and len(response) == 2:
+                    results, trace = response
+                else:
+                    results, trace = response, {}
+            else:
+                results = self.kb_service.search(
+                    query=query,
+                    scope="current_repo",
+                    top_k=top_k,
+                    explain=True
+                )
+                trace = {}
+
+            if not isinstance(results, list):
+                results = []
+
+            logger.debug(f"Retrieved {len(results)} RAG chunks")
+            rag_chunks = [r.to_dict() for r in results]
+            self._log_kb_retrieval_audit(session_id=session_id, trace=trace)
+            return rag_chunks, trace
+
+        except Exception as e:
+            logger.warning(f"Failed to load RAG context: {e}")
+            return [], {}
+
+    def _build_evidence_refs(self, rag_chunks: List[Dict[str, Any]]) -> List[Any]:
+        refs = []
+        for chunk in rag_chunks:
+            refs.append(
+                {
+                    "source_id": "project_kb",
+                    "uri": chunk.get("path", ""),
+                    "locator": f"{chunk.get('chunk_id', '')}:{chunk.get('lines', '')}",
+                    "content_hash": hashlib.sha256(chunk.get("content", "").encode("utf-8")).hexdigest(),
+                    "snippet": chunk.get("content", "")[:180],
+                    "explanation": (chunk.get("heading") or "")[:180],
+                    "confidence": chunk.get("score"),
+                }
+            )
+        return normalize_evidence_refs(refs)
+
+    def _log_kb_retrieval_audit(self, session_id: str, trace: Dict[str, Any]) -> None:
+        if not trace:
+            return
+        task_id = None
+        try:
+            session = self.chat_service.get_session(session_id)
+            task_id = session.task_id
+        except Exception:
+            task_id = None
+
+        try:
+            log_audit_event(
+                event_type="KB_RETRIEVAL",
+                task_id=task_id,
+                level="info",
+                metadata={
+                    "session_id": session_id,
+                    "retrieval_run_id": trace.get("retrieval_run_id"),
+                    "policy_snapshot_hash": trace.get("policy_snapshot_hash"),
+                    "query_hash": trace.get("query_hash"),
+                    "evidence_count": trace.get("evidence_count", 0),
+                    "top_sources": trace.get("top_sources", []),
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log KB retrieval audit: {e}")
+    
+    def _apply_budget(self, context_parts: Dict[str, Any]) -> tuple[Dict[str, Any], Dict[str, Any]]:
+        """Apply token budget and trim context if needed
+
+        Args:
+            context_parts: Dictionary of context parts
+
+        Returns:
+            Tuple of (trimmed context parts, trim debug metadata)
+        """
+        original_window_msgs = list(context_parts["window"])
+        # Estimate tokens for each part
+        window_tokens = sum(msg.estimate_tokens() for msg in context_parts["window"])
+        memory_tokens = sum(self._estimate_text_tokens(json.dumps(m)) for m in context_parts["memory"])
+        rag_tokens = sum(self._estimate_text_tokens(c.get("content", "")) for c in context_parts["rag"])
+        summary_tokens = sum(self._estimate_text_tokens(s.get("content", "")) for s in context_parts.get("summaries", []))
+
+        total = window_tokens + memory_tokens + rag_tokens + summary_tokens
+
+        logger.debug(f"Token usage: window={window_tokens}, memory={memory_tokens}, rag={rag_tokens}, summary={summary_tokens}, total={total}")
+
+        # If under budget, return as-is
+        if total <= (self.budget.max_tokens - self.budget.system_tokens):
+            return context_parts, {
+                "truncated": False,
+                "tokens_before": total,
+                "tokens_after": total,
+                "trimmed_window": 0,
+                "trimmed_memory": 0,
+                "trimmed_rag": 0,
+                "trimmed_summary": 0,
+                "truncated_blocks": [],
+                "dropped_markers": [],
+            }
+
+        # Otherwise, trim (priority: summaries > window > memory > rag)
+        logger.warning(f"Context over budget ({total} tokens), trimming")
+
+        # Store original counts for audit
+        original_window = len(context_parts["window"])
+        original_rag = len(context_parts["rag"])
+        original_memory = len(context_parts["memory"])
+
+        # Trim RAG first
+        if rag_tokens > self.budget.rag_tokens:
+            context_parts["rag"] = self._trim_rag(context_parts["rag"], self.budget.rag_tokens)
+
+        # Trim memory if still over
+        if memory_tokens > self.budget.memory_tokens:
+            context_parts["memory"] = self._trim_memory(context_parts["memory"], self.budget.memory_tokens)
+
+        # Trim window if still over (keep most recent)
+        if window_tokens > self.budget.window_tokens:
+            context_parts["window"] = self._trim_window(context_parts["window"], self.budget.window_tokens)
+
+        # NEW: Log trimming operations
+        trimmed_window = original_window - len(context_parts["window"])
+        trimmed_rag = original_rag - len(context_parts["rag"])
+        trimmed_memory = original_memory - len(context_parts["memory"])
+
+        if trimmed_window > 0:
+            logger.warning(f"Trimmed {trimmed_window} messages from window (budget: {self.budget.window_tokens})")
+        if trimmed_rag > 0:
+            logger.warning(f"Trimmed {trimmed_rag} RAG chunks (budget: {self.budget.rag_tokens})")
+        if trimmed_memory > 0:
+            logger.warning(f"Trimmed {trimmed_memory} memory facts (budget: {self.budget.memory_tokens})")
+
+        tokens_after = (
+            sum(msg.estimate_tokens() for msg in context_parts["window"])
+            + sum(self._estimate_text_tokens(json.dumps(m)) for m in context_parts["memory"])
+            + sum(self._estimate_text_tokens(c.get("content", "")) for c in context_parts["rag"])
+            + sum(self._estimate_text_tokens(s.get("content", "")) for s in context_parts.get("summaries", []))
+        )
+
+        dropped_window_ids = {msg.message_id for msg in context_parts["window"]}
+        dropped_markers: List[str] = []
+        if trimmed_window > 0:
+            for msg in original_window_msgs:
+                if msg.message_id in dropped_window_ids:
+                    continue
+                content = msg.content or ""
+                dropped_markers.extend(re.findall(r"\bFACT_[A-Z]\d+\b", content))
+
+        truncated_blocks: List[str] = []
+        if trimmed_window > 0:
+            truncated_blocks.append("recent_messages")
+        if trimmed_memory > 0:
+            truncated_blocks.append("user_facts")
+        if trimmed_rag > 0:
+            truncated_blocks.append("rag_snippets")
+
+        return context_parts, {
+            "truncated": bool(truncated_blocks),
+            "tokens_before": total,
+            "tokens_after": tokens_after,
+            "trimmed_window": trimmed_window,
+            "trimmed_memory": trimmed_memory,
+            "trimmed_rag": trimmed_rag,
+            "trimmed_summary": 0,
+            "truncated_blocks": truncated_blocks,
+            "dropped_markers": sorted(set(dropped_markers)),
+        }
+    
+    def _trim_rag(self, chunks: List[Dict[str, Any]], max_tokens: int) -> List[Dict[str, Any]]:
+        """Trim RAG chunks to fit budget"""
+        trimmed = []
+        tokens = 0
+        
+        # Chunks are already sorted by score (highest first)
+        for chunk in chunks:
+            chunk_tokens = self._estimate_text_tokens(chunk.get("content", ""))
+            if tokens + chunk_tokens <= max_tokens:
+                trimmed.append(chunk)
+                tokens += chunk_tokens
+            else:
+                break
+        
+        logger.debug(f"Trimmed RAG: {len(chunks)} -> {len(trimmed)} chunks")
+        return trimmed
+    
+    def _trim_memory(self, facts: List[Dict[str, Any]], max_tokens: int) -> List[Dict[str, Any]]:
+        """Trim memory facts to fit budget"""
+        trimmed = []
+        tokens = 0
+        
+        # Keep highest confidence facts
+        sorted_facts = sorted(facts, key=lambda f: f.get("confidence", 0), reverse=True)
+        
+        for fact in sorted_facts:
+            fact_tokens = self._estimate_text_tokens(json.dumps(fact))
+            if tokens + fact_tokens <= max_tokens:
+                trimmed.append(fact)
+                tokens += fact_tokens
+            else:
+                break
+        
+        logger.debug(f"Trimmed memory: {len(facts)} -> {len(trimmed)} facts")
+        return trimmed
+    
+    def _trim_window(self, messages: List[ChatMessage], max_tokens: int) -> List[ChatMessage]:
+        """Trim message window to fit budget (keep most recent)"""
+        trimmed = []
+        tokens = 0
+        
+        # Iterate from most recent to oldest
+        for msg in reversed(messages):
+            msg_tokens = msg.estimate_tokens()
+            if tokens + msg_tokens <= max_tokens:
+                trimmed.insert(0, msg)  # Insert at beginning to maintain order
+                tokens += msg_tokens
+            else:
+                break
+        
+        logger.debug(f"Trimmed window: {len(messages)} -> {len(trimmed)} messages")
+        return trimmed
+    
+    def _build_system_prompt(self, context_parts: Dict[str, Any], session_id: str) -> str:
+        """Build system prompt with context and mode-aware guidance.
+
+        Args:
+            context_parts: Trimmed context parts
+            session_id: Session ID to get language preference and conversation mode
+
+        Returns:
+            System prompt string with mode-specific guidance
+        """
+        from octopusos.core.chat.prompts import get_system_prompt
+        from octopusos.core.chat.models import ConversationMode
+
+        # Get conversation mode from session metadata
+        try:
+            session = self.chat_service.get_session(session_id)
+            conversation_mode = session.metadata.get(
+                "conversation_mode",
+                ConversationMode.CHAT.value
+            )
+        except Exception as e:
+            logger.warning(f"Could not retrieve conversation mode, defaulting to chat: {e}")
+            conversation_mode = ConversationMode.CHAT.value
+
+        # Get mode-aware base prompt
+        mode_prompt = get_system_prompt(conversation_mode)
+
+        # Start with mode-aware prompt
+        prompt_parts = [mode_prompt, ""]
+
+        # ============================================
+        # CRITICAL USER CONTEXT (Highest Priority)
+        # ============================================
+        memory_facts = context_parts.get("memory", [])
+
+        if memory_facts:
+            prompt_parts.append("=" * 60)
+            prompt_parts.append("⚠️  CRITICAL USER CONTEXT (MUST FOLLOW)")
+            prompt_parts.append("=" * 60)
+            prompt_parts.append("")
+
+            # Extract and highlight preferred_name and other preferences
+            preferred_name = None
+            other_preferences = []
+            other_facts = []
+
+            for fact in memory_facts:
+                content = fact.get("content", {})
+                fact_type = fact.get("type")
+
+                if fact_type == "preference" or fact_type == "user_preference":
+                    # Check if this is a preference item
+                    key = content.get("key")
+                    value = content.get("value")
+
+                    if key == "preferred_name":
+                        preferred_name = value
+                    elif key and value:
+                        other_preferences.append(f"  • {key}: {value}")
+                    else:
+                        # Preference without key/value structure, use summary
+                        summary = content.get("summary", "")
+                        if summary:
+                            other_preferences.append(f"  • {summary}")
+                else:
+                    # Other facts (contact, company, etc.)
+                    summary = content.get("summary", "")
+                    if summary:
+                        other_facts.append(f"  • {summary}")
+
+            # 1. Preferred Name (Most Critical)
+            if preferred_name:
+                prompt_parts.append("👤 USER IDENTITY:")
+                prompt_parts.append(f"   The user prefers to be called: \"{preferred_name}\"")
+                prompt_parts.append(f"   ⚠️  You MUST address the user as \"{preferred_name}\" in all responses.")
+                prompt_parts.append(f"   ⚠️  Do NOT use generic terms like \"user\" or \"you\" - use \"{preferred_name}\".")
+                prompt_parts.append("")
+
+            # 2. Other Preferences
+            if other_preferences:
+                prompt_parts.append("🎯 USER PREFERENCES:")
+                prompt_parts.extend(other_preferences)
+                prompt_parts.append("")
+
+            # 3. Other Facts
+            if other_facts:
+                prompt_parts.append("📋 USER INFORMATION:")
+                prompt_parts.extend(other_facts)
+                prompt_parts.append("")
+
+            prompt_parts.append("=" * 60)
+            prompt_parts.append("")
+
+        # Capabilities
+        prompt_parts.extend([
+            "Your capabilities:",
+            "- Answer questions about the codebase using RAG context",
+            "- Access project memory for long-term facts",
+            "- Execute slash commands (/summary, /extract, /task, etc.)",
+            "- Maintain conversation context",
+            "",
+        ])
+
+        # Add RAG context if available (less critical than Memory)
+        if context_parts["rag"]:
+            prompt_parts.append("Relevant Documentation:")
+            for i, chunk in enumerate(context_parts["rag"][:3], 1):
+                path = chunk.get("path", "unknown")
+                heading = chunk.get("heading", "")
+                prompt_parts.append(f"{i}. {path} - {heading}")
+            prompt_parts.append("")
+
+        # Add language instruction based on session configuration
+        language = self._get_language_preference(session_id)
+        if language:
+            language_instructions = {
+                "en": "IMPORTANT: Always respond in English.",
+                "zh": "重要提示：请始终使用中文回复。",
+                "zh-CN": "重要提示：请始终使用简体中文回复。",
+                "zh-TW": "重要提示：請始終使用繁體中文回覆。",
+                "ja": "重要：常に日本語で応答してください。",
+                "ko": "중요: 항상 한국어로 응답하세요.",
+                "es": "IMPORTANTE: Responde siempre en español.",
+                "fr": "IMPORTANT : Répondez toujours en français.",
+                "de": "WICHTIG: Antworten Sie immer auf Deutsch.",
+                "ru": "ВАЖНО: Всегда отвечайте на русском языке.",
+            }
+            instruction = language_instructions.get(language)
+            if instruction:
+                prompt_parts.append(instruction)
+                prompt_parts.append("")
+
+        prompt_parts.append("Respond concisely and helpfully.")
+
+        return "\n".join(prompt_parts)
+
+    def _get_language_preference(self, session_id: str) -> Optional[str]:
+        """Get language preference from session metadata
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            Language code (e.g., "en", "zh") or None
+        """
+        try:
+            session = self.chat_service.get_session(session_id)
+            language = session.metadata.get("language")
+            if language:
+                logger.info(f"Session {session_id} language preference: {language}")
+                return language
+        except Exception as e:
+            logger.warning(f"Failed to get language preference: {e}")
+        return None
+
+    def _assemble_messages(
+        self,
+        system_prompt: str,
+        window_messages: List[ChatMessage],
+        memory_facts: List[Dict[str, Any]],
+        rag_chunks: List[Dict[str, Any]],
+        summary_artifacts: List[Dict[str, Any]],
+        user_input: str
+    ) -> List[Dict[str, str]]:
+        """Assemble final messages array
+        
+        Args:
+            system_prompt: System prompt
+            window_messages: Recent messages
+            memory_facts: Memory facts
+            rag_chunks: RAG chunks
+            summary_artifacts: Summary artifacts
+            user_input: Current user input
+        
+        Returns:
+            List of messages in OpenAI format
+        """
+        messages = []
+        
+        # 1. System message
+        messages.append({"role": "system", "content": system_prompt})
+        
+        # 2. Summary messages (if any) - inject as system messages
+        for summary in summary_artifacts:
+            summary_text = f"[Context Summary v{summary['version']}]\n{summary['content']}"
+            messages.append({"role": "system", "content": summary_text})
+        
+        # 3. History messages (exclude system messages from history)
+        for msg in window_messages:
+            if msg.role != "system":
+                messages.append(msg.to_openai_format())
+        
+        # 4. Current user input
+        messages.append({"role": "user", "content": user_input})
+        
+        return messages
+    
+    def _generate_audit(
+        self,
+        session_id: str,
+        messages: List[Dict[str, str]],
+        rag_chunks: List[Dict[str, Any]],
+        rag_trace: Dict[str, Any],
+        used_kb: bool,
+        memory_facts: List[Dict[str, Any]],
+        summary_artifacts: List[Dict[str, Any]],
+        usage: ContextUsage
+    ) -> Dict[str, Any]:
+        """Generate audit trail
+
+        Args:
+            session_id: Session ID
+            messages: Assembled messages
+            rag_chunks: RAG chunks used
+            memory_facts: Memory facts used
+            summary_artifacts: Summary artifacts used
+            usage: Usage statistics
+
+        Returns:
+            Audit dictionary
+        """
+        # Compute context hash
+        context_str = json.dumps(messages, sort_keys=True)
+        context_hash = hashlib.sha256(context_str.encode()).hexdigest()[:16]
+
+        audit = {
+            "session_id": session_id,
+            "context_hash": context_hash,
+            "used_kb": used_kb,
+            "retrieval_run_id": rag_trace.get("retrieval_run_id"),
+            "policy_snapshot_hash": rag_trace.get("policy_snapshot_hash"),
+            "evidence_used": [ref.to_dict() for ref in self._build_evidence_refs(rag_chunks)],
+            "rag_chunk_ids": [c.get("chunk_id") for c in rag_chunks],
+            "memory_ids": [f.get("id") for f in memory_facts],
+            "summary_artifact_ids": [s.get("artifact_id") for s in summary_artifacts],
+            "final_tokens": usage.total_tokens_est,
+            "message_count": len(messages),
+            "usage": usage.to_dict(),
+            "trimming_log": [],
+            "prompt_blocks": [
+                {
+                    "index": idx,
+                    "role": msg.get("role"),
+                    "chars": len(msg.get("content", "")),
+                    "tokens_est": self._estimate_text_tokens(msg.get("content", "")),
+                }
+                for idx, msg in enumerate(messages)
+            ],
+        }
+
+        return audit
+    
+    def _estimate_text_tokens(self, text: str) -> int:
+        """Estimate token count for text"""
+        return int(len(text) * 1.3)
+    
+    def _estimate_tokens(self, messages: List[Dict[str, str]]) -> int:
+        """Estimate total tokens in messages"""
+        return sum(self._estimate_text_tokens(m.get("content", "")) for m in messages)
+    
+    # ============================================
+    # NEW METHODS FOR PHASE B.1
+    # ============================================
+    
+    def _check_summary_trigger(
+        self,
+        session_id: str,
+        window_messages: List[ChatMessage]
+    ) -> Optional[Dict[str, Any]]:
+        """Check if auto-summary should be triggered
+        
+        Args:
+            session_id: Session ID
+            window_messages: Current window messages
+        
+        Returns:
+            Trigger info dict if should trigger, None otherwise
+        """
+        # Check message count (trigger if > 20 messages in window)
+        if len(window_messages) < 20:
+            return None
+        
+        # Check if recent summary exists (don't trigger if last 5 messages)
+        existing_summaries = self._load_summary_artifacts(session_id)
+        if existing_summaries:
+            # Check summary freshness
+            last_summary = existing_summaries[-1]
+            freshness_check = self._check_summary_freshness(
+                last_summary,
+                window_messages,
+                session_id
+            )
+
+            if freshness_check["is_stale"]:
+                # Summary is stale, trigger rebuild
+                return {
+                    "reason": "summary_stale",
+                    "staleness_reason": freshness_check["reason"],
+                    "last_summary_age": freshness_check["age_messages"],
+                    "message_count": len(window_messages)
+                }
+            else:
+                # Summary is fresh enough, don't trigger
+                return None
+        
+        # Check token usage (this is checked after budget application)
+        window_tokens = sum(msg.estimate_tokens() for msg in window_messages)
+        window_budget = self.budget.window_tokens
+        
+        if window_tokens > window_budget * 0.8:  # 80% of window budget
+            return {
+                "reason": "window_budget_critical",
+                "window_tokens": window_tokens,
+                "window_budget": window_budget,
+                "message_count": len(window_messages)
+            }
+        
+        return None
+    
+    def _check_summary_freshness(
+        self,
+        last_summary: Dict[str, Any],
+        window_messages: List[Any],
+        session_id: str
+    ) -> Dict[str, Any]:
+        """
+        Check if the last summary is still fresh enough.
+
+        A summary is considered stale if:
+        1. Too many messages since last summary (> 15 messages)
+        2. Too many tokens since last summary (> 30% of window budget)
+        3. Time-based staleness (> 1 hour for long conversations)
+
+        Args:
+            last_summary: Last summary artifact dict
+            window_messages: Current window messages
+            session_id: Session ID
+
+        Returns:
+            Dict with keys:
+                - is_stale: bool
+                - reason: str (if stale)
+                - age_messages: int (messages since summary)
+                - age_tokens: int (tokens since summary)
+        """
+        import json
+        from datetime import datetime
+
+        # Get summary metadata
+        summary_metadata = last_summary.get("metadata")
+        if isinstance(summary_metadata, str):
+            summary_metadata = json.loads(summary_metadata)
+
+        summary_created_at = summary_metadata.get("created_at")
+        summary_last_message_id = summary_metadata.get("last_message_id")
+
+        # Calculate message distance
+        age_messages = 0
+        if summary_last_message_id:
+            # Find index of last summarized message
+            try:
+                last_idx = next(
+                    i for i, msg in enumerate(window_messages)
+                    if getattr(msg, 'message_id', None) == summary_last_message_id
+                )
+                age_messages = len(window_messages) - last_idx - 1
+            except StopIteration:
+                # Summary message not in window, assume stale
+                age_messages = len(window_messages)
+        else:
+            # No last_message_id, assume all messages are new
+            age_messages = len(window_messages)
+
+        # Calculate token distance
+        age_tokens = 0
+        if summary_last_message_id:
+            found_last = False
+            for msg in window_messages:
+                if found_last:
+                    age_tokens += msg.estimate_tokens()
+                if getattr(msg, 'message_id', None) == summary_last_message_id:
+                    found_last = True
+        else:
+            age_tokens = sum(msg.estimate_tokens() for msg in window_messages)
+
+        # Staleness thresholds
+        MESSAGE_THRESHOLD = 15
+        TOKEN_THRESHOLD = int(self.budget.window_tokens * 0.3)  # 30% of window
+        TIME_THRESHOLD_SECONDS = 3600  # 1 hour
+
+        # Check message staleness
+        if age_messages > MESSAGE_THRESHOLD:
+            return {
+                "is_stale": True,
+                "reason": f"Too many messages since last summary ({age_messages} > {MESSAGE_THRESHOLD})",
+                "age_messages": age_messages,
+                "age_tokens": age_tokens
+            }
+
+        # Check token staleness
+        if age_tokens > TOKEN_THRESHOLD:
+            return {
+                "is_stale": True,
+                "reason": f"Too many tokens since last summary ({age_tokens} > {TOKEN_THRESHOLD})",
+                "age_messages": age_messages,
+                "age_tokens": age_tokens
+            }
+
+        # Check time staleness (for long conversations)
+        if summary_created_at:
+            try:
+                summary_time = datetime.fromisoformat(summary_created_at)
+                age_seconds = (datetime.now() - summary_time).total_seconds()
+
+                if age_seconds > TIME_THRESHOLD_SECONDS and age_messages > 5:
+                    return {
+                        "is_stale": True,
+                        "reason": f"Summary too old ({age_seconds / 3600:.1f} hours)",
+                        "age_messages": age_messages,
+                        "age_tokens": age_tokens
+                    }
+            except (ValueError, TypeError):
+                # Invalid timestamp, ignore time check
+                pass
+
+        # Summary is fresh
+        return {
+            "is_stale": False,
+            "age_messages": age_messages,
+            "age_tokens": age_tokens
+        }
+
+    def _load_summary_artifacts(self, session_id: str) -> List[Dict[str, Any]]:
+        """Load existing summary artifacts for session
+        
+        Args:
+            session_id: Session ID
+        
+        Returns:
+            List of summary artifact dicts
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT artifact_id, content, version, metadata
+                FROM artifacts
+                WHERE session_id = ? AND artifact_type = 'summary'
+                ORDER BY created_at ASC
+            """, (session_id,))
+            
+            rows = cursor.fetchall()
+            # Do NOT close: conn from sqlite3.connect is a new connection, can be closed
+            conn.close()
+
+            summaries = []
+            for row in rows:
+                metadata = json.loads(row["metadata"]) if row["metadata"] else {}
+                summaries.append({
+                    "artifact_id": row["artifact_id"],
+                    "content": row["content"],
+                    "version": row["version"],
+                    "metadata": metadata
+                })
+            
+            return summaries
+        
+        except Exception as e:
+            err = str(e)
+            if "no such column: artifact_id" in err or "no such table: artifacts" in err:
+                logger.debug(f"Summary artifacts schema not available: {err}")
+            else:
+                logger.warning(f"Failed to load summary artifacts: {e}")
+            return []
+    
+    def _calculate_usage(
+        self,
+        system_prompt: str,
+        window_messages: List[ChatMessage],
+        memory_facts: List[Dict[str, Any]],
+        rag_chunks: List[Dict[str, Any]],
+        summary_artifacts: List[Dict[str, Any]],
+        user_input: str
+    ) -> ContextUsage:
+        """Calculate token usage statistics
+        
+        Args:
+            system_prompt: System prompt
+            window_messages: Window messages
+            memory_facts: Memory facts
+            rag_chunks: RAG chunks
+            summary_artifacts: Summary artifacts
+            user_input: User input
+        
+        Returns:
+            ContextUsage object
+        """
+        tokens_system = self._estimate_text_tokens(system_prompt)
+        tokens_window = sum(msg.estimate_tokens() for msg in window_messages)
+        tokens_memory = sum(self._estimate_text_tokens(json.dumps(m)) for m in memory_facts)
+        tokens_rag = sum(self._estimate_text_tokens(c.get("content", "")) for c in rag_chunks)
+        tokens_summary = sum(self._estimate_text_tokens(s.get("content", "")) for s in summary_artifacts)
+        tokens_user = self._estimate_text_tokens(user_input)
+        
+        total = tokens_system + tokens_window + tokens_memory + tokens_rag + tokens_summary + tokens_user
+        
+        return ContextUsage(
+            budget_tokens=self.budget.max_tokens,
+            total_tokens_est=total,
+            tokens_system=tokens_system,
+            tokens_window=tokens_window,
+            tokens_rag=tokens_rag,
+            tokens_memory=tokens_memory,
+            tokens_summary=tokens_summary,
+            tokens_policy=0  # Not implemented yet
+        )
+    
+    def _log_memory_injection_audit(
+        self,
+        session_id: str,
+        memory_facts: List[Dict[str, Any]],
+        usage: ContextUsage
+    ) -> None:
+        """Log audit event for memory context injection.
+
+        Args:
+            session_id: Session ID
+            memory_facts: Memory facts that were injected
+            usage: Usage statistics
+        """
+        from octopusos.core.audit import log_audit_event, MEMORY_CONTEXT_INJECTED
+
+        # Extract memory types and check for preferred_name
+        memory_types = [m.get("type") for m in memory_facts]
+        has_preferred_name = any(
+            fact.get("content", {}).get("key") == "preferred_name"
+            for fact in memory_facts
+            if fact.get("type") in ("preference", "user_preference")
+        )
+
+        # Extract preferred_name value for logging
+        preferred_name_value = None
+        if has_preferred_name:
+            for fact in memory_facts:
+                if fact.get("type") in ("preference", "user_preference"):
+                    content = fact.get("content", {})
+                    if content.get("key") == "preferred_name":
+                        preferred_name_value = content.get("value")
+                        break
+
+        try:
+            log_audit_event(
+                event_type=MEMORY_CONTEXT_INJECTED,
+                task_id=None,  # Not associated with a specific task
+                level="info",
+                metadata={
+                    "session_id": session_id,
+                    "memory_count": len(memory_facts),
+                    "memory_types": memory_types,
+                    "has_preferred_name": has_preferred_name,
+                    "preferred_name": preferred_name_value,
+                    "tokens_memory": usage.tokens_memory,
+                    "memory_ids": [m.get("id") for m in memory_facts]
+                }
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log memory injection audit event: {e}")
+
+    def _save_snapshot(
+        self,
+        session_id: str,
+        reason: str,
+        usage: ContextUsage,
+        composition: Dict[str, List[str]],
+        assembled_hash: str
+    ) -> str:
+        """Save context snapshot to database
+        
+        Args:
+            session_id: Session ID
+            reason: Reason for snapshot
+            usage: Usage statistics
+            composition: Composition details
+            assembled_hash: Hash of assembled messages
+        
+        Returns:
+            Snapshot ID
+        """
+        snapshot_id = ulid()
+        created_at = utc_now_ms()
+        
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Insert snapshot
+            cursor.execute("""
+                INSERT INTO context_snapshots (
+                    snapshot_id, session_id, created_at, reason,
+                    provider, model,
+                    budget_tokens, total_tokens_est,
+                    tokens_system, tokens_window, tokens_rag,
+                    tokens_memory, tokens_summary, tokens_policy,
+                    composition_json, assembled_hash, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                snapshot_id, session_id, created_at, reason,
+                None, None,  # provider, model (filled in by engine)
+                usage.budget_tokens, usage.total_tokens_est,
+                usage.tokens_system, usage.tokens_window, usage.tokens_rag,
+                usage.tokens_memory, usage.tokens_summary, usage.tokens_policy,
+                json.dumps(composition),
+                assembled_hash,
+                json.dumps({"watermark": usage.watermark.value, "usage_ratio": usage.usage_ratio})
+            ))
+            
+            # Insert snapshot items
+            for item_type, item_ids in composition.items():
+                # Convert item_type from plural to singular
+                type_map = {
+                    "window_msg_ids": "window_msg",
+                    "summary_artifact_ids": "summary",
+                    "rag_chunk_ids": "rag_chunk",
+                    "memory_ids": "memory"
+                }
+                item_type_single = type_map.get(item_type, item_type)
+                
+                for rank, item_id in enumerate(item_ids):
+                    cursor.execute("""
+                        INSERT INTO context_snapshot_items (
+                            snapshot_id, item_type, item_id, tokens_est, rank, metadata
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        snapshot_id, item_type_single, item_id, 0, rank, None
+                    ))
+
+            conn.commit()
+            # Do NOT close: conn from sqlite3.connect is a new connection, can be closed
+            conn.close()
+
+            logger.info(f"Saved context snapshot {snapshot_id}")
+            return snapshot_id
+        
+        except Exception as e:
+            logger.error(f"Failed to save snapshot: {e}")
+            return snapshot_id  # Return ID even if save failed
+    

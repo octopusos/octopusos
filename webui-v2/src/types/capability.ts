@@ -1,7 +1,7 @@
 /**
  * Capability Dashboard Types
  *
- * Types for AgentOS v3 Capability Governance Dashboard
+ * Types for OctopusOS v3 Capability Governance Dashboard
  * API: GET /api/capability/dashboard/stats
  */
 

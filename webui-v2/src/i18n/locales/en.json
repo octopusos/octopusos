@@ -71,7 +71,29 @@
     "findings": "Security Findings",
     "executionPlans": "Execution Plans",
     "riskTimeline": "Risk Timeline",
-    "chatReport": "Chat Report"
+    "chatReport": "Chat Report",
+    "work": "Work"
+  },
+  "systemStatus": {
+    "title": "System status",
+    "chip": {
+      "readOnly": "Read-only",
+      "modeUnknown": "Mode unknown",
+      "contractDenied": "Contract denied"
+    },
+    "msg": {
+      "modeUnknown": "Run mode is unknown; write operations are protected in read-only mode.",
+      "writeDisabled": "Write operations are disabled (safety protection).",
+      "remoteNoToken": "Remote-exposed mode requires an admin token; writes are disabled.",
+      "localLocked": "Local locked mode; writes are disabled.",
+      "contractOpUnavailable": "The current contract template disables the Config API."
+    },
+    "suggest": {
+      "title": "Suggested checks:",
+      "checkDaemon": "Check daemon/status health",
+      "checkToken": "Check admin token configuration",
+      "checkModeApi": "Check mode API and runtime mode config"
+    }
   },
   "validation": {
     "required": "This field is required",
@@ -412,9 +434,9 @@
         "validationMessages": "Validation Messages",
         "validationSubtitle": "Using \"validation.*\" keys with parameters",
         "domainSpecific": "Domain-Specific Translations",
-        "domainSpecificSubtitle": "Using \"agentos.*\" and \"memoryos.*\" keys",
-        "agentosActions": "AgentOS - Task Actions",
-        "agentosStatus": "AgentOS - Task Status",
+        "domainSpecificSubtitle": "Using \"octopusos.*\" and \"memoryos.*\" keys",
+        "octopusosActions": "OctopusOS - Task Actions",
+        "octopusosStatus": "OctopusOS - Task Status",
         "memoryosFeatures": "MemoryOS Features",
         "integrationGuide": "Integration Examples",
         "step1": "1. Import the hook",
@@ -456,7 +478,7 @@
       }
     },
     "home": {
-      "title": "Welcome to AgentOS WebUI v2",
+      "title": "Welcome to OctopusOS WebUI",
       "subtitle": "Modern control surface for autonomous agents"
     },
     "components": {
@@ -594,7 +616,7 @@
       "welcomeTitle": "Welcome to Subgraph Explorer",
       "welcomeDescription": "Enter a seed entity to explore the knowledge graph",
       "search": "Search",
-      "searchPlaceholder": "Enter seed entity (e.g., 'AgentOS', 'Provider')...",
+      "searchPlaceholder": "Enter seed entity (e.g., 'OctopusOS', 'Provider')...",
       "depth": "Depth",
       "loadSuccess": "Subgraph loaded successfully",
       "loadFailed": "Failed to load subgraph",
@@ -740,6 +762,60 @@
       "metricCliChannel": "CLI",
       "scrollToBottom": "Scroll to Bottom"
     },
+    "work": {
+      "title": "Work",
+      "subtitle": "Prompt-driven workspace with session switcher and markdown artifacts",
+      "workModeBadge": "WORK MODE",
+      "workModeTitle": "Work",
+      "workModeDesc": "Local, session-based document workspace",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "statusReady": "Ready",
+      "statusSessionLoadFailed": "Failed to load session",
+      "statusServiceUnavailable": "Work session service unavailable",
+      "statusSaveFailed": "Auto-save failed",
+      "statusConnectionInterrupted": "Connection interrupted",
+      "statusServiceReady": "Service Ready",
+      "statusServiceDegraded": "Service Degraded",
+      "autoSaving": "Auto-saving",
+      "autoSaved": "Auto-saved",
+      "defaultSessionName": "Untitled Work Session",
+      "session": "Session",
+      "sessionName": "Session Name",
+      "sessionSwitcher": "Session Switcher",
+      "new": "New",
+      "rename": "Rename",
+      "export": "Export",
+      "showCanvas": "Show Canvas",
+      "hideCanvas": "Hide Canvas",
+      "leftEmptyTitle": "This is a work session",
+      "leftEmptyDesc": "You can ask AI to generate, rewrite, summarize, or structure the content on the right.",
+      "chatInputPlaceholder": "Describe what to generate or edit (applies to the right document)",
+      "tabContent": "Content",
+      "tabStructure": "Structure",
+      "tabEdits": "Edit History",
+      "tabAssets": "Assets",
+      "markdownArtifact": "Markdown Artifact",
+      "edit": "Edit",
+      "preview": "Preview",
+      "previewMode": "Preview Mode",
+      "editMode": "Edit Mode",
+      "saveEdit": "Save",
+      "rightEmptyMarkdown": "No markdown content yet",
+      "noHeadings": "No headings detected",
+      "noEdits": "No edit history yet",
+      "assetsDesc": "Attached files and references will appear here.",
+      "toastGenerationFailed": "Generation failed",
+      "toastSessionCreated": "Work session created",
+      "toastCreateSessionFailed": "Failed to create work session",
+      "toastSessionRenamed": "Session renamed",
+      "toastWsDisconnected": "Disconnected. Please reconnect and retry.",
+      "toastWaitForReply": "Please wait for the current reply to finish",
+      "toastSendFailed": "Failed to send message",
+      "toastArtifactUpdated": "Artifact updated",
+      "assistantPatchSummary": "Assistant updated artifact content",
+      "inlineEditSummary": "Manual inline edit"
+    },
     "voice": {
       "title": "Voice Communication",
       "subtitle": "Manage voice calls and audio communications",
@@ -765,7 +841,7 @@
       "viewDetails": "View Details"
     }
   },
-  "agentos": {
+  "octopusos": {
     "tasks": {
       "create": "Create Task",
       "edit": "Edit Task",
@@ -1230,7 +1306,7 @@
       "welcomeTitle": "Welcome to Subgraph Explorer",
       "welcomeDescription": "Enter a seed entity to explore the knowledge graph",
       "search": "Search",
-      "searchPlaceholder": "Enter seed entity (e.g., 'AgentOS', 'Provider')...",
+      "searchPlaceholder": "Enter seed entity (e.g., 'OctopusOS', 'Provider')...",
       "depth": "Depth",
       "loadSuccess": "Subgraph loaded successfully",
       "loadFailed": "Failed to load subgraph",
@@ -1936,7 +2012,7 @@
     },
     "capabilities": {
       "title": "Capability Governance",
-      "subtitle": "AgentOS v3 - Real-time Governance Status",
+      "subtitle": "OctopusOS v3 - Real-time Governance Status",
       "metricTotalCapabilities": "Total Capabilities",
       "metricActiveAgents": "Active Agents",
       "metricTodayInvocations": "Today Invocations",

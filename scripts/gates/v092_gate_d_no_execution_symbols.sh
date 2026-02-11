@@ -10,7 +10,7 @@ echo "======================================================================"
 echo "v0.9.2 Gate D: Static Scan for Execution Symbols"
 echo "======================================================================"
 
-COORDINATOR_DIR="agentos/core/coordinator"
+COORDINATOR_DIR="octopusos/core/coordinator"
 FORBIDDEN_PATTERNS=(
     "subprocess"
     "shell"

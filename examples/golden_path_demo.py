@@ -3,14 +3,14 @@
 Golden Path Demo Example
 
 This example demonstrates how to use the Golden Path demo system
-in AgentOS WebUI.
+in OctopusOS WebUI.
 
 Usage:
     1. Enable demo mode:
        python examples/golden_path_demo.py enable
 
     2. Start the WebUI server:
-       agentos ui
+       octopusos ui
 
     3. Open browser to http://localhost:8000
 

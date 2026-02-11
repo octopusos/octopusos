@@ -5,7 +5,7 @@
  * - ✅ Text System: 使用 t('xxx')（G7-G8）
  * - ✅ Layout: usePageHeader + usePageActions（G10-G11）
  * - ✅ Dashboard Contract: DashboardGrid + StatCard/MetricCard
- * - ✅ Real API Integration: brainosService.getInfoNeedMetrics()
+ * - ✅ Real API Integration: brainosService.infoNeedMetricsSummaryApiInfoNeedMetricsSummaryGet()
  * - ✅ Unified Exit: 不自定义布局，使用 Dashboard 封装
  */
 
@@ -45,7 +45,7 @@ export default function QueryPlaygroundPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await brainosService.getInfoNeedMetrics()
+      const response = await brainosService.infoNeedMetricsSummaryApiInfoNeedMetricsSummaryGet()
       setData(response)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load query metrics'

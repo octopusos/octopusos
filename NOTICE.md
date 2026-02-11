@@ -1,4 +1,4 @@
-AgentOS
-Copyright 2026 AgentOS Contributors
+OctopusOS
+Copyright 2026 OctopusOS Contributors
 
-This product includes software developed by the AgentOS contributors.
+This product includes software developed by the OctopusOS contributors.

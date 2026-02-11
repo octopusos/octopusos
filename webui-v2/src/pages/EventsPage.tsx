@@ -39,6 +39,25 @@ interface EventRow {
   description?: string
 }
 
+function normalizeEventRow(raw: any): any {
+  const type = raw?.type || raw?.event_type || 'system'
+  const timestamp = raw?.timestamp || raw?.created_at || null
+  const message =
+    raw?.message ||
+    raw?.description ||
+    (raw?.endpoint && raw?.actor ? `${raw.actor} @ ${raw.endpoint}` : raw?.endpoint || '')
+
+  return {
+    ...raw,
+    id: raw?.id ?? raw?.event_id,
+    event_id: raw?.event_id ?? raw?.id,
+    type,
+    timestamp,
+    message,
+    description: raw?.description ?? raw?.message ?? message,
+  }
+}
+
 /**
  * EventsPage 组件
  *
@@ -94,8 +113,10 @@ export default function EventsPage() {
         params.type = typeFilter
       }
 
-      const response = await systemService.listEvents(params)
-      const eventsData = Array.isArray(response.events) ? response.events : []
+      const response = await systemService.listEventsApiEventsGet(params)
+      const eventsData = Array.isArray(response.events)
+        ? response.events.map((e: any) => normalizeEventRow(e))
+        : []
 
       // Sort by timestamp desc
       eventsData.sort((a: any, b: any) => {
@@ -128,11 +149,11 @@ export default function EventsPage() {
       setEvents(filtered)
 
       if (showToast) {
-        toast.success(`Loaded ${filtered.length} event(s)`)
+        toast.success(t(K.page.events.toastLoaded).replace('{count}', String(filtered.length)))
       }
     } catch (err) {
       console.error('Failed to fetch events:', err)
-      toast.error('Failed to load events')
+      toast.error(t(K.page.events.toastLoadFailed))
       setEvents([])
     } finally {
       setLoading(false)
@@ -158,8 +179,10 @@ export default function EventsPage() {
         params.type = typeFilter
       }
 
-      const response = await systemService.listEvents(params)
-      const newEvents = Array.isArray(response.events) ? response.events : []
+      const response = await systemService.listEventsApiEventsGet(params)
+      const newEvents = Array.isArray(response.events)
+        ? response.events.map((e: any) => normalizeEventRow(e))
+        : []
 
       if (newEvents.length > 0) {
         // Prepend new events (avoid duplicates)
@@ -174,7 +197,7 @@ export default function EventsPage() {
             setLastEventTimestamp(newTimestamp)
 
             // Show notification
-            toast.info(`${uniqueNew.length} new event(s)`)
+            toast.info(t(K.page.events.toastNewEvents).replace('{count}', String(uniqueNew.length)))
 
             // Sort combined events by timestamp desc
             const combined = [...uniqueNew, ...prevEvents]
@@ -246,10 +269,10 @@ export default function EventsPage() {
       setEvents([])
       setLastEventTimestamp(null)
       setClearDialogOpen(false)
-      toast.success('All events cleared')
+      toast.success(t(K.page.events.toastCleared))
     } catch (error) {
       console.error('Failed to clear events:', error)
-      toast.error('Failed to clear events')
+      toast.error(t(K.page.events.toastClearFailed))
     } finally {
       setClearLoading(false)
     }
@@ -305,7 +328,7 @@ export default function EventsPage() {
   // ===================================
   const handleCopyEventId = useCallback((eventId: string) => {
     navigator.clipboard.writeText(eventId)
-    toast.success('Event ID copied to clipboard')
+    toast.success(t(K.page.events.toastIdCopied))
   }, [])
 
   const handleFilterByType = useCallback((type: string) => {
@@ -321,7 +344,7 @@ export default function EventsPage() {
   // Helper Functions
   // ===================================
   const formatTimestamp = (timestamp?: string) => {
-    if (!timestamp) return 'N/A'
+    if (!timestamp) return t(K.page.events.na)
     try {
       const date = new Date(timestamp)
       return date.toLocaleString('en-US', {
@@ -376,14 +399,14 @@ export default function EventsPage() {
       headerName: t(K.page.events.taskId),
       width: 150,
       renderCell: (params) =>
-        params.value ? <code style={{ fontSize: '0.875rem' }}>{params.value.substring(0, 8)}...</code> : 'N/A',
+        params.value ? <code style={{ fontSize: '0.875rem' }}>{params.value.substring(0, 8)}...</code> : t(K.page.events.na),
     },
     {
       field: 'session_id',
       headerName: t(K.page.events.sessionId),
       width: 150,
       renderCell: (params) =>
-        params.value ? <code style={{ fontSize: '0.875rem' }}>{params.value.substring(0, 8)}...</code> : 'N/A',
+        params.value ? <code style={{ fontSize: '0.875rem' }}>{params.value.substring(0, 8)}...</code> : t(K.page.events.na),
     },
     {
       field: 'message',
@@ -430,6 +453,7 @@ export default function EventsPage() {
       <TableShell
         loading={loading}
         rows={events}
+        getRowId={(row) => row.event_id ?? row.id ?? `${row.type ?? 'event'}-${row.created_at ?? row.timestamp ?? ''}-${row.task_id ?? ''}-${row.session_id ?? ''}-${row.message ?? row.description ?? ''}`}
         columns={columns}
         filterBar={
         <FilterBar
@@ -575,7 +599,7 @@ export default function EventsPage() {
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="body1" sx={{ fontFamily: 'monospace', flex: 1 }}>
-                  {selectedEvent.event_id || selectedEvent.id || 'N/A'}
+                  {selectedEvent.event_id || selectedEvent.id || t(K.page.events.na)}
                 </Typography>
                 {(selectedEvent.event_id || selectedEvent.id) && (
                   <IconButton

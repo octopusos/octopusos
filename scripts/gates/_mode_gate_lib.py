@@ -16,12 +16,12 @@ def load_mode(mode_id: str):
     import sys
     from pathlib import Path
     
-    # 确保 agentos 在路径中
+    # 确保 octopusos 在路径中
     project_root = Path(__file__).parent.parent.parent
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     
-    from agentos.core.mode import get_mode
+    from octopusos.core.mode import get_mode
     return get_mode(mode_id)
 
 

@@ -2,9 +2,9 @@
  * ContentRegistryPage - Content Lifecycle Management
  *
  * Phase 6: v1→v2 Alignment Complete + Full CRUD Implementation
- * - API: systemService.listContent() for listing
- * - API: systemService.getContent() for details
- * - API: systemService.createContent() for registration
+ * - API: systemService.listContentApiContentGet() for listing
+ * - API: systemService.getContentApiContentContentIdGet() for details
+ * - API: systemService.createContentApiContentPost() for registration
  * - API: systemService.updateContent() for edit/activate/deprecate/freeze/delete
  * - API: Runtime mode detection & admin actions
  * - UI: Filters (Type/Status/Search), View modes (Card/Table), Pagination
@@ -36,7 +36,7 @@ import { CardCollectionWrap } from '@/ui/cards/CardCollectionWrap'
 import { ItemCard } from '@/ui/cards/ItemCard'
 import { K, useText } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { DialogForm, DetailDrawer } from '@/ui/interaction'
+import { DialogForm, DetailDrawer, usePromptDialog } from '@/ui/interaction'
 import { TextField, Select, MenuItem, Box, Alert, Chip, Button } from '@/ui'
 import { IconButton, Tooltip, Table, TableHead, TableBody, TableRow, TableCell } from '@mui/material'
 import { Grid, CircularProgress } from '@mui/material'
@@ -65,6 +65,7 @@ export default function ContentRegistryPage() {
   // i18n Hook - Subscribe to language changes
   // ===================================
   const { t } = useText()
+  const { confirm, dialog } = usePromptDialog()
 
   // ===================================
   // State: API Data
@@ -132,7 +133,7 @@ export default function ContentRegistryPage() {
   // ===================================
   const detectRuntimeMode = async () => {
     try {
-      const response = await systemService.getContent('mode')
+      const response = await systemService.getContentApiContentContentIdGet('mode')
       const content = response?.content as any
       setRuntimeMode((content?.mode as 'local' | 'production') || 'local')
       setIsAdmin(content?.features?.admin_required === true)
@@ -151,7 +152,7 @@ export default function ContentRegistryPage() {
     setError(null)
     try {
       // Fetch content list from real API
-      const response = await systemService.listContent()
+      const response = await systemService.listContentApiContentGet()
 
       // Map API response to our display format
       // API returns: { content: [{id, name, type, version, status, source_uri, metadata, ...}], total }
@@ -196,7 +197,7 @@ export default function ContentRegistryPage() {
   const handleRegisterSubmit = async () => {
     try {
       // Real API call to register content
-      await systemService.createContent({
+      await systemService.createContentApiContentPost({
         type: contentType,
         name: contentName,
         version: contentVersion,
@@ -227,7 +228,7 @@ export default function ContentRegistryPage() {
 
     try {
       // FIXED: Use correct API endpoint /api/content/{id}
-      const response = await systemService.getContent(itemId)
+      const response = await systemService.getContentApiContentContentIdGet(itemId)
       setDetailData(response.content)
     } catch (error: any) {
       console.error('Failed to fetch content detail:', error)
@@ -264,7 +265,7 @@ export default function ContentRegistryPage() {
     if (!editingItemId) return
 
     try {
-      await systemService.updateContent(editingItemId, {
+      await systemService.updateContentApiContentContentIdPut(editingItemId, {
         name: contentName,
         version: contentVersion,
         source_uri: contentUrl,
@@ -289,12 +290,20 @@ export default function ContentRegistryPage() {
     const item = contentItems.find(c => c.id === itemId)
     if (!item) return
 
-    if (!window.confirm(t(K.common.confirmDelete) || `Are you sure you want to delete "${item.title}"?`)) {
+    const confirmed = await confirm({
+      title: t(K.common.delete),
+      message: t(K.common.confirmDelete) || `Are you sure you want to delete "${item.title}"?`,
+      confirmText: t(K.common.delete),
+      cancelText: t(K.common.cancel),
+      color: 'error',
+      testId: 'content-registry-delete-dialog',
+    })
+    if (!confirmed) {
       return
     }
 
     try {
-      await systemService.updateContent(itemId, { action: 'delete', confirm: true })
+      await systemService.deprecateContentApiContentContentIdDeprecatePost(itemId, { confirm: true })
       toast.success(t(K.common.deleteSuccess))
       await loadContent()
     } catch (err: any) {
@@ -307,11 +316,19 @@ export default function ContentRegistryPage() {
   // Admin Actions - Status Management
   // ===================================
   const handleActivateContent = async (itemId: string) => {
-    if (!window.confirm(t(K.page.contentRegistry.confirmActivate))) {
+    const confirmed = await confirm({
+      title: t(K.page.contentRegistry.actionActivate),
+      message: t(K.page.contentRegistry.confirmActivate),
+      confirmText: t(K.common.confirm),
+      cancelText: t(K.common.cancel),
+      color: 'warning',
+      testId: 'content-registry-activate-dialog',
+    })
+    if (!confirmed) {
       return
     }
     try {
-      await systemService.updateContent(itemId, { action: 'activate', confirm: true })
+      await systemService.activateContentApiContentContentIdActivatePost(itemId, { confirm: true })
       toast.success(t(K.page.contentRegistry.toastActivateSuccess))
       await loadContent()
     } catch (err: any) {
@@ -321,11 +338,19 @@ export default function ContentRegistryPage() {
   }
 
   const handleDeprecateContent = async (itemId: string) => {
-    if (!window.confirm(t(K.page.contentRegistry.confirmDeprecate))) {
+    const confirmed = await confirm({
+      title: t(K.page.contentRegistry.actionDeprecate),
+      message: t(K.page.contentRegistry.confirmDeprecate),
+      confirmText: t(K.common.confirm),
+      cancelText: t(K.common.cancel),
+      color: 'warning',
+      testId: 'content-registry-deprecate-dialog',
+    })
+    if (!confirmed) {
       return
     }
     try {
-      await systemService.updateContent(itemId, { action: 'deprecate', confirm: true })
+      await systemService.deprecateContentApiContentContentIdDeprecatePost(itemId, { confirm: true })
       toast.success(t(K.page.contentRegistry.toastDeprecateSuccess))
       await loadContent()
     } catch (err: any) {
@@ -335,11 +360,19 @@ export default function ContentRegistryPage() {
   }
 
   const handleFreezeContent = async (itemId: string) => {
-    if (!window.confirm(t(K.page.contentRegistry.confirmFreeze))) {
+    const confirmed = await confirm({
+      title: t(K.page.contentRegistry.actionFreeze),
+      message: t(K.page.contentRegistry.confirmFreeze),
+      confirmText: t(K.common.confirm),
+      cancelText: t(K.common.cancel),
+      color: 'warning',
+      testId: 'content-registry-freeze-dialog',
+    })
+    if (!confirmed) {
       return
     }
     try {
-      await systemService.updateContent(itemId, { action: 'freeze', confirm: true })
+      await systemService.freezeContentApiContentContentIdFreezePost(itemId, { confirm: true })
       toast.success(t(K.page.contentRegistry.toastFreezeSuccess))
       await loadContent()
     } catch (err: any) {
@@ -583,6 +616,7 @@ export default function ContentRegistryPage() {
               { key: 'type', label: t(K.page.contentRegistry.columnType), value: getContentTypeText(item.type) },
               { key: 'status', label: t(K.page.contentRegistry.columnStatus), value: getStatusText(item.status) },
             ]}
+            metaRowSpacing={1}
             tags={item.tags}
             icon={item.icon}
             actions={[
@@ -1055,6 +1089,7 @@ export default function ContentRegistryPage() {
         </Box>
       ) : null}
     </DetailDrawer>
+    {dialog}
     </>
   )
 }

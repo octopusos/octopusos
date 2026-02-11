@@ -7,7 +7,7 @@ sorted based on domain authority, source type, document type, and recency.
 
 import asyncio
 import json
-from agentos.core.communication.connectors.web_search import WebSearchConnector
+from octopusos.core.communication.connectors.web_search import WebSearchConnector
 
 
 async def demo_priority_scoring():

@@ -14,5 +14,5 @@ created_at: '2026-02-02T00:00:00Z'
 metadata:
   name: Security Pack
   description: Comprehensive security suite including vulnerability scanning, compliance checks, and threat detection
-  author: AgentOS Security Team
-  homepage: https://agentos.dev/packs/security
+  author: OctopusOS Security Team
+  homepage: https://octopusos.dev/packs/security

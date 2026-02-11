@@ -12,31 +12,31 @@ import json
 import sys
 from pathlib import Path
 
-SCHEMA_DIR = Path("agentos/schemas/coordinator")
+SCHEMA_DIR = Path("octopusos/schemas/coordinator")
 
 EXPECTED_SCHEMAS = {
     "execution_graph.schema.json": {
-        "id": "agentos://schemas/coordinator/execution_graph.schema.json",
+        "id": "octopusos://schemas/coordinator/execution_graph.schema.json",
         "version": "0.9.2",
         "required_fields": ["graph_id", "intent_id", "nodes", "edges", "swimlanes", "lineage", "checksum"]
     },
     "question_pack.schema.json": {
-        "id": "agentos://schemas/coordinator/question_pack.schema.json",
+        "id": "octopusos://schemas/coordinator/question_pack.schema.json",
         "version": "0.9.2",
         "required_fields": ["pack_id", "coordinator_run_id", "questions", "policy_constraints"]
     },
     "answer_pack.schema.json": {
-        "id": "agentos://schemas/coordinator/answer_pack.schema.json",
+        "id": "octopusos://schemas/coordinator/answer_pack.schema.json",
         "version": "0.9.2",
         "required_fields": ["pack_id", "question_pack_id", "answers"]
     },
     "coordinator_run_tape.schema.json": {
-        "id": "agentos://schemas/coordinator/coordinator_run_tape.schema.json",
+        "id": "octopusos://schemas/coordinator/coordinator_run_tape.schema.json",
         "version": "0.9.2",
         "required_fields": ["run_id", "intent_id", "coordinator_version", "states", "decisions"]
     },
     "coordinator_audit_log.schema.json": {
-        "id": "agentos://schemas/coordinator/coordinator_audit_log.schema.json",
+        "id": "octopusos://schemas/coordinator/coordinator_audit_log.schema.json",
         "version": "0.9.2",
         "required_fields": ["log_id", "event_type", "coordinator_run_id", "timestamp"]
     }

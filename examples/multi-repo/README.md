@@ -1,6 +1,6 @@
 # Multi-Repository Examples
 
-**Hands-on examples for AgentOS multi-repository projects**
+**Hands-on examples for OctopusOS multi-repository projects**
 
 This directory contains practical examples demonstrating multi-repo project patterns.
 
@@ -71,7 +71,7 @@ bash demo.sh
 
 All examples require:
 
-- AgentOS installed (`pip install -e .`)
+- OctopusOS installed (`pip install -e .`)
 - Git installed
 - Basic CLI knowledge
 
@@ -117,12 +117,12 @@ cd 01_minimal
 cat project.yaml
 
 # Import manually
-agentos project import --from project.yaml
+octopusos project import --from project.yaml
 
 # Explore commands
-agentos project repos list minimal-demo
-agentos project validate minimal-demo
-agentos project trace minimal-demo
+octopusos project repos list minimal-demo
+octopusos project validate minimal-demo
+octopusos project trace minimal-demo
 ```
 
 ---
@@ -142,18 +142,18 @@ agentos project trace minimal-demo
 ### Demo script fails
 
 **Common causes**:
-- AgentOS not installed: `pip install -e .`
+- OctopusOS not installed: `pip install -e .`
 - Git not available: `which git`
 - Permission issues: `chmod +x demo.sh`
 
 **Solution**: Check prerequisites and error messages
 
-### "Command not found: agentos"
+### "Command not found: octopusos"
 
 **Solution**:
 ```bash
 # Use uv run
-uv run agentos project import --from project.yaml
+uv run octopusos project import --from project.yaml
 
 # Or activate venv
 source .venv/bin/activate
@@ -200,5 +200,5 @@ bash demo.sh
 
 Have a useful multi-repo pattern? Submit a PR with a new example!
 
-- 🐛 [Report Issues](https://github.com/your-org/AgentOS/issues)
-- 💡 [Suggest Examples](https://github.com/your-org/AgentOS/discussions)
+- 🐛 [Report Issues](https://github.com/your-org/OctopusOS/issues)
+- 💡 [Suggest Examples](https://github.com/your-org/OctopusOS/discussions)

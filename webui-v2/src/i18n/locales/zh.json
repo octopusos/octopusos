@@ -71,7 +71,29 @@
     "findings": "安全发现",
     "executionPlans": "执行计划",
     "riskTimeline": "风险时间线",
-    "chatReport": "聊天报告"
+    "chatReport": "聊天报告",
+    "work": "工作模式"
+  },
+  "systemStatus": {
+    "title": "系统状态",
+    "chip": {
+      "readOnly": "只读",
+      "modeUnknown": "模式未知",
+      "contractDenied": "合约禁用"
+    },
+    "msg": {
+      "modeUnknown": "未识别运行模式，已按只读策略保护写操作。",
+      "writeDisabled": "写操作已被禁用（安全保护）。",
+      "remoteNoToken": "远程暴露模式下缺少 Admin Token，写操作已禁用。",
+      "localLocked": "当前为本地锁定模式，写操作已禁用。",
+      "contractOpUnavailable": "当前合约模板禁用 Config API。"
+    },
+    "suggest": {
+      "title": "建议排查：",
+      "checkDaemon": "检查 daemon/status 是否正常",
+      "checkToken": "检查 Admin Token 配置",
+      "checkModeApi": "检查 mode API 与运行模式配置"
+    }
   },
   "validation": {
     "required": "此字段为必填项",
@@ -412,9 +434,9 @@
         "validationMessages": "验证消息",
         "validationSubtitle": "使用 \"validation.*\" 键和参数",
         "domainSpecific": "特定域翻译",
-        "domainSpecificSubtitle": "使用 \"agentos.*\" 和 \"memoryos.*\" 键",
-        "agentosActions": "AgentOS - 任务操作",
-        "agentosStatus": "AgentOS - 任务状态",
+        "domainSpecificSubtitle": "使用 \"octopusos.*\" 和 \"memoryos.*\" 键",
+        "octopusosActions": "OctopusOS - 任务操作",
+        "octopusosStatus": "OctopusOS - 任务状态",
         "memoryosFeatures": "MemoryOS 功能",
         "integrationGuide": "集成示例",
         "step1": "1. 导入 hook",
@@ -486,7 +508,7 @@
       }
     },
     "home": {
-      "title": "欢迎使用 AgentOS WebUI v2",
+      "title": "欢迎使用 OctopusOS WebUI",
       "subtitle": "自主智能体的现代化控制面板"
     },
     "components": {
@@ -624,7 +646,7 @@
       "welcomeTitle": "欢迎使用子图浏览器",
       "welcomeDescription": "输入种子实体以探索知识图谱",
       "search": "搜索",
-      "searchPlaceholder": "输入种子实体 (例如: 'AgentOS', 'Provider')...",
+      "searchPlaceholder": "输入种子实体 (例如: 'OctopusOS', 'Provider')...",
       "depth": "深度",
       "depth1": "1跳",
       "depth2": "2跳",
@@ -786,6 +808,60 @@
       "metricCliChannel": "CLI",
       "scrollToBottom": "跳到底部"
     },
+    "work": {
+      "title": "工作模式",
+      "subtitle": "基于提示词的工作台，支持会话切换与 Markdown 产物",
+      "workModeBadge": "工作模式",
+      "workModeTitle": "工作台",
+      "workModeDesc": "本地优先、会话级文档工作空间",
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "statusReady": "就绪",
+      "statusSessionLoadFailed": "加载会话失败",
+      "statusServiceUnavailable": "工作会话服务不可用",
+      "statusSaveFailed": "自动保存失败",
+      "statusConnectionInterrupted": "连接中断",
+      "statusServiceReady": "服务正常",
+      "statusServiceDegraded": "服务降级",
+      "autoSaving": "自动保存中",
+      "autoSaved": "已自动保存",
+      "defaultSessionName": "未命名工作会话",
+      "session": "会话",
+      "sessionName": "会话名称",
+      "sessionSwitcher": "会话切换",
+      "new": "新建",
+      "rename": "重命名",
+      "export": "导出",
+      "showCanvas": "显示画布",
+      "hideCanvas": "隐藏画布",
+      "leftEmptyTitle": "这是一个工作会话",
+      "leftEmptyDesc": "你可以让 AI 生成、改写、精简或结构化右侧内容。",
+      "chatInputPlaceholder": "描述你要生成或修改的内容（作用于右侧文档）",
+      "tabContent": "内容",
+      "tabStructure": "结构",
+      "tabEdits": "修改记录",
+      "tabAssets": "引用资料",
+      "markdownArtifact": "Markdown 文档",
+      "edit": "编辑",
+      "preview": "预览",
+      "previewMode": "预览模式",
+      "editMode": "编辑模式",
+      "saveEdit": "保存修改",
+      "rightEmptyMarkdown": "当前会话还没有文档内容",
+      "noHeadings": "暂无可用标题结构",
+      "noEdits": "暂无修改记录",
+      "assetsDesc": "附件与引用资料会显示在这里。",
+      "toastGenerationFailed": "生成失败",
+      "toastSessionCreated": "工作会话已创建",
+      "toastCreateSessionFailed": "创建工作会话失败",
+      "toastSessionRenamed": "会话已重命名",
+      "toastWsDisconnected": "连接已断开，请重连后重试",
+      "toastWaitForReply": "请等待当前回复完成",
+      "toastSendFailed": "消息发送失败",
+      "toastArtifactUpdated": "文档已更新",
+      "assistantPatchSummary": "助手更新了文档内容",
+      "inlineEditSummary": "手动内联编辑"
+    },
     "voice": {
       "title": "语音通话",
       "subtitle": "管理语音通话和音频通信",
@@ -841,7 +917,7 @@
       "viewDetails": "查看详情"
     }
   },
-  "agentos": {
+  "octopusos": {
     "tasks": {
       "create": "创建任务",
       "edit": "编辑任务",
@@ -1348,7 +1424,7 @@
       "welcomeTitle": "欢迎使用子图浏览器",
       "welcomeDescription": "输入种子实体以探索知识图谱",
       "search": "搜索",
-      "searchPlaceholder": "输入种子实体 (例如: 'AgentOS', 'Provider')...",
+      "searchPlaceholder": "输入种子实体 (例如: 'OctopusOS', 'Provider')...",
       "depth": "深度",
       "depth1": "1跳",
       "depth2": "2跳",
@@ -2310,7 +2386,7 @@
     },
     "capabilities": {
       "title": "能力治理",
-      "subtitle": "AgentOS v3 - 实时治理状态",
+      "subtitle": "OctopusOS v3 - 实时治理状态",
       "metricTotalCapabilities": "总能力数",
       "metricActiveAgents": "活跃Agent",
       "metricTodayInvocations": "今日调用",

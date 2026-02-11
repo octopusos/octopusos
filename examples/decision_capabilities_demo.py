@@ -1,5 +1,5 @@
 """
-Decision Capabilities Demo - AgentOS v3
+Decision Capabilities Demo - OctopusOS v3
 
 This example demonstrates the complete Decision workflow:
 1. Create an execution plan
@@ -15,7 +15,7 @@ Run this demo:
 import tempfile
 import os
 
-from agentos.core.capability.domains.decision import (
+from octopusos.core.capability.domains.decision import (
     get_plan_service,
     get_option_evaluator,
     get_decision_judge,
@@ -259,8 +259,8 @@ def demo_decision_selection():
 
     # Note: This is a demo workaround - in production, use singleton instances
     # that share the same database connection
-    from agentos.core.capability.domains.decision.option_evaluator import OptionEvaluator
-    from agentos.core.capability.domains.decision.judge import DecisionJudge
+    from octopusos.core.capability.domains.decision.option_evaluator import OptionEvaluator
+    from octopusos.core.capability.domains.decision.judge import DecisionJudge
 
     # Initialize services with same database
     evaluator = OptionEvaluator(db_path=db_path)
@@ -396,7 +396,7 @@ def main():
     print("\n")
     print("╔" + "═" * 68 + "╗")
     print("║" + " " * 68 + "║")
-    print("║" + "  AgentOS v3 Decision Capabilities - Demo".center(68) + "║")
+    print("║" + "  OctopusOS v3 Decision Capabilities - Demo".center(68) + "║")
     print("║" + " " * 68 + "║")
     print("╚" + "═" * 68 + "╝")
     print()

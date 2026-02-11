@@ -16,10 +16,10 @@ After (Task #8):
 - Categorized sections: Identity, Preferences, Facts
 """
 
-from agentos.core.chat.context_builder import ContextBuilder, ContextBudget
-from agentos.core.chat.service import ChatService
-from agentos.core.memory.service import MemoryService
-from agentos.core.project_kb.service import ProjectKBService
+from octopusos.core.chat.context_builder import ContextBuilder, ContextBudget
+from octopusos.core.chat.service import ChatService
+from octopusos.core.memory.service import MemoryService
+from octopusos.core.project_kb.service import ProjectKBService
 
 
 def demo_enhanced_memory_injection():
@@ -54,7 +54,7 @@ def demo_enhanced_memory_injection():
             "scope": "project",
             "type": "project_fact",
             "content": {
-                "summary": "This is an AgentOS project focused on AI agent orchestration"
+                "summary": "This is an OctopusOS project focused on AI agent orchestration"
             },
             "confidence": 0.8,
             "tags": ["project"]
@@ -69,7 +69,7 @@ def demo_enhanced_memory_injection():
                 "chunk_id": "chunk-001",
                 "path": "README.md",
                 "heading": "Getting Started",
-                "content": "AgentOS is a flexible agent operating system..."
+                "content": "OctopusOS is a flexible agent operating system..."
             }
         ],
         "summaries": [],
@@ -113,7 +113,7 @@ def demo_enhanced_memory_injection():
 
     except Exception as e:
         print(f"Demo error: {e}")
-        print("This is expected if running outside of full AgentOS environment.")
+        print("This is expected if running outside of full OctopusOS environment.")
         print("The key changes are in the prompt structure shown above.")
 
 
@@ -128,7 +128,7 @@ def show_before_after_comparison():
     print("BEFORE (Task #8):")
     print("-" * 80)
     print("""
-You are an AI assistant in AgentOS.
+You are an AI assistant in OctopusOS.
 
 Your capabilities:
 - Answer questions about the codebase
@@ -155,7 +155,7 @@ Respond concisely and helpfully.
     print("AFTER (Task #8):")
     print("-" * 80)
     print("""
-You are an AI assistant in AgentOS.
+You are an AI assistant in OctopusOS.
 
 ============================================================
 ⚠️  CRITICAL USER CONTEXT (MUST FOLLOW)

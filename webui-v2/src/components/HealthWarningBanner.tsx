@@ -10,13 +10,15 @@ import { K, useTextTranslation } from '@/ui/text'
 
 interface HealthWarningBannerProps {
   open: boolean
-  issues: string[]
-  hints: string[]
+  issues?: string[]
+  hints?: string[]
   onClose: () => void
 }
 
 export function HealthWarningBanner({ open, issues, hints, onClose }: HealthWarningBannerProps) {
   const { t } = useTextTranslation()
+  const issueList = Array.isArray(issues) ? issues : []
+  const hintList = Array.isArray(hints) ? hints : []
   return (
     <Collapse in={open}>
       <Alert
@@ -35,11 +37,11 @@ export function HealthWarningBanner({ open, issues, hints, onClose }: HealthWarn
       >
         <AlertTitle>{t(K.page.chat.healthWarningTitle)}</AlertTitle>
 
-        {issues.length > 0 && (
+        {issueList.length > 0 && (
           <>
             <strong>{t(K.page.chat.healthWarningIssuesLabel)}</strong>
             <List dense>
-              {issues.map((issue, idx) => (
+              {issueList.map((issue, idx) => (
                 <ListItem key={idx} sx={{ py: 0 }}>
                   <ListItemText primary={`• ${issue}`} />
                 </ListItem>
@@ -48,11 +50,11 @@ export function HealthWarningBanner({ open, issues, hints, onClose }: HealthWarn
           </>
         )}
 
-        {hints.length > 0 && (
+        {hintList.length > 0 && (
           <>
             <strong>{t(K.page.chat.healthWarningSuggestionsLabel)}</strong>
             <List dense>
-              {hints.map((hint, idx) => (
+              {hintList.map((hint, idx) => (
                 <ListItem key={idx} sx={{ py: 0 }}>
                   <ListItemText primary={`• ${hint}`} />
                 </ListItem>

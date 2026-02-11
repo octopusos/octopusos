@@ -1,0 +1,271 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://octopusos.local/schemas/deploy_report.v1.json",
+  "title": "Deployment Report v1",
+  "type": "object",
+  "required": ["meta", "plan", "execution", "audit", "verdict"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["report_id", "created_at", "project", "environment", "actor", "run"],
+      "properties": {
+        "report_id": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "project": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" },
+            "repo": { "type": "string" },
+            "commit": { "type": "string" },
+            "branch": { "type": "string" }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" },
+            "region": { "type": "string" },
+            "target": { "type": "string" }
+          }
+        },
+        "actor": {
+          "type": "object",
+          "required": ["requested_by", "mode"],
+          "properties": {
+            "requested_by": { "type": "string" },
+            "approved_by": { "type": "string" },
+            "mode": { "type": "string", "enum": ["dry_run", "execute"] }
+          }
+        },
+        "run": {
+          "type": "object",
+          "required": ["toolchain", "host", "duration_ms"],
+          "properties": {
+            "toolchain": { "type": "string" },
+            "host": { "type": "string" },
+            "duration_ms": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "required": ["summary", "steps", "risk_profile"],
+      "properties": {
+        "summary": { "type": "string" },
+        "risk_profile": {
+          "type": "object",
+          "required": ["max_risk", "requires_confirmation"],
+          "properties": {
+            "max_risk": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+            "requires_confirmation": { "type": "boolean" }
+          }
+        },
+        "steps": { "type": "array", "items": { "$ref": "#/$defs/step_plan" } }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "required": ["timeline", "artifacts", "changes", "tests"],
+      "properties": {
+        "timeline": { "type": "array", "items": { "$ref": "#/$defs/step_exec" } },
+        "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
+        "changes": {
+          "type": "object",
+          "required": ["files", "db", "infra"],
+          "properties": {
+            "files": { "type": "array", "items": { "$ref": "#/$defs/file_change" } },
+            "db": { "type": "array", "items": { "$ref": "#/$defs/db_change" } },
+            "infra": { "type": "array", "items": { "$ref": "#/$defs/infra_change" } }
+          }
+        },
+        "tests": {
+          "type": "object",
+          "required": ["summary", "suites"],
+          "properties": {
+            "summary": { "$ref": "#/$defs/test_summary" },
+            "suites": { "type": "array", "items": { "$ref": "#/$defs/test_suite" } }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "required": ["policy", "decisions", "evidence"],
+      "properties": {
+        "policy": {
+          "type": "object",
+          "required": ["policy_version", "gates"],
+          "properties": {
+            "policy_version": { "type": "string" },
+            "gates": { "type": "array", "items": { "$ref": "#/$defs/gate_result" } }
+          }
+        },
+        "decisions": { "type": "array", "items": { "$ref": "#/$defs/decision" } },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "required": ["status", "confidence", "recommendations"],
+      "properties": {
+        "status": { "type": "string", "enum": ["SUCCESS", "FAILED", "ABORTED", "PARTIAL"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "summary": { "type": "string" },
+        "recommendations": { "type": "array", "items": { "type": "string" } },
+        "rollback": { "$ref": "#/$defs/rollback_hint" }
+      }
+    }
+  },
+  "$defs": {
+    "step_plan": {
+      "type": "object",
+      "required": ["id", "name", "risk", "description"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "risk": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "description": { "type": "string" },
+        "constraints": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "step_exec": {
+      "type": "object",
+      "required": ["step_id", "status", "started_at", "ended_at"],
+      "properties": {
+        "step_id": { "type": "string" },
+        "status": { "type": "string", "enum": ["PASSED", "FAILED", "SKIPPED", "ABORTED"] },
+        "started_at": { "type": "string", "format": "date-time" },
+        "ended_at": { "type": "string", "format": "date-time" },
+        "logs": { "type": "array", "items": { "$ref": "#/$defs/artifact_ref" } },
+        "error": { "$ref": "#/$defs/error" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["kind", "path"],
+      "properties": {
+        "kind": { "type": "string" },
+        "path": { "type": "string" },
+        "sha256": { "type": "string" },
+        "size_bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "artifact_ref": {
+      "type": "object",
+      "required": ["path"],
+      "properties": { "path": { "type": "string" } }
+    },
+    "file_change": {
+      "type": "object",
+      "required": ["path", "op"],
+      "properties": {
+        "path": { "type": "string" },
+        "op": { "type": "string", "enum": ["ADD", "MODIFY", "DELETE", "RENAME"] },
+        "before_sha": { "type": "string" },
+        "after_sha": { "type": "string" }
+      }
+    },
+    "db_change": {
+      "type": "object",
+      "required": ["engine", "target", "change_type", "summary"],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "redis", "dynamodb"]
+        },
+        "target": { "type": "string" },
+        "change_type": { "type": "string", "enum": ["MIGRATION", "MAINTENANCE", "DATA_MIGRATION"] },
+        "summary": { "type": "string" },
+        "estimated_impact": { "$ref": "#/$defs/impact" },
+        "actual_impact": { "$ref": "#/$defs/impact" },
+        "rollback_possible": { "type": "boolean" },
+        "rollback_reference": { "type": "string" }
+      }
+    },
+    "infra_change": {
+      "type": "object",
+      "required": ["scope", "summary"],
+      "properties": {
+        "scope": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    },
+    "impact": {
+      "type": "object",
+      "properties": {
+        "tables": { "type": "array", "items": { "type": "string" } },
+        "rows": { "type": "integer", "minimum": 0 },
+        "locks": { "type": "string" },
+        "downtime": { "type": "string" }
+      }
+    },
+    "test_summary": {
+      "type": "object",
+      "required": ["passed", "failed", "skipped"],
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "test_suite": {
+      "type": "object",
+      "required": ["name", "status"],
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["PASSED", "FAILED", "SKIPPED"] },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "reports": { "type": "array", "items": { "$ref": "#/$defs/artifact_ref" } }
+      }
+    },
+    "gate_result": {
+      "type": "object",
+      "required": ["name", "status"],
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["PASSED", "FAILED", "WARN"] },
+        "details": { "type": "string" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "required": ["at", "risk", "decision", "reason"],
+      "properties": {
+        "at": { "type": "string", "format": "date-time" },
+        "risk": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "decision": { "type": "string", "enum": ["ALLOW", "CONFIRM", "BLOCK"] },
+        "reason": { "type": "string" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": { "type": "string" },
+        "ref": { "$ref": "#/$defs/artifact_ref" },
+        "note": { "type": "string" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "hint": { "type": "string" }
+      }
+    },
+    "rollback_hint": {
+      "type": "object",
+      "properties": {
+        "recommended_strategy": {
+          "type": "string",
+          "enum": ["ROLLBACK_MIGRATION", "RESTORE_SNAPSHOT", "HOTFIX_FORWARD", "TRAFFIC_SHIFT_BACK"]
+        },
+        "entry": { "type": "string" }
+      }
+    }
+  }
+}

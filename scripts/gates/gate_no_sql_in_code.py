@@ -5,7 +5,7 @@ This script ensures that all schema changes (CREATE TABLE, ALTER TABLE, etc.)
 are done through migration scripts, not directly in code.
 
 All schema modifications must go through:
-- agentos/store/migrations/*.py
+- octopusos/store/migrations/*.py
 
 Exit codes:
 - 0: Success (no SQL schema changes in code)
@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import List, Tuple, Dict
 
 # Root directory for scanning
-ROOT_DIR = Path(__file__).parent.parent.parent / "agentos"
+ROOT_DIR = Path(__file__).parent.parent.parent / "octopusos"
 
 # Forbidden SQL patterns (schema modifications)
 FORBIDDEN_SQL_PATTERNS = [
@@ -47,34 +47,34 @@ FORBIDDEN_SQL_PATTERNS = [
 # Whitelist: Files/paths that are allowed to contain SQL schema changes
 WHITELIST = {
     # Migration system (allowed)
-    "agentos/store/migrations",
-    "agentos/store/migrator.py",
-    "agentos/store/migration",
-    "agentos/cli/migrate.py",
+    "octopusos/store/migrations",
+    "octopusos/store/migrator.py",
+    "octopusos/store/migration",
+    "octopusos/cli/migrate.py",
 
     # Test files (allowed)
     "tests/",
     "test_",
 
     # Schema definition files (read-only, for documentation)
-    "agentos/core/brain/store/sqlite_schema.py",
+    "octopusos/core/brain/store/sqlite_schema.py",
 
     # Legacy files with embedded schema (to be migrated in future PRs)
-    "agentos/store/__init__.py",
+    "octopusos/store/__init__.py",
 
     # Module-specific databases (independent from registry.sqlite)
     # CommunicationOS has its own communication.db
-    "agentos/core/communication/storage/sqlite_store.py",
-    "agentos/core/communication/network_mode.py",
+    "octopusos/core/communication/storage/sqlite_store.py",
+    "octopusos/core/communication/network_mode.py",
 
     # DEPRECATED: WebUI sessions (already migrated to registry in v34)
-    "agentos/webui/store/session_store.py",
+    "octopusos/webui/store/session_store.py",
 
     # PRAGMA table_info for schema version detection (technical debt, acceptable)
     # These files use PRAGMA to detect schema version, not to modify schema
-    "agentos/core/lead/adapters/storage.py",
-    "agentos/core/supervisor/trace/stats.py",
-    "agentos/store/scripts/backfill_audit_decision_fields.py",
+    "octopusos/core/lead/adapters/storage.py",
+    "octopusos/core/supervisor/trace/stats.py",
+    "octopusos/store/scripts/backfill_audit_decision_fields.py",
 }
 
 # Directories to exclude from scanning
@@ -233,7 +233,7 @@ def print_report(violations: Dict[Path, Dict[str, List[Tuple[int, str]]]]) -> No
     print("=" * 80)
     print()
     print("1. Move all CREATE TABLE statements to migration scripts:")
-    print("   - Create new migration: agentos/store/migrations/00XX_description.py")
+    print("   - Create new migration: octopusos/store/migrations/00XX_description.py")
     print("   - Use migration template from existing migrations")
     print()
     print("2. Replace inline schema changes with migration-based approach:")

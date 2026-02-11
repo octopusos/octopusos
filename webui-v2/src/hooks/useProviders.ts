@@ -70,13 +70,17 @@ export function useProviders(options: UseProvidersOptions = {}): UseProvidersRet
         providersApi.getProvidersStatus(),
       ])
 
+      if (!Array.isArray(listResult.local) || !Array.isArray(listResult.cloud)) {
+        throw new Error('Invalid providers response: expected { local: [], cloud: [] }')
+      }
+
       // Create status lookup map
       const statusMap = new Map<string, ProviderStatusResponse>()
-      statusResult.providers.forEach((status) => {
+      statusResult.providers.forEach((status: ProviderStatusResponse) => {
         statusMap.set(status.id, status)
       })
 
-      // Merge list and status data
+      // Merge list and status data (new contract only: { local, cloud })
       const allProviders = [...listResult.local, ...listResult.cloud]
       const merged = allProviders.map((info) => {
         const status = statusMap.get(info.id)
@@ -85,12 +89,12 @@ export function useProviders(options: UseProvidersOptions = {}): UseProvidersRet
           label: info.label,
           type: info.type,
           state: status?.state || 'unknown',
-          endpoint: status?.endpoint || null,
+          endpoint: status?.endpoint ?? null,
           supports_models: info.supports_models,
           supports_start: info.supports_start,
-          latency_ms: status?.latency_ms || null,
-          last_ok_at: status?.last_ok_at || null,
-          last_error: status?.last_error || null,
+          latency_ms: status?.latency_ms ?? null,
+          last_ok_at: status?.last_ok_at ?? null,
+          last_error: status?.last_error ?? null,
         }
       })
 

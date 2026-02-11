@@ -13,7 +13,6 @@ import { DialogForm } from '@/ui/interaction'
 import { Box, Typography, TextField, Alert, CircularProgress } from '@/ui'
 import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { skillosService } from '@/services/skillos.service'
 
 interface ConfigureExtensionDialogProps {
   open: boolean
@@ -49,9 +48,8 @@ export function ConfigureExtensionDialog({
     setLoading(true)
     setError('')
     try {
-      const response = await skillosService.getExtensionConfig(extensionId)
-      const config = response.config || {}
-      setConfigText(JSON.stringify(config, null, 2))
+      setConfigText('{}')
+      setError('Extension config API is not available in current contract')
     } catch (err: any) {
       console.error('Failed to load config:', err)
       const errorMsg = err?.message || 'Failed to load configuration'
@@ -90,7 +88,10 @@ export function ConfigureExtensionDialog({
     setError('')
 
     try {
-      await skillosService.updateExtensionConfig(extensionId, parsedConfig)
+      if (!extensionId || !parsedConfig) {
+        throw new Error('Invalid configuration payload')
+      }
+      throw new Error('Extension config save API is not available in current contract')
       toast.success(t('page.extensions.configureSuccess'))
       onSuccess()
       handleCloseDialog()

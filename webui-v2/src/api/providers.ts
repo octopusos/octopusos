@@ -46,13 +46,16 @@ export interface ProvidersStatusResponse {
 
 export interface ModelInfoResponse {
   id: string
-  label: string
-  context_window: number | null
+  label?: string
+  name?: string
+  context_window?: number | null
+  metadata?: Record<string, unknown>
 }
 
 export interface ModelsListResponse {
-  provider_id: string
+  provider_id?: string
   models: ModelInfoResponse[]
+  total?: number
 }
 
 export interface InstanceConfigRequest {
@@ -129,14 +132,14 @@ class ProvidersApiClient {
 
   /**
    * P0-18: Create provider instance
-   * POST /api/providers/instances/{provider_id}
+   * POST /api/providers/{provider_id}/instances
    */
   async createInstance(
     providerId: string,
     config: InstanceConfigRequest
   ): Promise<InstanceConfigResponse> {
     const response = await httpClient.post<InstanceConfigResponse>(
-      `${this.baseUrl}/instances/${encodeURIComponent(providerId)}`,
+      `${this.baseUrl}/${encodeURIComponent(providerId)}/instances`,
       config
     )
     return response.data
@@ -144,7 +147,7 @@ class ProvidersApiClient {
 
   /**
    * P0-19: Update provider instance configuration
-   * PUT /api/providers/instances/{provider_id}/{instance_id}
+   * PUT /api/providers/{provider_id}/instances/{instance_id}
    */
   async updateInstance(
     providerId: string,
@@ -152,7 +155,7 @@ class ProvidersApiClient {
     config: InstanceConfigRequest
   ): Promise<InstanceConfigResponse> {
     const response = await httpClient.put<InstanceConfigResponse>(
-      `${this.baseUrl}/instances/${encodeURIComponent(providerId)}/${encodeURIComponent(instanceId)}`,
+      `${this.baseUrl}/${encodeURIComponent(providerId)}/instances/${encodeURIComponent(instanceId)}`,
       config
     )
     return response.data
@@ -160,11 +163,11 @@ class ProvidersApiClient {
 
   /**
    * Delete provider instance
-   * DELETE /api/providers/instances/{provider_id}/{instance_id}
+   * DELETE /api/providers/{provider_id}/instances/{instance_id}
    */
   async deleteInstance(providerId: string, instanceId: string): Promise<{ ok: boolean; instance_key: string }> {
     const response = await httpClient.delete<{ ok: boolean; instance_key: string }>(
-      `${this.baseUrl}/instances/${encodeURIComponent(providerId)}/${encodeURIComponent(instanceId)}`
+      `${this.baseUrl}/${encodeURIComponent(providerId)}/instances/${encodeURIComponent(instanceId)}`
     )
     return response.data
   }

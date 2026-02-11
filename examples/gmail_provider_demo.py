@@ -1,7 +1,7 @@
 """Gmail Provider Demo Script.
 
 This script demonstrates how to use the Gmail Provider for email communication
-in AgentOS CommunicationOS.
+in OctopusOS CommunicationOS.
 
 Features demonstrated:
 - OAuth 2.0 setup and token generation
@@ -40,16 +40,16 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.communicationos.providers.email.gmail_provider import (
+from octopusos.communicationos.providers.email.gmail_provider import (
     GmailProvider,
     generate_auth_url,
     exchange_code_for_tokens
 )
-from agentos.communicationos.providers.email import parse_email_address
+from octopusos.communicationos.providers.email import parse_email_address
 
 
 # Configuration file path
-CONFIG_FILE = Path.home() / ".agentos" / "gmail_config.json"
+CONFIG_FILE = Path.home() / ".octopusos" / "gmail_config.json"
 
 
 def load_config():
@@ -293,7 +293,7 @@ def send_message():
     # Get subject
     subject = input("Subject: ").strip()
     if not subject:
-        subject = "Test message from AgentOS"
+        subject = "Test message from OctopusOS"
 
     # Get body
     print("Body (press Ctrl+D or Ctrl+Z when done):")
@@ -307,7 +307,7 @@ def send_message():
 
     text_body = "\n".join(lines)
     if not text_body.strip():
-        text_body = "This is a test message from AgentOS Gmail Provider."
+        text_body = "This is a test message from OctopusOS Gmail Provider."
 
     print("\n📤 Sending message...")
 
@@ -444,7 +444,7 @@ def reply_to_messages():
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Gmail Provider Demo for AgentOS",
+        description="Gmail Provider Demo for OctopusOS",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -454,7 +454,7 @@ Examples:
   python examples/gmail_provider_demo.py reply   # Reply to messages
 
 For detailed setup instructions, see:
-  agentos/communicationos/providers/email/GMAIL_SETUP.md
+  octopusos/communicationos/providers/email/GMAIL_SETUP.md
         """
     )
 

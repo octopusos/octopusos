@@ -25,7 +25,7 @@ from pathlib import Path
 project_root = Path(__file__).parents[2]
 sys.path.insert(0, str(project_root))
 
-from agentos.ext.tools import DiffVerifier, ToolResult
+from octopusos.ext.tools import DiffVerifier, ToolResult
 
 
 def run_format_patch_normalize_gate():

@@ -24,7 +24,7 @@ except ImportError:
     print("❌ yaml not installed. Run: uv sync")
     sys.exit(1)
 
-SCHEMA_DIR = Path("agentos/schemas/execution")
+SCHEMA_DIR = Path("octopusos/schemas/execution")
 NL_DIR = Path("examples/nl")
 FIXTURES_DIR = Path("fixtures/intent_builder/invalid")
 
@@ -49,7 +49,7 @@ def create_schema_resolver(schema_dir):
     store = {uri: schema for uri, schema in schemas.items()}
     
     # 获取主 schema URI
-    base_uri = "agentos://schemas/execution/"
+    base_uri = "octopusos://schemas/execution/"
     
     resolver = RefResolver(base_uri, {}, store=store)
     return resolver

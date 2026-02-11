@@ -39,7 +39,7 @@ export function SessionList({
 }: SessionListProps) {
   const { t } = useTextTranslation()
   const theme = useTheme()
-  const agentos = (theme.palette as any).agentos
+  const octopusos = (theme.palette as any).octopusos
   const hasSelection = selectedSessions.length > 0
 
   return (
@@ -68,8 +68,8 @@ export function SessionList({
           py: 1,
           borderBottom: 1,
           borderColor: 'divider',
-          // ✅ 使用 AgentOS tokens 适配暗色主题
-          bgcolor: agentos?.bg?.section || 'background.default',
+          // ✅ 使用 OctopusOS tokens 适配暗色主题
+          bgcolor: octopusos?.bg?.section || 'background.default',
           gap: 0.5,
           flexWrap: 'nowrap', // 防止换行
         }}

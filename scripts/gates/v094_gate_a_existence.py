@@ -12,7 +12,7 @@ Validates:
 import sys
 from pathlib import Path
 
-SCHEMAS_DIR = Path("agentos/schemas/execution")
+SCHEMAS_DIR = Path("octopusos/schemas/execution")
 NL_DIR = Path("examples/nl")
 FIXTURES_DIR = Path("fixtures/intent_builder/invalid")
 DOCS_DIR = Path("docs/execution")

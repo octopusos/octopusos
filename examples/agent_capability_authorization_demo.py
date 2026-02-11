@@ -1,5 +1,5 @@
 """
-Agent Capability Authorization System Demo - AgentOS v3
+Agent Capability Authorization System Demo - OctopusOS v3
 Task #27: 重构Agent定义为Capability授权模型
 
 这个示例演示如何使用新的Agent Capability Authorization系统：
@@ -15,7 +15,7 @@ import tempfile
 import sqlite3
 from unittest.mock import Mock
 
-from agentos.core.agent import (
+from octopusos.core.agent import (
     AgentCapabilityProfile,
     CapabilityAuthorizer,
     AgentTierSystem,
@@ -327,7 +327,7 @@ def demo_escalation_engine(db_path):
     # Mock the grant capability call
     from unittest.mock import patch
 
-    with patch("agentos.core.capability.registry.get_capability_registry") as mock_get:
+    with patch("octopusos.core.capability.registry.get_capability_registry") as mock_get:
         mock_registry = Mock()
         mock_registry.grant_capability = Mock()
         mock_get.return_value = mock_registry
@@ -359,7 +359,7 @@ def demo_escalation_engine(db_path):
 def main():
     """Run all demos"""
     print("\n" + "=" * 70)
-    print("AgentOS v3 - Agent Capability Authorization System Demo")
+    print("OctopusOS v3 - Agent Capability Authorization System Demo")
     print("Task #27: 重构Agent定义为Capability授权模型")
     print("=" * 70)
 

@@ -15,7 +15,7 @@ import { DashboardGrid, StatCard, MetricCard, EmptyState, ErrorState, LoadingSta
 import { TrendingUpIcon, CheckCircleIcon, QueryStatsIcon, RefreshIcon } from '@/ui/icons'
 import { K, useTextTranslation } from '@/ui/text'
 import { brainosService } from '@/services'
-import type { GetInfoNeedMetricsResponse } from '@/services/brainos.service'
+import type { GetInfoNeedMetricsResponse } from '@services'
 
 /**
  * InfoNeedMetricsPage 组件
@@ -42,7 +42,7 @@ export default function InfoNeedMetricsPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await brainosService.getInfoNeedMetrics()
+      const response = await brainosService.infoNeedMetricsSummaryApiInfoNeedMetricsSummaryGet()
       setData(response)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load info need metrics'

@@ -26,7 +26,7 @@ def create_hello_extension(output_dir: Path) -> Path:
         "name": "Hello Extension",
         "version": "0.1.0",
         "description": "A minimal example extension that demonstrates the basic structure.",
-        "author": "AgentOS Team",
+        "author": "OctopusOS Team",
         "license": "MIT",
         "icon": "icon.png",
         "capabilities": [
@@ -39,7 +39,7 @@ def create_hello_extension(output_dir: Path) -> Path:
         "permissions_required": [],
         "platforms": ["linux", "darwin", "win32"],
         "install": {
-            "mode": "agentos_managed",
+            "mode": "octopusos_managed",
             "plan": "install/plan.yaml"
         },
         "docs": {
@@ -61,7 +61,7 @@ def create_hello_extension(output_dir: Path) -> Path:
   - action: write_config
     config_namespace: "demo.hello"
     data:
-      message: "Hello from AgentOS Extension System!"
+      message: "Hello from OctopusOS Extension System!"
       enabled: true
     description: "Save hello configuration"
 
@@ -101,7 +101,7 @@ uninstall:
       - command: /hello
         description: Display basic greeting
 
-      - command: /hello AgentOS
+      - command: /hello OctopusOS
         description: Greet with a custom name
 """
 
@@ -115,7 +115,7 @@ NAME="${1:-World}"
 
 echo "🎉 Hello, $NAME!"
 echo ""
-echo "This is a minimal extension example for AgentOS."
+echo "This is a minimal extension example for OctopusOS."
 echo "Extension ID: demo.hello"
 echo "Version: 0.1.0"
 echo ""
@@ -130,7 +130,7 @@ echo "To learn more, see: /extensions/demo.hello"
 
     usage_md = """# Hello Extension
 
-A minimal example extension for AgentOS.
+A minimal example extension for OctopusOS.
 
 ## Overview
 
@@ -154,9 +154,9 @@ Output: "Hello, World!"
 
 **Custom greeting:**
 ```
-/hello AgentOS
+/hello OctopusOS
 ```
-Output: "Hello, AgentOS!"
+Output: "Hello, OctopusOS!"
 
 ## Implementation Details
 
@@ -201,7 +201,7 @@ If the `/hello` command doesn't work:
 
 ## Support
 
-For help, visit: https://github.com/agentos/extensions
+For help, visit: https://github.com/octopusos/extensions
 """
 
     (docs_dir / "USAGE.md").write_text(usage_md)
@@ -255,7 +255,7 @@ def main():
     print(f"  - {hello_zip}")
     print()
     print("Next steps:")
-    print("  1. Start the AgentOS server: python -m agentos.webui.server")
+    print("  1. Start the OctopusOS server: python -m octopusos.webui.server")
     print("  2. Run acceptance tests: python acceptance_test.py")
     print()
 

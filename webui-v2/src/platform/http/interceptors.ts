@@ -10,7 +10,15 @@
  */
 
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { getAuthHeader } from '@platform/auth/adminToken';
+import { getAuthHeader, getToken } from '@platform/auth/adminToken';
+import { resolveWriteAccess } from '@platform/auth/writeAccess';
+import {
+  canAttachDaemonControlToken,
+  clearDaemonControlTokenCache,
+  getDaemonControlToken,
+  isDaemonControlRequest,
+} from '@platform/auth/daemonControlToken';
+import { isOperationAvailable, normalizeContractPath } from '@services/contract.capabilities.gen';
 import {
   ApiError,
   NetworkError,
@@ -19,6 +27,7 @@ import {
   ValidationError,
   ClientError,
   TimeoutError,
+  ContractOperationUnavailableError,
 } from './errors';
 
 /**
@@ -48,28 +57,116 @@ function requiresCSRFProtection(method?: string): boolean {
   return protectedMethods.includes(method.toUpperCase());
 }
 
+let csrfMissingWarned = false;
+let csrfBootstrapPromise: Promise<void> | null = null;
+
+async function ensureCSRFTokenCookie(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  if (csrfBootstrapPromise) {
+    await csrfBootstrapPromise;
+    return;
+  }
+
+  csrfBootstrapPromise = fetch('/api/csrf-token', {
+    method: 'GET',
+    credentials: 'include',
+  })
+    .then(() => undefined)
+    .catch(() => undefined)
+    .finally(() => {
+      csrfBootstrapPromise = null;
+    });
+
+  await csrfBootstrapPromise;
+}
+
+function assertWriteOperationAvailable(method: string | undefined, url: string | undefined): void {
+  const normalizedMethod = (method || '').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalizedMethod)) return;
+  const normalizedPath = normalizeContractPath(url || '/');
+  if (!normalizedPath.startsWith('/api/')) return;
+  if (isOperationAvailable(normalizedMethod, normalizedPath)) return;
+  throw new ContractOperationUnavailableError(normalizedMethod, normalizedPath, {
+    method: normalizedMethod,
+    path: normalizedPath,
+  });
+}
+
+function isWriteMethod(method?: string): boolean {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes((method || '').toUpperCase());
+}
+
+function isApiPath(url?: string): boolean {
+  return normalizeContractPath(url || '/').startsWith('/api/');
+}
+
 /**
  * Install request interceptor
  * Adds authentication headers, CSRF token, and logging
  */
 export function installRequestInterceptor(axiosInstance: AxiosInstance): void {
   axiosInstance.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
+    async (config: InternalAxiosRequestConfig) => {
+      assertWriteOperationAvailable(config.method, config.url);
+
+      if (isWriteMethod(config.method) && isApiPath(config.url)) {
+        const writeAccess = await resolveWriteAccess();
+        if (!writeAccess.canWrite) {
+          if (writeAccess.reason === 'TOKEN_REQUIRED' && typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('octopusos:admin-token-required', {
+                detail: { url: config.url, method: config.method },
+              })
+            );
+          }
+          throw new AuthError(
+            writeAccess.reason === 'TOKEN_REQUIRED'
+              ? 'Admin token required for write operation in remote mode'
+              : 'Write operation blocked by runtime mode policy',
+            403,
+            { reason: writeAccess.reason, mode: writeAccess.mode, method: config.method, url: config.url }
+          );
+        }
+      }
+
       // Auto-inject authorization header if token exists
       const authHeader = getAuthHeader();
       if (authHeader && !config.headers.Authorization) {
         config.headers.Authorization = authHeader;
       }
+      // Many write endpoints still require explicit X-Admin-Token.
+      // Inject it globally when available to avoid page-by-page header wiring.
+      const adminToken = getToken();
+      if (adminToken && isApiPath(config.url) && !config.headers['X-Admin-Token']) {
+        config.headers['X-Admin-Token'] = adminToken;
+      }
+
+      // Daemon control API uses a dedicated control token header.
+      if (
+        isDaemonControlRequest(config.url, config.baseURL) &&
+        canAttachDaemonControlToken(config.url, config.baseURL) &&
+        !config.headers['X-OctopusOS-Token']
+      ) {
+        const daemonToken = await getDaemonControlToken();
+        if (daemonToken) {
+          config.headers['X-OctopusOS-Token'] = daemonToken;
+        }
+      }
 
       // Auto-inject CSRF token for state-changing requests
       if (requiresCSRFProtection(config.method)) {
-        const csrfToken = getCSRFToken();
+        let csrfToken = getCSRFToken();
+        if (!csrfToken) {
+          await ensureCSRFTokenCookie();
+          csrfToken = getCSRFToken();
+        }
         if (csrfToken && !config.headers['X-CSRF-Token']) {
           config.headers['X-CSRF-Token'] = csrfToken;
           if (import.meta.env.DEV) {
             // console.log('[Platform/HTTP] 🔐 CSRF token injected:', csrfToken.substring(0, 8) + '...');
           }
-        } else if (!csrfToken) {
+        } else if (!csrfToken && !csrfMissingWarned) {
+          csrfMissingWarned = true;
           console.warn('[Platform/HTTP] No CSRF token found in cookie. Request may fail.');
         }
       }
@@ -87,7 +184,7 @@ export function installRequestInterceptor(axiosInstance: AxiosInstance): void {
       return config;
     },
     (error: AxiosError) => {
-      console.error('[Platform/HTTP] Request interceptor error:', error);
+      console.warn('[Platform/HTTP] Request interceptor error:', error);
       return Promise.reject(error);
     }
   );
@@ -101,6 +198,17 @@ export function installResponseInterceptor(axiosInstance: AxiosInstance): void {
   axiosInstance.interceptors.response.use(
     // Success handler - return data directly
     (response: AxiosResponse) => {
+      if (
+        response.status === 401 &&
+        isDaemonControlRequest(response.config.url, response.config.baseURL) &&
+        typeof response.data === 'object' &&
+        response.data !== null &&
+        typeof (response.data as Record<string, unknown>).detail === 'string' &&
+        ((response.data as Record<string, unknown>).detail as string).toLowerCase().includes('invalid control token')
+      ) {
+        clearDaemonControlTokenCache();
+      }
+
       if (import.meta.env.DEV) {
         const logData: any = {
           status: response.status,
@@ -118,11 +226,29 @@ export function installResponseInterceptor(axiosInstance: AxiosInstance): void {
     },
 
     // Error handler - transform to unified error types
-    (error: AxiosError) => {
+    (error: AxiosError | ApiError) => {
+      if (error instanceof ApiError) {
+        if (
+          error instanceof AuthError &&
+          typeof window !== 'undefined' &&
+          String(error.message || '').toLowerCase().includes('admin token')
+        ) {
+          window.dispatchEvent(new CustomEvent('octopusos:admin-token-required', { detail: { source: 'api-error' } }));
+        }
+        return Promise.reject(error);
+      }
       const transformedError = transformError(error);
 
+      if (
+        transformedError instanceof AuthError &&
+        typeof window !== 'undefined' &&
+        String(transformedError.message || '').toLowerCase().includes('admin token')
+      ) {
+        window.dispatchEvent(new CustomEvent('octopusos:admin-token-required', { detail: { source: 'http-response' } }));
+      }
+
       if (import.meta.env.DEV) {
-        console.error('[Platform/HTTP] Response error:', {
+        console.warn('[Platform/HTTP] Response error:', {
           type: transformedError.name,
           code: transformedError.code,
           status: transformedError.status,

@@ -10,7 +10,7 @@
 # 4. Export metrics
 #
 # Prerequisites:
-# - AgentOS WebUI running (python -m agentos.webui.app)
+# - OctopusOS WebUI running (python -m octopusos.webui.app)
 # - curl and jq installed
 #
 
@@ -33,7 +33,7 @@ if curl -s "${BASE_URL}/api/health" > /dev/null 2>&1; then
     echo -e "${GREEN}✓ WebUI is running${NC}"
 else
     echo -e "${YELLOW}✗ WebUI is not running. Please start it with:${NC}"
-    echo "    python -m agentos.webui.app"
+    echo "    python -m octopusos.webui.app"
     exit 1
 fi
 echo ""

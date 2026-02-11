@@ -1,869 +1,370 @@
-/**
- * ConfigEntriesPage - 配置项管理页面
- *
- * 🔒 Migration Contract 遵循规则：
- * - ✅ Text System: 使用 t('xxx')（G7-G8）
- * - ✅ Layout: usePageHeader + usePageActions（G10-G11）
- * - ✅ Table Contract: TableShell 三行结构
- * - 🚀 API Integration: 完整CRUD集成（P0+P1任务）
- * - ✅ Unified Exit: TableShell 封装
- * - ✅ i18n Compliance: 所有文本使用 page.configEntries.* 命名空间
- */
-
-import { useState, useEffect } from 'react'
-import { TextField, Select, MenuItem, Button } from '@/ui'
-// eslint-disable-next-line no-restricted-imports
-import { Grid } from '@mui/material'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Box, Button, MenuItem, Select, TextField, Typography } from '@/ui'
 import { usePageHeader } from '@/ui/layout'
-import { TableShell, FilterBar } from '@/ui'
-import { useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
-import { DialogForm, ConfirmDialog, DetailDrawer } from '@/ui/interaction'
-import type { GridColDef } from '@/ui'
-import {
-  systemService,
-  type ConfigEntry,
-  type ConfigEntryVersion,
-  type ConfigVersionDiff,
-} from '@services'
+import { K, useTextTranslation } from '@/ui/text'
+import { type ConfigAllowlistModule } from '@services'
+import { systemService } from '@services/system.service'
+import { useWriteGate } from '@/ui/guards/useWriteGate'
+import { WriteGateBanner } from '@/components/gates/WriteGateBanner'
 
+type ValueType = 'String' | 'Integer' | 'Boolean'
 
-/**
- * ConfigEntriesPage 组件
- *
- * 📊 Pattern: TablePage（FilterBar + Table + Pagination）
- * 🚀 API Integration: 完整CRUD集成
- */
+type RowState = {
+  key: string
+  value: unknown
+  source: string
+  schemaVersion: number
+  isSecret: boolean
+  secretConfigured: boolean
+  isHotReload: boolean
+}
+
+const KEY_TYPE_MAP: Record<string, ValueType> = {
+  'calls.enabled': 'Boolean',
+  'calls.recording.enabled': 'Boolean',
+  'calls.recording.retention_days': 'Integer',
+}
+
+function inferType(key: string): ValueType {
+  return KEY_TYPE_MAP[key] || 'String'
+}
+
+function asString(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return ''
+  }
+}
+
+function extractBackendError(err: unknown): string {
+  if (err instanceof Error) {
+    return err.message
+  }
+  return 'Request failed'
+}
+
+function extractBackendErrorCode(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null
+  const maybeResponse = (err as { response?: { data?: { error?: unknown } } }).response
+  const code = maybeResponse?.data?.error
+  return typeof code === 'string' ? code : null
+}
+
+function inferHotReloadForKey(key: string): boolean {
+  return !key.startsWith('runtime.')
+}
+
 export function ConfigEntriesContent({ readOnly = true }: { readOnly?: boolean }) {
-  // ===================================
-  // i18n Hook - Subscribe to language changes
-  // ===================================
   const { t } = useTextTranslation()
+  const [loading, setLoading] = useState(true)
+  const [modules, setModules] = useState<ConfigAllowlistModule[]>([])
+  const [activeModule, setActiveModule] = useState('')
+  const [rows, setRows] = useState<Record<string, RowState>>({})
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [savingKey, setSavingKey] = useState<string | null>(null)
+  const [scopeMode, setScopeMode] = useState<'global' | 'project'>('global')
+  const [projectId, setProjectId] = useState('')
 
-  // ===================================
-  // State - Data & Loading
-  // ===================================
-  const [entries, setEntries] = useState<ConfigEntry[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-
-  // ===================================
-  // State - Filters & Pagination
-  // ===================================
-  const [searchQuery, setSearchQuery] = useState('')
-  const [scopeFilter, setScopeFilter] = useState('all')
-  const [typeFilter, setTypeFilter] = useState('all')
-  const [page, setPage] = useState(0)
-  const [pageSize] = useState(25)
-
-  // ===================================
-  // State - Dialogs & Drawers
-  // ===================================
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [versionDialogOpen, setVersionDialogOpen] = useState(false)
-  const [diffDialogOpen, setDiffDialogOpen] = useState(false)
-  const [selectedEntry, setSelectedEntry] = useState<ConfigEntry | null>(null)
-
-  // ===================================
-  // State - Version History & Diff
-  // ===================================
-  const [versions, setVersions] = useState<ConfigEntryVersion[]>([])
-  const [versionsLoading, setVersionsLoading] = useState(false)
-  const [selectedFromVersion, setSelectedFromVersion] = useState<number | null>(null)
-  const [selectedToVersion, setSelectedToVersion] = useState<number | null>(null)
-  const [diff, setDiff] = useState<ConfigVersionDiff | null>(null)
-  const [diffLoading, setDiffLoading] = useState(false)
-
-  // ===================================
-  // State - Form Fields (Create)
-  // ===================================
-  const [entryKey, setEntryKey] = useState('')
-  const [entryValue, setEntryValue] = useState('')
-  const [entryType, setEntryType] = useState<'String' | 'Integer' | 'Boolean' | 'JSON'>('String')
-  const [entryScope, setEntryScope] = useState('')
-  const [entryDescription, setEntryDescription] = useState('')
-
-  // ===================================
-  // State - Form Fields (Edit)
-  // ===================================
-  const [editValue, setEditValue] = useState('')
-  const [editType, setEditType] = useState<'String' | 'Integer' | 'Boolean' | 'JSON'>('String')
-  const [editScope, setEditScope] = useState('')
-  const [editDescription, setEditDescription] = useState('')
-
-  // ===================================
-  // Data Fetching
-  // ===================================
-  const fetchEntries = async () => {
+  const loadData = async () => {
     setLoading(true)
     try {
-      const params = {
-        search: searchQuery || undefined,
-        scope: scopeFilter !== 'all' ? scopeFilter : undefined,
-        type: typeFilter !== 'all' ? typeFilter : undefined,
-        page: page + 1, // Backend uses 1-indexed
-        limit: pageSize,
+      const allowlistResp = await systemService.getConfigAllowlist()
+      const allowlistModules: ConfigAllowlistModule[] = allowlistResp.modules || []
+      setModules(allowlistModules)
+      const defaultModule = allowlistModules[0]?.module || ''
+      const resolvedActiveModule =
+        activeModule && allowlistModules.some((m) => m.module === activeModule)
+          ? activeModule
+          : defaultModule
+      if (resolvedActiveModule !== activeModule) {
+        setActiveModule(resolvedActiveModule)
       }
-      const response = await systemService.listConfigEntries(params)
-      setEntries(response.entries)
-      setTotal(response.total)
+
+      const selectedModule = allowlistModules.find((m) => m.module === resolvedActiveModule)
+      if (!selectedModule) {
+        setRows({})
+        setDrafts({})
+        return
+      }
+
+      const scopedProjectId =
+        scopeMode === 'project' && projectId.trim().length > 0 ? projectId.trim() : undefined
+      const moduleKeys = [...selectedModule.keys, ...selectedModule.secrets]
+
+      const nextRows: Record<string, RowState> = {}
+      const nextDrafts: Record<string, string> = {}
+      await Promise.all(
+        moduleKeys.map(async (key) => {
+          const resolved = await systemService.resolveConfig(key, scopedProjectId)
+          const isSecret = selectedModule.secrets.includes(key)
+          let secretConfigured = false
+
+          if (isSecret || key.endsWith('_ref')) {
+            try {
+              const secretStatus = await systemService.getConfigSecretStatus(key, scopedProjectId)
+              secretConfigured = Boolean(secretStatus.configured)
+            } catch {
+              secretConfigured = false
+            }
+          }
+
+          nextRows[key] = {
+            key,
+            value: resolved.value,
+            source: resolved.source || 'default',
+            schemaVersion: resolved.schema_version || 1,
+            isSecret,
+            secretConfigured,
+            isHotReload: true,
+          }
+          nextDrafts[key] = asString(resolved.value)
+        })
+      )
+
+      setRows(nextRows)
+      setDrafts(nextDrafts)
     } catch (err) {
-      console.error('Failed to fetch config entries:', err)
-      toast.error(t('common.errorLoadData'))
+      toast.error(extractBackendError(err))
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchEntries()
+    loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize])
+  }, [scopeMode, projectId, activeModule])
 
-  // ===================================
-  // Export Handler
-  // ===================================
-  const handleExport = () => {
+  const currentModule = useMemo(
+    () => modules.find((m: any) => m.module === activeModule) || modules[0],
+    [modules, activeModule]
+  )
+
+  const moduleKeys = useMemo(() => {
+    if (!currentModule) return []
+    return [...currentModule.keys, ...currentModule.secrets]
+  }, [currentModule])
+
+  const submitUpdate = async (key: string, value: string, isSecret: boolean) => {
+    if (readOnly) {
+      toast.info(t('common.readOnly'))
+      return
+    }
+    const valueType = isSecret ? 'String' : inferType(key)
+    let payloadValue: string | number | boolean = value
+    if (valueType === 'Boolean') {
+      payloadValue = String(value).toLowerCase() === 'true'
+    } else if (valueType === 'Integer') {
+      payloadValue = Number(value)
+    }
+
+    setSavingKey(key)
     try {
-      // Prepare export data with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)
-      const exportData = {
-        exportedAt: new Date().toISOString(),
-        totalEntries: entries.length,
-        entries: entries.map((entry) => ({
-          id: entry.id,
-          key: entry.key,
-          value: entry.value,
-          type: entry.type,
-          scope: entry.scope,
-          description: entry.description,
-          lastModified: entry.lastModified,
-        })),
+      const scopedProjectId =
+        scopeMode === 'project' && projectId.trim().length > 0 ? projectId.trim() : undefined
+      const payloadBase = {
+        key,
+        value: payloadValue,
+        type: valueType,
+        scope: scopeMode,
+        project_id: scopedProjectId,
+        is_secret: isSecret,
+        is_hot_reload: inferHotReloadForKey(key),
       }
 
-      // Create blob and download
-      const jsonString = JSON.stringify(exportData, null, 2)
-      const blob = new Blob([jsonString], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `config_export_${timestamp}.json`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Failed to export config entries:', error)
-      toast.error(t('common.errorSave'))
-    }
-  }
+      try {
+        await systemService.createConfigEntry(payloadBase as any)
+      } catch (err) {
+        const code = extractBackendErrorCode(err)
+        if (code === 'CONFIG_REQUIRES_DRY_RUN') {
+          await systemService.createConfigEntry({ ...(payloadBase as any), dry_run: true })
+          await systemService.createConfigEntry({ ...(payloadBase as any), confirm: true })
+        } else if (code === 'CONFIG_HIGH_RISK_CONFIRMATION_REQUIRED') {
+          await systemService.createConfigEntry({ ...(payloadBase as any), confirm: true })
+        } else {
+          throw err
+        }
+      }
 
-  const isReadOnly = readOnly
-
-  // ===================================
-  // CRUD Handlers
-  // ===================================
-  const handleCreateSubmit = async () => {
-    if (isReadOnly) {
-      toast.info(t('common.readOnly'))
-      return
-    }
-    try {
-      await systemService.createConfigEntry({
-        key: entryKey,
-        value: entryValue,
-        type: entryType,
-        scope: entryScope || undefined,
-        description: entryDescription || undefined,
-      })
-      setCreateDialogOpen(false)
-      // Reset form
-      setEntryKey('')
-      setEntryValue('')
-      setEntryType('String')
-      setEntryScope('')
-      setEntryDescription('')
-      // Refresh list
-      await fetchEntries()
-    } catch (error) {
-      console.error('Failed to create config entry:', error)
-      toast.error(t('common.errorSave'))
-    }
-  }
-
-  const handleEditSubmit = async () => {
-    if (!selectedEntry) return
-    if (isReadOnly) {
-      toast.info(t('common.readOnly'))
-      return
-    }
-    try {
-      await systemService.updateConfigEntry(selectedEntry.id, {
-        value: editValue,
-        type: editType,
-        scope: editScope || undefined,
-        description: editDescription || undefined,
-      })
-      setEditDialogOpen(false)
-      setDrawerOpen(false)
-      // Refresh list
-      await fetchEntries()
-    } catch (error) {
-      console.error('Failed to update config entry:', error)
-      toast.error(t('common.errorSave'))
-    }
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (!selectedEntry) return
-    if (isReadOnly) {
-      toast.info(t('common.readOnly'))
-      return
-    }
-    try {
-      await systemService.deleteConfigEntry(selectedEntry.id)
-      setDeleteDialogOpen(false)
-      setDrawerOpen(false)
-      // Refresh list
-      await fetchEntries()
-    } catch (error) {
-      console.error('Failed to delete config entry:', error)
-      toast.error(t('common.errorDelete'))
-    }
-  }
-
-  const handleRowClick = (row: ConfigEntry) => {
-    setSelectedEntry(row)
-    setDrawerOpen(true)
-  }
-
-  const handleEditClick = () => {
-    if (!selectedEntry) return
-    if (isReadOnly) {
-      toast.info(t('common.readOnly'))
-      return
-    }
-    setEditValue(selectedEntry.value)
-    setEditType(selectedEntry.type)
-    setEditScope(selectedEntry.scope)
-    setEditDescription(selectedEntry.description)
-    setEditDialogOpen(true)
-  }
-
-  const handleDeleteClick = () => {
-    if (isReadOnly) {
-      toast.info(t('common.readOnly'))
-      return
-    }
-    setDeleteDialogOpen(true)
-  }
-
-  const handleApplyFilters = () => {
-    setPage(0) // Reset to first page
-    fetchEntries()
-  }
-
-  const handleResetFilters = () => {
-    setSearchQuery('')
-    setScopeFilter('all')
-    setTypeFilter('all')
-    setPage(0)
-  }
-
-  // ===================================
-  // Version History Handlers
-  // ===================================
-  const handleViewVersions = async () => {
-    if (!selectedEntry) return
-    setVersionsLoading(true)
-    try {
-      const response = await systemService.listConfigVersions(selectedEntry.id)
-      setVersions(response.versions)
-      setVersionDialogOpen(true)
-    } catch (error) {
-      console.error('Failed to fetch version history:', error)
-      toast.error(t('page.configEntries.toastVersionHistoryError'))
+      toast.success(t('common.success'))
+      await loadData()
+    } catch (err) {
+      toast.error(extractBackendError(err))
     } finally {
-      setVersionsLoading(false)
+      setSavingKey(null)
     }
   }
 
-  const handleCompareVersions = async () => {
-    if (!selectedEntry || selectedFromVersion === null || selectedToVersion === null) {
-      toast.error(t('page.configEntries.toastSelectVersions'))
-      return
-    }
-    setDiffLoading(true)
-    try {
-      const response = await systemService.getConfigDiff(
-        selectedEntry.id,
-        selectedFromVersion,
-        selectedToVersion
-      )
-      setDiff(response.diff)
-      setDiffDialogOpen(true)
-    } catch (error) {
-      console.error('Failed to fetch version diff:', error)
-      toast.error(t('page.configEntries.toastDiffError'))
-    } finally {
-      setDiffLoading(false)
-    }
+  if (loading) {
+    return <Typography>{t('common.loading')}</Typography>
   }
 
-  // ===================================
-  // Table Columns Definition
-  // ===================================
-  const columns: GridColDef[] = [
-    {
-      field: 'id',
-      headerName: t('page.configEntries.columnId'),
-      width: 70,
-    },
-    {
-      field: 'key',
-      headerName: t('page.configEntries.columnKey'),
-      flex: 1,
-      minWidth: 200,
-    },
-    {
-      field: 'value',
-      headerName: t('page.configEntries.columnValue'),
-      width: 150,
-    },
-    {
-      field: 'type',
-      headerName: t('page.configEntries.columnType'),
-      width: 100,
-    },
-    {
-      field: 'scope',
-      headerName: t('page.configEntries.columnScope'),
-      width: 120,
-    },
-    {
-      field: 'description',
-      headerName: t('page.configEntries.columnDescription'),
-      flex: 2,
-      minWidth: 250,
-    },
-    {
-      field: 'lastModified',
-      headerName: t('page.configEntries.columnLastModified'),
-      width: 180,
-    },
-  ]
-
-  // ===================================
-  // Render: TableShell Pattern
-  // ===================================
   return (
-    <>
-    <TableShell
-      loading={loading}
-      rows={entries}
-      columns={columns}
-      filterBar={
-        <FilterBar
-          filters={[
-            {
-              width: 6,
-              component: (
-                <TextField
-                  label={t('common.search')}
-                  placeholder={t('page.configEntries.searchPlaceholder')}
-                  fullWidth
-                  size='small' // eslint-disable-line react/jsx-no-literals
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              ),
-            },
-            {
-              width: 3,
-              component: (
-                <Select
-                  fullWidth
-                  size='small' // eslint-disable-line react/jsx-no-literals
-                  value={scopeFilter}
-                  onChange={(e) => setScopeFilter(e.target.value)}
-                >
-                  {/* eslint-disable react/jsx-no-literals */}
-                  <MenuItem value='all'>{t('page.configEntries.scopeAll')}</MenuItem>
-                  <MenuItem value='System'>{t('page.configEntries.scopeSystem')}</MenuItem>
-                  <MenuItem value='API'>{t('page.configEntries.scopeApi')}</MenuItem>
-                  <MenuItem value='UI'>{t('page.configEntries.scopeUi')}</MenuItem>
-                  <MenuItem value='Security'>{t('page.configEntries.scopeSecurity')}</MenuItem>
-                  <MenuItem value='LLM'>{t('page.configEntries.scopeLlm')}</MenuItem>
-                  <MenuItem value='Demo'>{t('page.configEntries.scopeDemo')}</MenuItem>
-                  {/* eslint-enable react/jsx-no-literals */}
-                </Select>
-              ),
-            },
-            {
-              width: 3,
-              component: (
-                <Select
-                  fullWidth
-                  size='small' // eslint-disable-line react/jsx-no-literals
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                >
-                  {/* eslint-disable react/jsx-no-literals */}
-                  <MenuItem value='all'>{t('page.configEntries.typeAll')}</MenuItem>
-                  <MenuItem value='String'>{t('page.configEntries.typeString')}</MenuItem>
-                  <MenuItem value='Integer'>{t('page.configEntries.typeInteger')}</MenuItem>
-                  <MenuItem value='Boolean'>{t('page.configEntries.typeBoolean')}</MenuItem>
-                  <MenuItem value='JSON'>{t('page.configEntries.typeJson')}</MenuItem>
-                  {/* eslint-enable react/jsx-no-literals */}
-                </Select>
-              ),
-            },
-          ]}
-          actions={[
-            {
-              key: 'reset',
-              label: t('common.reset'),
-              onClick: handleResetFilters,
-            },
-            {
-              key: 'apply',
-              label: t('common.apply'),
-              variant: 'contained',
-              onClick: handleApplyFilters,
-            },
-            {
-              key: 'export',
-              label: t('page.configEntries.exportConfig'),
-              variant: 'outlined',
-              onClick: handleExport,
-            },
-            {
-              key: 'create',
-              label: (
-                <span title={t('common.readOnly')}>{t('page.configEntries.addEntry')}</span>
-              ),
-              variant: 'contained',
-              disabled: true,
-              onClick: () => {},
-            },
-          ]}
-        />
-      }
-      emptyState={{
-        title: t('page.configEntries.noEntries'),
-        description: t('page.configEntries.noEntriesDesc'),
-        actions: [
-          {
-            label: t('page.configEntries.addEntry'),
-            onClick: () => {},
-            disabled: true,
-            variant: 'contained',
-          },
-        ],
-      }}
-      pagination={{
-        page,
-        pageSize,
-        total,
-        onPageChange: (newPage) => setPage(newPage),
-      }}
-      onRowClick={handleRowClick}
-    />
-
-    {/* Create Config Entry Dialog */}
-    <DialogForm
-      open={createDialogOpen}
-      onClose={() => setCreateDialogOpen(false)}
-      title={t('page.configEntries.dialogTitle')}
-      submitText={t('common.create')}
-      cancelText={t('common.cancel')}
-      onSubmit={handleCreateSubmit}
-      submitDisabled={!entryKey.trim() || !entryValue.trim()}
-    >
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
+    <Box sx={{ mt: 2 }}>
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+        <Select
+          size="small"
+          value={scopeMode}
+          onChange={(e) => setScopeMode((e.target.value as 'global' | 'project') || 'global')}
+          sx={{ minWidth: 180 }}
+        >
+          <MenuItem value="global">{t(K.page.configEntries.scopeGlobal)}</MenuItem>
+          <MenuItem value="project">{t(K.page.configEntries.scopeProject)}</MenuItem>
+        </Select>
+        {scopeMode === 'project' && (
           <TextField
-            label={t('page.configEntries.fieldKey')}
-            placeholder={t('page.configEntries.fieldKeyPlaceholder')}
-            value={entryKey}
-            onChange={(e) => setEntryKey(e.target.value)}
-            fullWidth
-            required
-            autoFocus
+            size="small"
+            placeholder={t(K.page.configEntries.projectIdPlaceholder)}
+            value={projectId}
+            onChange={(e) => setProjectId(e.target.value)}
+            sx={{ minWidth: 220 }}
           />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('page.configEntries.fieldValue')}
-            placeholder={t('page.configEntries.fieldValuePlaceholder')}
-            value={entryValue}
-            onChange={(e) => setEntryValue(e.target.value)}
-            fullWidth
-            required
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <Select
-            label={t('page.configEntries.fieldType')}
-            fullWidth
-            value={entryType}
-            onChange={(e) => setEntryType(e.target.value as 'String' | 'Integer' | 'Boolean' | 'JSON')}
-          >
-            {/* eslint-disable react/jsx-no-literals */}
-            <MenuItem value='String'>{t('page.configEntries.typeString')}</MenuItem>
-            <MenuItem value='Integer'>{t('page.configEntries.typeInteger')}</MenuItem>
-            <MenuItem value='Boolean'>{t('page.configEntries.typeBoolean')}</MenuItem>
-            <MenuItem value='JSON'>{t('page.configEntries.typeJson')}</MenuItem>
-            {/* eslint-enable react/jsx-no-literals */}
-          </Select>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('page.configEntries.fieldScope')}
-            placeholder={t('page.configEntries.fieldScopePlaceholder')}
-            value={entryScope}
-            onChange={(e) => setEntryScope(e.target.value)}
-            fullWidth
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('page.configEntries.fieldDescription')}
-            placeholder={t('page.configEntries.fieldDescriptionPlaceholder')}
-            value={entryDescription}
-            onChange={(e) => setEntryDescription(e.target.value)}
-            fullWidth
-            multiline
-            rows={2}
-          />
-        </Grid>
-      </Grid>
-    </DialogForm>
-
-    {/* Edit Config Entry Dialog */}
-    <DialogForm
-      open={editDialogOpen}
-      onClose={() => setEditDialogOpen(false)}
-      title={t('page.configEntries.dialogEditTitle')}
-      submitText={t('common.save')}
-      cancelText={t('common.cancel')}
-      onSubmit={handleEditSubmit}
-      submitDisabled={!editValue.trim()}
-    >
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <TextField
-            label={t('page.configEntries.fieldValue')}
-            placeholder={t('page.configEntries.fieldValuePlaceholder')}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            fullWidth
-            required
-            autoFocus
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <Select
-            label={t('page.configEntries.fieldType')}
-            fullWidth
-            value={editType}
-            onChange={(e) => setEditType(e.target.value as 'String' | 'Integer' | 'Boolean' | 'JSON')}
-          >
-            {/* eslint-disable react/jsx-no-literals */}
-            <MenuItem value='String'>{t('page.configEntries.typeString')}</MenuItem>
-            <MenuItem value='Integer'>{t('page.configEntries.typeInteger')}</MenuItem>
-            <MenuItem value='Boolean'>{t('page.configEntries.typeBoolean')}</MenuItem>
-            <MenuItem value='JSON'>{t('page.configEntries.typeJson')}</MenuItem>
-            {/* eslint-enable react/jsx-no-literals */}
-          </Select>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('page.configEntries.fieldScope')}
-            placeholder={t('page.configEntries.fieldScopePlaceholder')}
-            value={editScope}
-            onChange={(e) => setEditScope(e.target.value)}
-            fullWidth
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('page.configEntries.fieldDescription')}
-            placeholder={t('page.configEntries.fieldDescriptionPlaceholder')}
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            fullWidth
-            multiline
-            rows={2}
-          />
-        </Grid>
-      </Grid>
-    </DialogForm>
-
-    {/* Delete Confirmation Dialog */}
-    <ConfirmDialog
-      open={deleteDialogOpen}
-      onClose={() => setDeleteDialogOpen(false)}
-      onConfirm={handleDeleteConfirm}
-      title={t('page.configEntries.deleteDialogTitle')}
-      message={t('page.configEntries.deleteDialogMessage', { key: selectedEntry?.key || '' })}
-      confirmText={t('common.delete')}
-      cancelText={t('common.cancel')}
-      color='error' // eslint-disable-line react/jsx-no-literals
-    />
-
-    {/* Detail Drawer */}
-    <DetailDrawer
-      open={drawerOpen}
-      onClose={() => setDrawerOpen(false)}
-      title={selectedEntry?.key || ''}
-      actions={
-        <>
+        )}
+        {modules.map((m) => (
           <Button
-            variant='outlined' // eslint-disable-line react/jsx-no-literals
-            onClick={handleViewVersions}
-            disabled={versionsLoading}
+            key={m.module}
+            variant={activeModule === m.module ? 'contained' : 'outlined'}
+            onClick={() => setActiveModule(m.module)}
           >
-            {versionsLoading ? t('common.loading') : t('page.configEntries.viewVersions')}
+            {m.title}
           </Button>
-          <Button
-            variant='outlined' // eslint-disable-line react/jsx-no-literals
-            onClick={handleEditClick}
-            disabled={isReadOnly}
-            title={isReadOnly ? t('common.readOnly') : undefined}
-          >
-            {t('common.edit')}
-          </Button>
-          <Button
-            variant='outlined' // eslint-disable-line react/jsx-no-literals
-            color='error' // eslint-disable-line react/jsx-no-literals
-            onClick={handleDeleteClick}
-            disabled={isReadOnly}
-            title={isReadOnly ? t('common.readOnly') : undefined}
-          >
-            {t('common.delete')}
-          </Button>
-        </>
-      }
-    >
-      {selectedEntry && (
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              label={t('page.configEntries.columnId')}
-              value={selectedEntry.id}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label={t('page.configEntries.columnKey')}
-              value={selectedEntry.key}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label={t('page.configEntries.columnValue')}
-              value={selectedEntry.value}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              label={t('page.configEntries.columnType')}
-              value={selectedEntry.type}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              label={t('page.configEntries.columnScope')}
-              value={selectedEntry.scope}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label={t('page.configEntries.columnDescription')}
-              value={selectedEntry.description}
-              fullWidth
-              multiline
-              rows={3}
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              label={t('page.configEntries.columnLastModified')}
-              value={selectedEntry.lastModified}
-              fullWidth
-              disabled
-            />
-          </Grid>
-        </Grid>
+        ))}
+      </Box>
+
+      {!currentModule && <Typography>{t(K.page.configEntries.noAllowlistModules)}</Typography>}
+      {currentModule && (
+        <Box sx={{ display: 'grid', gap: 1 }}>
+          {moduleKeys.map((key) => {
+            const row = rows[key]
+            if (!row) return null
+            const valueType = inferType(key)
+            return (
+              <Box
+                key={key}
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  p: 1.5,
+                  display: 'grid',
+                  gap: 1,
+                }}
+              >
+                <Typography sx={{ fontWeight: 600 }}>{key}</Typography>
+                <Typography variant="body2">
+                  {t(K.page.configEntries.sourceLabel)}: {row.source} | {t(K.page.configEntries.schemaLabel)}: {row.schemaVersion} | {row.isHotReload ? t(K.page.configEntries.reloadHot) : t(K.page.configEntries.reloadRestart)}
+                </Typography>
+                {row.isSecret ? (
+                  <>
+                    <Typography variant="body2">
+                      {t(K.page.configEntries.statusLabel)}: {row.secretConfigured ? t(K.page.configEntries.configured) : t(K.page.configEntries.notConfigured)}
+                    </Typography>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      placeholder={t(K.page.configEntries.secretRefPlaceholder)}
+                      value={drafts[key] || ''}
+                      onChange={(e) => setDrafts((prev) => ({ ...prev, [key]: e.target.value }))}
+                      disabled={readOnly}
+                    />
+                    <Box>
+                      <Button
+                        variant="contained"
+                        disabled={readOnly || savingKey === key || !drafts[key] || (scopeMode === 'project' && !projectId)}
+                        onClick={() => submitUpdate(key, drafts[key] || '', true)}
+                      >
+                        {savingKey === key ? t('common.loading') : t(K.page.configEntries.updateSecretRef)}
+                      </Button>
+                    </Box>
+                  </>
+                ) : (
+                  <>
+                    {valueType === 'Boolean' ? (
+                      <Select
+                        size="small"
+                        fullWidth
+                        value={String(drafts[key] ?? asString(row.value))}
+                        onChange={(e) => setDrafts((prev) => ({ ...prev, [key]: e.target.value }))}
+                        disabled={readOnly}
+                      >
+                        <MenuItem value="true">true</MenuItem>
+                        <MenuItem value="false">false</MenuItem>
+                      </Select>
+                    ) : (
+                      <TextField
+                        size="small"
+                        fullWidth
+                        value={drafts[key] ?? asString(row.value)}
+                        type={valueType === 'Integer' ? 'number' : 'text'}
+                        onChange={(e) => setDrafts((prev) => ({ ...prev, [key]: e.target.value }))}
+                        disabled={readOnly}
+                      />
+                    )}
+                    <Box>
+                      <Button
+                        variant="contained"
+                        disabled={readOnly || savingKey === key || (scopeMode === 'project' && !projectId)}
+                        onClick={() => submitUpdate(key, drafts[key] ?? asString(row.value), false)}
+                      >
+                        {savingKey === key ? t('common.loading') : t('common.save')}
+                      </Button>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            )
+          })}
+        </Box>
       )}
-    </DetailDrawer>
-
-    {/* Version History Dialog */}
-    <DialogForm
-      open={versionDialogOpen}
-      onClose={() => {
-        setVersionDialogOpen(false)
-        setSelectedFromVersion(null)
-        setSelectedToVersion(null)
-      }}
-      title={t('page.configEntries.versionHistoryTitle')}
-      submitText={t('page.configEntries.compareVersions')}
-      cancelText={t('common.close')}
-      onSubmit={handleCompareVersions}
-      submitDisabled={selectedFromVersion === null || selectedToVersion === null || diffLoading}
-      maxWidth='md' // eslint-disable-line react/jsx-no-literals
-    >
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <Select
-            label={t('page.configEntries.fromVersion')}
-            fullWidth
-            value={selectedFromVersion ?? ''}
-            onChange={(e) => setSelectedFromVersion(Number(e.target.value))}
-          >
-            {/* eslint-disable react/jsx-no-literals */}
-            <MenuItem value='' disabled>
-              {t('page.configEntries.selectVersion')}
-            </MenuItem>
-            {versions.map((v) => (
-              <MenuItem key={v.id} value={v.version}>
-                v{v.version} - {v.changed_at} ({v.changed_by})
-              </MenuItem>
-            ))}
-            {/* eslint-enable react/jsx-no-literals */}
-          </Select>
-        </Grid>
-        <Grid item xs={12}>
-          <Select
-            label={t('page.configEntries.toVersion')}
-            fullWidth
-            value={selectedToVersion ?? ''}
-            onChange={(e) => setSelectedToVersion(Number(e.target.value))}
-          >
-            {/* eslint-disable react/jsx-no-literals */}
-            <MenuItem value='' disabled>
-              {t('page.configEntries.selectVersion')}
-            </MenuItem>
-            {versions.map((v) => (
-              <MenuItem key={v.id} value={v.version}>
-                v{v.version} - {v.changed_at} ({v.changed_by})
-              </MenuItem>
-            ))}
-            {/* eslint-enable react/jsx-no-literals */}
-          </Select>
-        </Grid>
-      </Grid>
-    </DialogForm>
-
-    {/* Diff Viewer Dialog */}
-    <DialogForm
-      open={diffDialogOpen}
-      onClose={() => {
-        setDiffDialogOpen(false)
-        setDiff(null)
-      }}
-      title={t('page.configEntries.diffViewerTitle')}
-      submitText={t('common.close')}
-      cancelText='' // eslint-disable-line react/jsx-no-literals
-      onSubmit={() => {
-        setDiffDialogOpen(false)
-        setDiff(null)
-      }}
-      maxWidth='lg' // eslint-disable-line react/jsx-no-literals
-    >
-      {diff && (
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <TextField
-              label={t('page.configEntries.columnKey')}
-              value={diff.entry_key}
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              label={t('page.configEntries.fromVersionLabel')}
-              value={'v' + diff.from_version}  
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              label={t('page.configEntries.toVersionLabel')}
-              value={'v' + diff.to_version}  
-              fullWidth
-              disabled
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <div style={{
-              backgroundColor: '#f5f5f5',
-              border: '1px solid #e0e0e0',
-              borderRadius: '4px',
-              padding: '16px',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              maxHeight: '400px',
-              overflow: 'auto',
-            }}>
-              {diff.diff_lines.map((line, index) => (
-                <div
-                  key={index}
-                  style={{
-                    backgroundColor:
-                      line.type === 'added'
-                        ? '#e6ffed'
-                        : line.type === 'removed'
-                        ? '#ffebe9'
-                        : 'transparent',
-                    color:
-                      line.type === 'added'
-                        ? '#22863a'
-                        : line.type === 'removed'
-                        ? '#cb2431'
-                        : '#24292e',
-                    padding: '2px 8px',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-all',
-                  }}
-                >
-                  {line.type === 'added' ? '+ ' : line.type === 'removed' ? '- ' : '  '}
-                  {line.content}
-                </div>
-              ))}
-            </div>
-          </Grid>
-        </Grid>
-      )}
-    </DialogForm>
-    </>
+    </Box>
   )
 }
 
 export default function ConfigEntriesPage() {
   const { t } = useTextTranslation()
-
+  const writeGate = useWriteGate('FEATURE_CONFIG_WRITE')
+  const lastGateToastRef = useRef<string | null>(null)
   usePageHeader({
     title: t('page.configEntries.title'),
     subtitle: t('page.configEntries.subtitle'),
   })
+  const editingEnabled = import.meta.env.VITE_CONFIG_UI_EDITING_ENABLED !== 'false'
 
-  return <ConfigEntriesContent readOnly />
+  useEffect(() => {
+    if (writeGate.allowed) {
+      lastGateToastRef.current = 'OK'
+      return
+    }
+
+    const missing = writeGate.missingOperations
+    const toastKey = `${writeGate.reason}:${missing.join(',')}`
+    if (lastGateToastRef.current === toastKey) return
+    lastGateToastRef.current = toastKey
+
+    if (writeGate.reason === 'CONTRACT_UNAVAILABLE' && missing.length > 0) {
+      toast.info(`${t('gate.write.contractUnavailable.title')} (${missing.join(', ')})`)
+      return
+    }
+    if (writeGate.reason === 'MODE_READONLY') {
+      toast.info(t('gate.write.modeReadOnly.title'))
+      return
+    }
+    toast.info(t('gate.write.contractUnavailable.title'))
+  }, [t, writeGate.allowed, writeGate.missingOperations, writeGate.reason])
+
+  return (
+    <>
+      <WriteGateBanner
+        featureKey="FEATURE_CONFIG_WRITE"
+        reason={writeGate.reason}
+        missingOperations={writeGate.missingOperations}
+      />
+      <ConfigEntriesContent readOnly={!editingEnabled || !writeGate.allowed} />
+    </>
+  )
 }

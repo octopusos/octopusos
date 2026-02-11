@@ -6,12 +6,12 @@ Demonstrates how to use the multi-repo project management API.
 import tempfile
 from pathlib import Path
 
-from agentos.core.project.repository import (
+from octopusos.core.project.repository import (
     ProjectRepository,
     RepoContext,
     RepoRegistry,
 )
-from agentos.schemas.project import Project, RepoRole, RepoSpec
+from octopusos.schemas.project import Project, RepoRole, RepoSpec
 
 
 def example_basic_crud():
@@ -298,7 +298,7 @@ def example_task_repo_scope():
     """Example: Task repository scope"""
     print("\n\n=== Example 5: Task Repository Scope ===\n")
 
-    from agentos.core.task.models import RepoScopeType, TaskRepoScope
+    from octopusos.core.task.models import RepoScopeType, TaskRepoScope
 
     # Create a task repo scope with path filters
     scope = TaskRepoScope(
@@ -320,7 +320,7 @@ def example_task_dependency():
     """Example: Task dependency"""
     print("\n\n=== Example 6: Task Dependency ===\n")
 
-    from agentos.core.task.models import DependencyType, TaskDependency
+    from octopusos.core.task.models import DependencyType, TaskDependency
 
     # Create a blocking dependency
     dep = TaskDependency(
@@ -342,7 +342,7 @@ def example_task_artifact():
     """Example: Task artifact reference"""
     print("\n\n=== Example 7: Task Artifact Reference ===\n")
 
-    from agentos.core.task.models import ArtifactRefType, TaskArtifactRef
+    from octopusos.core.task.models import ArtifactRefType, TaskArtifactRef
 
     # Create a commit artifact reference
     artifact = TaskArtifactRef(

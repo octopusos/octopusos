@@ -12,20 +12,20 @@
     "supersedes": []
   },
   "scope": {
-    "project_id": "agentos",
-    "repo_root": "/Users/pangge/PycharmProjects/AgentOS",
+    "project_id": "octopusos",
+    "repo_root": "/Users/pangge/PycharmProjects/OctopusOS",
     "targets": {
       "files": [
-        "agentos/store/migrations/v010_add_user_credentials_table.sql",
-        "agentos/store/migrations/v010_rollback.sql",
-        "agentos/models/user_credentials.py",
-        "agentos/services/credentials_service.py",
+        "octopusos/store/migrations/v010_add_user_credentials_table.sql",
+        "octopusos/store/migrations/v010_rollback.sql",
+        "octopusos/models/user_credentials.py",
+        "octopusos/services/credentials_service.py",
         "tests/integration/test_credentials_migration.py"
       ],
       "modules": [
-        "agentos.store",
-        "agentos.models",
-        "agentos.services"
+        "octopusos.store",
+        "octopusos.models",
+        "octopusos.services"
       ],
       "areas": [
         "backend",
@@ -101,7 +101,7 @@
       ],
       "risk_level": "high",
       "evidence_refs": [
-        "scan://file/agentos/store/migrations/v010_add_user_credentials_table.sql",
+        "scan://file/octopusos/store/migrations/v010_add_user_credentials_table.sql",
         "doc://db_schema/credentials_table_spec"
       ]
     },
@@ -114,7 +114,7 @@
       ],
       "risk_level": "critical",
       "evidence_refs": [
-        "scan://file/agentos/store/migrations/v010_rollback.sql",
+        "scan://file/octopusos/store/migrations/v010_rollback.sql",
         "doc://operations/rollback_procedures"
       ]
     },
@@ -126,7 +126,7 @@
       ],
       "risk_level": "medium",
       "evidence_refs": [
-        "scan://file/agentos/models/user_credentials.py"
+        "scan://file/octopusos/models/user_credentials.py"
       ]
     },
     {
@@ -138,7 +138,7 @@
       ],
       "risk_level": "high",
       "evidence_refs": [
-        "scan://file/agentos/services/credentials_service.py",
+        "scan://file/octopusos/services/credentials_service.py",
         "doc://security/encryption_standards"
       ]
     },
@@ -195,10 +195,10 @@
     "lock_scope": {
       "mode": "files",
       "paths": [
-        "agentos/store/migrations/v010_add_user_credentials_table.sql",
-        "agentos/store/migrations/v010_rollback.sql",
-        "agentos/models/user_credentials.py",
-        "agentos/services/credentials_service.py"
+        "octopusos/store/migrations/v010_add_user_credentials_table.sql",
+        "octopusos/store/migrations/v010_rollback.sql",
+        "octopusos/models/user_credentials.py",
+        "octopusos/services/credentials_service.py"
       ]
     }
   },

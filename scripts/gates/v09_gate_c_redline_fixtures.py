@@ -12,7 +12,7 @@
 import sys
 from pathlib import Path
 
-# Add agentos to path
+# Add octopusos to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
@@ -21,7 +21,7 @@ def test_redline_fixtures():
     print("Testing redline fixtures...")
     
     try:
-        from agentos.core.gates.validate_rule_redlines import RuleRedlineValidator, RuleRedlineViolation
+        from octopusos.core.gates.validate_rule_redlines import RuleRedlineValidator, RuleRedlineViolation
         import yaml
         
         validator = RuleRedlineValidator()

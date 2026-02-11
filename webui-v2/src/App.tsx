@@ -1,112 +1,132 @@
 import { CssBaseline } from '@mui/material'
 import { Routes, Route } from 'react-router-dom'
 import { SnackbarProvider } from 'notistack'
-import HomePage from './pages/HomePage'
-import { AppShell, AuthGate } from './layouts'
+import { Suspense, lazy } from 'react'
+import { LoadingState } from '@/components'
+import AuthGate from './layouts/AuthGate'
 import { ThemeProvider } from './contexts/ThemeContext'
 import ErrorBoundary from './components/ErrorBoundary'
 
+const HomePage = lazy(() => import('./pages/HomePage'))
+const AppShell = lazy(() => import('./layouts/AppShell'))
+
 // Chat Section
-import ChatPage from './pages/ChatPage'
-import ChatReportPage from './pages/ChatReportPage'
-import VoicePage from './pages/VoicePage'
+const ChatPage = lazy(() => import('./pages/ChatPage'))
+const WorkPage = lazy(() => import('./pages/WorkPage'))
+const WorkListPage = lazy(() => import('./pages/WorkListPage'))
+const TaskListPage = lazy(() => import('./pages/TaskListPage'))
+const ChangeLogPage = lazy(() => import('./pages/ChangeLogPage'))
+const CodingPage = lazy(() => import('./pages/CodingPage'))
+const ChatReportPage = lazy(() => import('./pages/ChatReportPage'))
+const DispatchReviewQueuePage = lazy(() => import('./pages/DispatchReviewQueuePage'))
+const VoicePage = lazy(() => import('./pages/VoicePage'))
+const ExternalFactsReplayPage = lazy(() => import('./pages/ExternalFactsReplayPage'))
+const ExternalFactsPolicyPage = lazy(() => import('./pages/ExternalFactsPolicyPage'))
+const ExternalFactsProvidersPage = lazy(() => import('./pages/ExternalFactsProvidersPage'))
+const ConnectorsPage = lazy(() => import('./pages/ConnectorsPage'))
+const FactsSchemaPage = lazy(() => import('./pages/FactsSchemaPage'))
 
 // Control Section
-import OverviewPage from './pages/OverviewPage'
+const OverviewPage = lazy(() => import('./pages/OverviewPage'))
 
 // Sessions Section
-import SessionsPage from './pages/SessionsPage'
+const SessionsPage = lazy(() => import('./pages/SessionsPage'))
 
 // Observability Section
-import ProjectsPage from './pages/ProjectsPage'
-import TasksPage from './pages/TasksPage'
-import EventsPage from './pages/EventsPage'
-import LogsPage from './pages/LogsPage'
-import HistoryPage from './pages/HistoryPage'
-import PipelinePage from './pages/PipelinePage'
-import ModeMonitorPage from './pages/ModeMonitorPage'
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage'))
+const TasksPage = lazy(() => import('./pages/TasksPage'))
+const EventsPage = lazy(() => import('./pages/EventsPage'))
+const LogsPage = lazy(() => import('./pages/LogsPage'))
+const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const PipelinePage = lazy(() => import('./pages/PipelinePage'))
+const ModeMonitorPage = lazy(() => import('./pages/ModeMonitorPage'))
 
 // Agent Section
-import SkillsPage from './pages/SkillsPage'
-import SkillsMarketplacePage from './pages/SkillsMarketplacePage'
-import MemoryPage from './pages/MemoryPage'
-import MemoryProposalsPage from './pages/MemoryProposalsPage'
-import MemoryTimelinePage from './pages/MemoryTimelinePage'
-import MemoryEntriesPage from './pages/MemoryEntriesPage'
-import SnippetsPage from './pages/SnippetsPage'
-import AnswersPage from './pages/AnswersPage'
-import AuthProfilesPage from './pages/AuthProfilesPage'
-import ToolsPage from './pages/ToolsPage'
-import TriggersPage from './pages/TriggersPage'
+const SkillsPage = lazy(() => import('./pages/SkillsPage'))
+const SkillsMarketplacePage = lazy(() => import('./pages/SkillsMarketplacePage'))
+const MemoryPage = lazy(() => import('./pages/MemoryPage'))
+const MemoryProposalsPage = lazy(() => import('./pages/MemoryProposalsPage'))
+const MemoryTimelinePage = lazy(() => import('./pages/MemoryTimelinePage'))
+const MemoryEntriesPage = lazy(() => import('./pages/MemoryEntriesPage'))
+const SnippetsPage = lazy(() => import('./pages/SnippetsPage'))
+const AnswersPage = lazy(() => import('./pages/AnswersPage'))
+const AuthProfilesPage = lazy(() => import('./pages/AuthProfilesPage'))
+const ToolsPage = lazy(() => import('./pages/ToolsPage'))
+const TriggersPage = lazy(() => import('./pages/TriggersPage'))
 
 // Knowledge Section
-import BrainPage from './pages/BrainPage'
-import BrainDashboardPage from './pages/BrainDashboardPage'
-import QueryPlaygroundPage from './pages/QueryPlaygroundPage'
-import SourcesPage from './pages/SourcesPage'
-import HealthPage from './pages/HealthPage'
-import KnowledgeHealthPage from './pages/KnowledgeHealthPage'
-import IndexJobsPage from './pages/IndexJobsPage'
-import SubgraphPage from './pages/SubgraphPage'
-import DatasourcesPage from './pages/DatasourcesPage'
-import ProvenancePage from './pages/ProvenancePage'
+const BrainPage = lazy(() => import('./pages/BrainPage'))
+const BrainDashboardPage = lazy(() => import('./pages/BrainDashboardPage'))
+const QueryPlaygroundPage = lazy(() => import('./pages/QueryPlaygroundPage'))
+const SourcesPage = lazy(() => import('./pages/SourcesPage'))
+const HealthPage = lazy(() => import('./pages/HealthPage'))
+const KnowledgeHealthPage = lazy(() => import('./pages/KnowledgeHealthPage'))
+const IndexJobsPage = lazy(() => import('./pages/IndexJobsPage'))
+const SubgraphPage = lazy(() => import('./pages/SubgraphPage'))
+const DatasourcesPage = lazy(() => import('./pages/DatasourcesPage'))
+const ProvenancePage = lazy(() => import('./pages/ProvenancePage'))
 
 // Quality Section
-import InfoNeedMetricsPage from './pages/InfoNeedMetricsPage'
+const InfoNeedMetricsPage = lazy(() => import('./pages/InfoNeedMetricsPage'))
 
 // Governance Section
-import GovernancePage from './pages/GovernancePage'
-import FindingsPage from './pages/FindingsPage'
-import LeadScansPage from './pages/LeadScansPage'
-import DecisionReviewPage from './pages/DecisionReviewPage'
-import ReviewQueuePage from './pages/ReviewQueuePage'
-import ExecutionPlansPage from './pages/ExecutionPlansPage'
-import IntentWorkbenchPage from './pages/IntentWorkbenchPage'
-import ContentRegistryPage from './pages/ContentRegistryPage'
-import AnswerPacksPage from './pages/AnswerPacksPage'
-import PolicyEditorPage from './pages/PolicyEditorPage'
-import MarketplaceRegistryPage from './pages/MarketplaceRegistryPage'
-import EvolutionDecisionsPage from './pages/EvolutionDecisionsPage'
-import BudgetConfigPage from './pages/BudgetConfigPage'
+const GovernancePage = lazy(() => import('./pages/GovernancePage'))
+const FindingsPage = lazy(() => import('./pages/FindingsPage'))
+const LeadScansPage = lazy(() => import('./pages/LeadScansPage'))
+const DecisionReviewPage = lazy(() => import('./pages/DecisionReviewPage'))
+const ReviewQueuePage = lazy(() => import('./pages/ReviewQueuePage'))
+const ExecutionPlansPage = lazy(() => import('./pages/ExecutionPlansPage'))
+const IntentWorkbenchPage = lazy(() => import('./pages/IntentWorkbenchPage'))
+const ContentRegistryPage = lazy(() => import('./pages/ContentRegistryPage'))
+const AnswerPacksPage = lazy(() => import('./pages/AnswerPacksPage'))
+const PolicyEditorPage = lazy(() => import('./pages/PolicyEditorPage'))
+const MarketplaceRegistryPage = lazy(() => import('./pages/MarketplaceRegistryPage'))
+const EvolutionDecisionsPage = lazy(() => import('./pages/EvolutionDecisionsPage'))
+const BudgetConfigPage = lazy(() => import('./pages/BudgetConfigPage'))
 
 // Capabilities v3 Section
-import CapabilitiesPage from './pages/CapabilitiesPage'
-import DecisionTimelinePage from './pages/DecisionTimelinePage'
-import ActionLogPage from './pages/ActionLogPage'
-import EvidenceChainsPage from './pages/EvidenceChainsPage'
-import AuditLogPage from './pages/AuditLogPage'
-import TrustTierPage from './pages/TrustTierPage'
-import TrustTrajectoryPage from './pages/TrustTrajectoryPage'
-import RiskTimelinePage from './pages/RiskTimelinePage'
-import FederatedNodesView from './pages/FederatedNodesView'
-import PublisherTrustView from './pages/PublisherTrustView'
-import RemoteControlPage from './pages/RemoteControlPage'
+const CapabilitiesPage = lazy(() => import('./pages/CapabilitiesPage'))
+const DecisionTimelinePage = lazy(() => import('./pages/DecisionTimelinePage'))
+const ActionLogPage = lazy(() => import('./pages/ActionLogPage'))
+const EvidenceChainsPage = lazy(() => import('./pages/EvidenceChainsPage'))
+const AuditLogPage = lazy(() => import('./pages/AuditLogPage'))
+const TrustTierPage = lazy(() => import('./pages/TrustTierPage'))
+const TrustTrajectoryPage = lazy(() => import('./pages/TrustTrajectoryPage'))
+const RiskTimelinePage = lazy(() => import('./pages/RiskTimelinePage'))
+const FederatedNodesView = lazy(() => import('./pages/FederatedNodesView'))
+const PublisherTrustView = lazy(() => import('./pages/PublisherTrustView'))
+const RemoteControlPage = lazy(() => import('./pages/RemoteControlPage'))
 
 // Settings Section
-import ExtensionsPage from './pages/ExtensionsPage'
-import McpMarketplacePage from './pages/McpMarketplacePage'
-import ModelsPage from './pages/ModelsPage'
-import ProvidersPage from './pages/ProvidersPage'
-import ConfigPage from './pages/ConfigPage'
-import ConfigEntriesPage from './pages/ConfigEntriesPage'
-import PluginsPage from './pages/PluginsPage'
+const ExtensionsPage = lazy(() => import('./pages/ExtensionsPage'))
+const McpMarketplacePage = lazy(() => import('./pages/McpMarketplacePage'))
+const EmailChannelPage = lazy(() => import('./pages/EmailChannelPage'))
+const ModelsPage = lazy(() => import('./pages/ModelsPage'))
+const ProvidersPage = lazy(() => import('./pages/ProvidersPage'))
+const ConfigPage = lazy(() => import('./pages/ConfigPage'))
+const ConfigEntriesPage = lazy(() => import('./pages/ConfigEntriesPage'))
+const PluginsPage = lazy(() => import('./pages/PluginsPage'))
 
 // Communication Section
-import ChannelsPage from './pages/ChannelsPage'
-import CommunicationPage from './pages/CommunicationPage'
-import MessagesPage from './pages/MessagesPage'
-import NotificationsPage from './pages/NotificationsPage'
+const ChannelsPage = lazy(() => import('./pages/ChannelsPage'))
+const CommunicationPage = lazy(() => import('./pages/CommunicationPage'))
+const MessagesPage = lazy(() => import('./pages/MessagesPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const EnterpriseImPage = lazy(() => import('./pages/EnterpriseImPage'))
+const NetworkAccessPage = lazy(() => import('./pages/NetworkAccessPage'))
+const SecurityDevicesPage = lazy(() => import('./pages/SecurityDevicesPage'))
 
 // System Section
-import ContextPage from './pages/ContextPage'
-import RuntimePage from './pages/RuntimePage'
-import SupportPage from './pages/SupportPage'
-import SystemHealthPage from './pages/SystemHealthPage'
-import DemoModePage from './pages/DemoModePage'
-import UsersPage from './pages/UsersPage'
+const ContextPage = lazy(() => import('./pages/ContextPage'))
+const RuntimePage = lazy(() => import('./pages/RuntimePage'))
+const SupportPage = lazy(() => import('./pages/SupportPage'))
+const SystemHealthPage = lazy(() => import('./pages/SystemHealthPage'))
+const DemoModePage = lazy(() => import('./pages/DemoModePage'))
+const UsersPage = lazy(() => import('./pages/UsersPage'))
+const ContractDocsPage = lazy(() => import('./pages/ContractDocsPage'))
 
 // 404 Not Found
-import NotFoundPage from './pages/NotFoundPage'
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
 function App() {
   return (
@@ -121,21 +141,33 @@ function App() {
           }}
           autoHideDuration={3000}
         >
-        <Routes>
-        {/* Routes with AppShell layout */}
-        <Route
-          element={
-            <AuthGate>
-              <AppShell />
-            </AuthGate>
-          }
-        >
-          <Route path="/" element={<HomePage />} />
+          <Suspense fallback={<LoadingState />}>
+            <Routes>
+              {/* Routes with AppShell layout */}
+              <Route
+                element={
+                  <AuthGate>
+                    <AppShell />
+                  </AuthGate>
+                }
+              >
+                <Route path="/" element={<HomePage />} />
 
           {/* Chat Section */}
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/work" element={<WorkPage />} />
+          <Route path="/work-list" element={<WorkListPage />} />
+          <Route path="/task-list" element={<TaskListPage />} />
+          <Route path="/changelog" element={<ChangeLogPage />} />
+          <Route path="/coding" element={<CodingPage />} />
           <Route path="/chat-report" element={<ChatReportPage />} />
+          <Route path="/dispatch-review" element={<DispatchReviewQueuePage />} />
           <Route path="/voice" element={<VoicePage />} />
+          <Route path="/external-facts/replay" element={<ExternalFactsReplayPage />} />
+          <Route path="/external-facts/policy" element={<ExternalFactsPolicyPage />} />
+          <Route path="/external-facts/providers" element={<ExternalFactsProvidersPage />} />
+          <Route path="/connectors" element={<ConnectorsPage />} />
+          <Route path="/facts/schema" element={<FactsSchemaPage />} />
 
           {/* Control Section */}
           <Route path="/overview" element={<OverviewPage />} />
@@ -209,11 +241,15 @@ function App() {
           <Route path="/publisher-trust" element={<PublisherTrustView />} />
           <Route path="/remote-control" element={<RemoteControlPage />} />
 
-          {/* Communication Section */}
-          <Route path="/channels" element={<ChannelsPage />} />
-          <Route path="/communication" element={<CommunicationPage />} />
-          <Route path="/messages" element={<MessagesPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
+	          {/* Communication Section */}
+	          <Route path="/channels" element={<ChannelsPage />} />
+	          <Route path="/channels/enterprise-im" element={<EnterpriseImPage />} />
+	          <Route path="/channels/email" element={<EmailChannelPage />} />
+	          <Route path="/network/access" element={<NetworkAccessPage />} />
+	          <Route path="/security/devices" element={<SecurityDevicesPage />} />
+	          <Route path="/communication" element={<CommunicationPage />} />
+	          <Route path="/messages" element={<MessagesPage />} />
+	          <Route path="/notifications" element={<NotificationsPage />} />
 
           {/* System Section */}
           <Route path="/context" element={<ContextPage />} />
@@ -222,6 +258,7 @@ function App() {
           <Route path="/system-health" element={<SystemHealthPage />} />
           <Route path="/demo-mode" element={<DemoModePage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/docs/contracts" element={<ContractDocsPage />} />
 
           {/* Settings Section */}
           <Route path="/extensions" element={<ExtensionsPage />} />
@@ -232,10 +269,11 @@ function App() {
           <Route path="/config-entries" element={<ConfigEntriesPage />} />
           <Route path="/plugins" element={<PluginsPage />} />
 
-          {/* 404 Not Found - Catch all unmatched routes */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Route>
-        </Routes>
+                {/* 404 Not Found - Catch all unmatched routes */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
+            </Routes>
+          </Suspense>
         </SnackbarProvider>
       </ThemeProvider>
     </ErrorBoundary>

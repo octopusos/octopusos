@@ -2,7 +2,7 @@
  * DemoModePage - 演示模式控制
  *
  * Phase 6: Real API Integration
- * - API: systemService.getDemoModeStatus(), toggleDemoMode()
+ * - API: systemService.demoModeStatusApiDemoModeStatusGet(), toggleDemoMode()
  * - Pattern: StatusCard + Toggle Switch
  * - States: Loading/Success/Error
  * - i18n: Full translation support
@@ -16,12 +16,15 @@ import { K, useTextTranslation } from '@/ui/text'
 import { toast } from '@/ui/feedback'
 import { PlayIcon, StopIcon, InfoIcon } from '@/ui/icons'
 import { systemService } from '@/services'
+import { useWriteGate } from '@/ui/guards/useWriteGate'
+import { WriteGateBanner } from '@/components/gates/WriteGateBanner'
 
 export default function DemoModePage() {
   // ===================================
   // i18n Hook
   // ===================================
   const { t } = useTextTranslation()
+  const writeGate = useWriteGate('FEATURE_MODE_TOGGLE')
 
   // ===================================
   // State
@@ -52,7 +55,7 @@ export default function DemoModePage() {
   const loadDemoModeStatus = async () => {
     setLoading(true)
     try {
-      const response = await systemService.getDemoModeStatus()
+      const response = await systemService.demoModeStatusApiDemoModeStatusGet()
       setDemoModeEnabled(response.demo_mode?.enabled || false)
     } catch (err: any) {
       console.error('Failed to load demo mode status:', err)
@@ -66,11 +69,15 @@ export default function DemoModePage() {
   // API: Toggle Demo Mode
   // ===================================
   const handleToggleDemoMode = async (enabled: boolean) => {
+    if (!writeGate.allowed) {
+      toast.info(t('gate.write.contractUnavailable.title'))
+      return
+    }
     try {
       if (enabled) {
-        await systemService.enableDemoMode()
+        await systemService.demoModeEnableApiDemoModeEnablePost()
       } else {
-        await systemService.disableDemoMode()
+        await systemService.demoModeDisableApiDemoModeDisablePost()
       }
       setDemoModeEnabled(enabled)
       toast.success(
@@ -106,6 +113,11 @@ export default function DemoModePage() {
   // ===================================
   return (
     <Box>
+      <WriteGateBanner
+        featureKey="FEATURE_MODE_TOGGLE"
+        reason={writeGate.reason}
+        missingOperations={writeGate.missingOperations}
+      />
       {/* Demo Mode Control */}
       <Box sx={{ mb: 3, p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
         <FormControlLabel
@@ -113,6 +125,7 @@ export default function DemoModePage() {
             <Switch
               checked={demoModeEnabled}
               onChange={(e) => handleToggleDemoMode(e.target.checked)}
+              disabled={!writeGate.allowed}
               color="primary"
             />
           }

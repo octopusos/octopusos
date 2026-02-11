@@ -13,7 +13,7 @@ from datetime import datetime
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.mode.mode_alerts import (
+from octopusos.core.mode.mode_alerts import (
     AlertSeverity,
     ConsoleAlertOutput,
     FileAlertOutput,
@@ -98,7 +98,7 @@ def demo_multiple_outputs():
     print("="*70)
 
     # Get a fresh aggregator for this demo
-    from agentos.core.mode.mode_alerts import reset_global_aggregator
+    from octopusos.core.mode.mode_alerts import reset_global_aggregator
     reset_global_aggregator()
     aggregator = get_alert_aggregator()
 
@@ -257,8 +257,8 @@ def main():
     print("DEMO COMPLETE")
     print("="*70)
     print("\nFor more information, see:")
-    print("  - agentos/core/mode/mode_alerts.py")
-    print("  - agentos/core/mode/README_POLICY.md")
+    print("  - octopusos/core/mode/mode_alerts.py")
+    print("  - octopusos/core/mode/README_POLICY.md")
     print("="*70 + "\n")
 
 

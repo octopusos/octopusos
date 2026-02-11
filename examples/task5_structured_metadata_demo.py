@@ -6,7 +6,7 @@ This demo shows how the structured metadata can be used for future WebUI
 card rendering while maintaining backward compatibility with CLI Markdown output.
 """
 
-from agentos.core.chat.comm_commands import CommCommandHandler
+from octopusos.core.chat.comm_commands import CommCommandHandler
 
 
 def demo_weather_query():
@@ -221,7 +221,7 @@ def demo_communication_adapter_integration():
     print("DEMO 6: CommunicationAdapter result_type Detection")
     print("=" * 70)
 
-    from agentos.core.chat.communication_adapter import CommunicationAdapter
+    from octopusos.core.chat.communication_adapter import CommunicationAdapter
 
     adapter = CommunicationAdapter()
 

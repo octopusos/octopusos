@@ -15,11 +15,11 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from agentos.metrics.info_need_metrics import (
+from octopusos.metrics.info_need_metrics import (
     InfoNeedMetrics,
     print_metrics_summary,
 )
-from agentos.core.audit import log_audit_event
+from octopusos.core.audit import log_audit_event
 
 
 def create_demo_database():
@@ -221,7 +221,7 @@ def demo_basic_calculation():
     insert_sample_data(conn)
 
     # Mock get_db to use our demo database
-    import agentos.metrics.info_need_metrics as metrics_module
+    import octopusos.metrics.info_need_metrics as metrics_module
     original_get_db = metrics_module.get_db
     metrics_module.get_db = lambda: conn
 
@@ -261,7 +261,7 @@ def demo_time_range():
     insert_sample_data(conn)
 
     # Mock get_db
-    import agentos.metrics.info_need_metrics as metrics_module
+    import octopusos.metrics.info_need_metrics as metrics_module
     original_get_db = metrics_module.get_db
     metrics_module.get_db = lambda: conn
 
@@ -297,7 +297,7 @@ def demo_export_json():
     insert_sample_data(conn)
 
     # Mock get_db
-    import agentos.metrics.info_need_metrics as metrics_module
+    import octopusos.metrics.info_need_metrics as metrics_module
     original_get_db = metrics_module.get_db
     metrics_module.get_db = lambda: conn
 
@@ -339,7 +339,7 @@ def demo_breakdown_analysis():
     insert_sample_data(conn)
 
     # Mock get_db
-    import agentos.metrics.info_need_metrics as metrics_module
+    import octopusos.metrics.info_need_metrics as metrics_module
     original_get_db = metrics_module.get_db
     metrics_module.get_db = lambda: conn
 
@@ -402,8 +402,8 @@ def main():
     print("Demo Complete!")
     print()
     print("Next steps:")
-    print("  1. Try CLI: python -m agentos.cli.metrics show")
-    print("  2. Generate report: python -m agentos.cli.metrics generate --output report.json")
+    print("  1. Try CLI: python -m octopusos.cli.metrics show")
+    print("  2. Generate report: python -m octopusos.cli.metrics generate --output report.json")
     print("  3. Run tests: pytest tests/unit/metrics/")
     print("=" * 70)
 

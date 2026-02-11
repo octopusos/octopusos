@@ -19,7 +19,7 @@ import { K, useTextTranslation } from '@/ui/text'
 import { DetailDrawer, DeleteConfirmDialog } from '@/ui/interaction'
 import { Box, Typography, Chip, Button, CircularProgress } from '@/ui'
 import { toast } from '@/ui/feedback'
-import { skillosService, type Extension } from '@/services/skillos.service'
+import { skillosService, type Extension } from '@services'
 import { UploadExtensionDialog } from './ExtensionsPage/UploadExtensionDialog'
 import { InstallUrlDialog } from './ExtensionsPage/InstallUrlDialog'
 import { ConfigureExtensionDialog } from './ExtensionsPage/ConfigureExtensionDialog'
@@ -145,7 +145,7 @@ export default function ExtensionsPage() {
   const loadExtensions = async () => {
     setLoading(true)
     try {
-      const response = await skillosService.listExtensions()
+      const response = await skillosService.listExtensionsApiExtensionsGet()
       setExtensions(response.extensions || [])
     } catch (error) {
       console.error('Failed to load extensions:', error)
@@ -176,10 +176,10 @@ export default function ExtensionsPage() {
     setToggling(extensionId)
     try {
       if (currentStatus === 'enabled') {
-        await skillosService.disableExtension(extensionId)
+        await skillosService.disableExtensionApiExtensionsExtensionIdDisablePost(extensionId)
         toast.success(t('page.extensions.disableSuccess'))
       } else {
-        await skillosService.enableExtension(extensionId)
+        await skillosService.enableExtensionApiExtensionsExtensionIdEnablePost(extensionId)
         toast.success(t('page.extensions.enableSuccess'))
       }
       // Reload to get updated status
@@ -205,7 +205,7 @@ export default function ExtensionsPage() {
 
     setDeleting(true)
     try {
-      await skillosService.deleteExtension(selectedExtension.id)
+      await skillosService.deleteExtensionApiExtensionsExtensionIdDelete(selectedExtension.id)
       toast.success(t('page.extensions.deleteSuccess'))
       setDeleteDialogOpen(false)
       setDrawerOpen(false)

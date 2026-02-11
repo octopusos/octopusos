@@ -2,7 +2,7 @@
  * PluginsPage - 插件管理页面
  *
  * ✅ i18n: 使用 useTextTranslation + K keys
- * ✅ API: agentosService.getPlugins()
+ * ✅ API: systemService.listPluginsApiPluginsGet()
  * ✅ States: loading, error, empty, success
  * 
  * 🔒 No-Interaction Contract:
@@ -15,7 +15,7 @@ import { TextField, Select, MenuItem } from '@mui/material'
 import { usePageHeader, usePageActions } from '@/ui/layout'
 import { TableShell, FilterBar } from '@/ui'
 import { useTextTranslation, K } from '@/ui/text'
-import { agentosService } from '@/services'
+import { systemService } from '@services'
 import type { GridColDef } from '@/ui'
 
 /**
@@ -51,10 +51,12 @@ export default function PluginsPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const response = await agentosService.getPlugins()
-        setData(response.data)
+        const response = await systemService.listPluginsApiPluginsGet()
+        const rows = Array.isArray(response?.data) ? response.data : []
+        setData(rows)
       } catch (err) {
         console.error('Failed to fetch plugins:', err)
+        setData([])
       } finally {
         setLoading(false)
       }

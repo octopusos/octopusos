@@ -80,7 +80,7 @@ import { K, useTextTranslation } from '@/ui/text'
 import { StatCard } from '@/ui/dashboard/StatCard'
 import { DashboardGrid } from '@/ui/dashboard/DashboardGrid'
 import { EmptyState } from '@/ui/layout/EmptyState'
-import { brainosService } from '@/services/brainos.service'
+import { brainosService } from '@services'
 import { toast } from '@/ui/feedback'
 
 // ============================================================================
@@ -323,7 +323,7 @@ export default function SubgraphPage() {
     try {
       // Phase 6: Real API Integration
       console.log('[SubgraphPage] Fetching subgraph from API:', queryParams)
-      const apiResult = await brainosService.getSubgraph(queryParams.seed, queryParams.k_hop)
+      const apiResult = await brainosService.brainSubgraphApiBrainSubgraphGet(queryParams.seed, queryParams.k_hop)
 
       // Transform API result to internal format
       const result: SubgraphResult = {

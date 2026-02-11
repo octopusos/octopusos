@@ -9,8 +9,8 @@ Run this script to see:
 4. Listing and managing profiles
 
 Prerequisites:
-- AgentOS database initialized (agentos init)
-- Migration v19 applied (agentos migrate)
+- OctopusOS database initialized (octopusos init)
+- Migration v19 applied (octopusos migrate)
 """
 
 import os
@@ -21,12 +21,12 @@ import tempfile
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentos.core.git.credentials import (
+from octopusos.core.git.credentials import (
     CredentialsManager,
     AuthProfileType,
     TokenProvider,
 )
-from agentos.core.git.client import GitClientWithAuth
+from octopusos.core.git.client import GitClientWithAuth
 
 
 def demo_create_profiles():
@@ -217,7 +217,7 @@ def demo_audit_log():
     print("DEMO 6: Audit Logs")
     print("="*60)
 
-    from agentos.store import get_db
+    from octopusos.store import get_db
 
     conn = get_db()
     cursor = conn.cursor()
@@ -336,8 +336,8 @@ def main():
     print("="*60)
     print("\nFor more information:")
     print("  - Documentation: docs/auth/AUTH_PROFILE_QUICKSTART.md")
-    print("  - CLI help: agentos auth --help")
-    print("  - Python API: from agentos.core.git import CredentialsManager")
+    print("  - CLI help: octopusos auth --help")
+    print("  - Python API: from octopusos.core.git import CredentialsManager")
     print()
 
 

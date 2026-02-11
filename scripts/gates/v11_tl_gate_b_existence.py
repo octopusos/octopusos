@@ -10,11 +10,11 @@ def main():
     print("=" * 60 + "\nTL Gate B - Adapters Existence\n" + "=" * 60 + "\n")
     
     files = [
-        "agentos/ext/tools/__init__.py",
-        "agentos/ext/tools/base_adapter.py",
-        "agentos/ext/tools/claude_cli_adapter.py",
-        "agentos/ext/tools/opencode_adapter.py",
-        "agentos/cli/tools.py",
+        "octopusos/ext/tools/__init__.py",
+        "octopusos/ext/tools/base_adapter.py",
+        "octopusos/ext/tools/claude_cli_adapter.py",
+        "octopusos/ext/tools/opencode_adapter.py",
+        "octopusos/cli/tools.py",
     ]
     
     for f in files:

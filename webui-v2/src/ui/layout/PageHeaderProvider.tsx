@@ -28,7 +28,19 @@
  */
 
 import React from 'react'
-import { Box, Typography, Button } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Button,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material'
+import { HelpOutlineIcon } from '@/ui/icons'
+import { K, useTextTranslation } from '@/ui/text'
 
 // ===================================
 // Types
@@ -104,6 +116,22 @@ export interface PageHeaderData {
    * 🔒 禁止直接传 string，必须用 T.xxx 或 t(K.xxx)
    */
   subtitle?: React.ReactNode
+
+  /**
+   * 页面帮助内容（用于 header 问号按钮弹窗）
+   */
+  help?: PageHelpContent
+}
+
+/**
+ * 可复用页面帮助弹窗内容结构（由各页面填充）
+ */
+export interface PageHelpContent {
+  purpose: React.ReactNode
+  usage: React.ReactNode
+  howToUse: React.ReactNode
+  details: React.ReactNode
+  steps: React.ReactNode[]
 }
 
 /**
@@ -138,7 +166,7 @@ export const PageHeaderContext = React.createContext<PageHeaderContextValue | nu
  * Shallow compare 辅助函数（只比较 title/subtitle）
  */
 function shallowEqualHeaderData(a: PageHeaderData, b: PageHeaderData): boolean {
-  return a.title === b.title && a.subtitle === b.subtitle
+  return a.title === b.title && a.subtitle === b.subtitle && a.help === b.help
 }
 
 export function PageHeaderProvider({ children }: { children: React.ReactNode }) {
@@ -208,7 +236,7 @@ export function usePageHeader(data: PageHeaderData) {
 
   React.useEffect(() => {
     context.setHeaderData(data)
-  }, [data.title, data.subtitle, context.setHeaderData])
+  }, [data.title, data.subtitle, data.help, context.setHeaderData])
 }
 
 // ===================================
@@ -301,9 +329,29 @@ export function usePageHeaderLegacy(config: PageHeaderConfig) {
  * - 页面只传 title/subtitle/actions，不传 spacing/layout props
  */
 export function PageHeader() {
+  const { t } = useTextTranslation()
   const context = React.useContext(PageHeaderContext)
   const headerData = context?.headerData ?? {}
   const actions = context?.actions ?? []
+  const [helpOpen, setHelpOpen] = React.useState(false)
+  const titleText = typeof headerData.title === 'string' ? headerData.title : t(K.common.page)
+  const subtitleText = typeof headerData.subtitle === 'string' ? headerData.subtitle : ''
+  const actionLabels = actions
+    .map((action) => (typeof action.label === 'string' ? action.label : ''))
+    .filter((label) => label.length > 0)
+  const actionSummary = actionLabels.length > 0 ? actionLabels.slice(0, 3).join(' / ') : t(K.common.actions)
+  const helpContent: PageHelpContent | null = headerData.help ?? (headerData.title ? {
+    purpose: t(K.common.pageHelpAutoPurpose, { title: titleText }),
+    usage: t(K.common.pageHelpAutoUsage, { title: titleText, subtitle: subtitleText }),
+    howToUse: t(K.common.pageHelpAutoHowToUse, { title: titleText }),
+    details: t(K.common.pageHelpAutoDetails, { title: titleText, actions: actionSummary }),
+    steps: [
+      t(K.common.pageHelpAutoStep1, { title: titleText }),
+      t(K.common.pageHelpAutoStep2, { actions: actionSummary }),
+      t(K.common.pageHelpAutoStep3),
+      t(K.common.pageHelpAutoStep4),
+    ],
+  } : null)
 
   // 没设置就不显示（Home landing 这种页面）
   if (!headerData.title && !headerData.subtitle && actions.length === 0) {
@@ -323,16 +371,34 @@ export function PageHeader() {
       {/* 标题区 */}
       <Box sx={{ minWidth: 0, flex: 1 }}>
         {headerData.title && (
-          <Typography
-            variant="h5"
-            sx={{
-              fontWeight: 700,
-              lineHeight: 1.2,
-              color: 'text.primary',
-            }}
-          >
-            {headerData.title}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                lineHeight: 1.2,
+                color: 'text.primary',
+              }}
+            >
+              {headerData.title}
+            </Typography>
+            {helpContent && (
+              <Tooltip title={t(K.common.help)}>
+                <IconButton
+                  size="small"
+                  onClick={(event) => {
+                    if (event.currentTarget instanceof HTMLElement) {
+                      event.currentTarget.blur()
+                    }
+                    setHelpOpen(true)
+                  }}
+                  sx={{ ml: 1.5 }}
+                >
+                  <HelpOutlineIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         )}
         {headerData.subtitle && (
           <Typography
@@ -375,6 +441,62 @@ export function PageHeader() {
             </Button>
           ))}
         </Box>
+      )}
+
+      {helpContent && (
+        <Dialog
+          open={helpOpen}
+          onClose={() => setHelpOpen(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>{t(K.common.pageHelpDialogTitle)}</DialogTitle>
+          <DialogContent dividers>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  {t(K.common.pageHelpPurposeTitle)}
+                </Typography>
+                <Typography variant="body2">{helpContent.purpose}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  {t(K.common.pageHelpUsageTitle)}
+                </Typography>
+                <Typography variant="body2">{helpContent.usage}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  {t(K.common.pageHelpHowToUseTitle)}
+                </Typography>
+                <Typography variant="body2">{helpContent.howToUse}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  {t(K.common.pageHelpDetailsTitle)}
+                </Typography>
+                <Typography variant="body2">{helpContent.details}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
+                  {t(K.common.pageHelpStepsTitle)}
+                </Typography>
+                <Box component="ol" sx={{ pl: 2.5, m: 0 }}>
+                  {helpContent.steps.map((step, index) => (
+                    <Box component="li" key={index} sx={{ mb: 0.75 }}>
+                      <Typography variant="body2">{step}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button onClick={() => setHelpOpen(false)}>
+              {t(K.common.close)}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </Box>
   )

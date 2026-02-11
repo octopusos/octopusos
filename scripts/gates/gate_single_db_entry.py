@@ -22,12 +22,12 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Set
 
 # Root directory for scanning
-ROOT_DIR = Path(__file__).parent.parent.parent / "agentos"
+ROOT_DIR = Path(__file__).parent.parent.parent / "octopusos"
 
 # Expected entry point locations
 EXPECTED_ENTRY_POINTS = {
-    "get_db": ["agentos/core/db/registry_db.py"],
-    "_get_db_path": ["agentos/core/db/registry_db.py"],
+    "get_db": ["octopusos/core/db/registry_db.py"],
+    "_get_db_path": ["octopusos/core/db/registry_db.py"],
 }
 
 # Patterns to detect database entry points
@@ -239,11 +239,11 @@ def print_report(violations: Dict[Path, Dict[str, List[Tuple[int, str]]]], missi
     print("   - Do NOT create custom connection pools")
     print()
     print("2. Use official entry points:")
-    print("   from agentos.core.db import registry_db")
+    print("   from octopusos.core.db import registry_db")
     print("   conn = registry_db.get_db()")
     print()
     print("3. For write operations:")
-    print("   from agentos.core.db.writer import write")
+    print("   from octopusos.core.db.writer import write")
     print("   write(sql, params)")
     print()
     print("4. If you need a specialized DB function, add it to registry_db.py")

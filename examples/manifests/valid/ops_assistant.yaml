@@ -13,5 +13,5 @@ created_at: '2026-02-02T00:00:00Z'
 metadata:
   name: Ops Assistant
   description: DevOps automation assistant for deployment, monitoring, and incident response
-  author: AgentOS Official Team
-  homepage: https://agentos.dev/apps/ops_assistant
+  author: OctopusOS Official Team
+  homepage: https://octopusos.dev/apps/ops_assistant

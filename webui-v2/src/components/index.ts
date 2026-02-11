@@ -1,5 +1,5 @@
 /**
- * AgentOS WebUI v2 - Component Library
+ * OctopusOS WebUI v2 - Component Library
  *
  * 无业务逻辑的原子组件库，统一导出
  */
