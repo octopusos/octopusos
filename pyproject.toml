@@ -1,6 +1,6 @@
 [project]
 name = "octopusos"
-version = "3.5.0"
+version = "3.6.0"
 description = "System-level, project-agnostic AI Agent orchestration system"
 requires-python = ">=3.13"
 readme = "README.md"

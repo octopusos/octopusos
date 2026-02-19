@@ -1,0 +1,137 @@
+{
+  "id": "teams",
+  "name": "Microsoft Teams",
+  "icon": "chat",
+  "description": "Connect Microsoft Teams for enterprise chat, meetings, channels, and proactive messaging",
+  "long_description": "Microsoft Teams channel integration for enterprise communication flows. This manifest enables Teams in CommunicationOS marketplace with chat-only defaults and model routing options similar to WhatsApp channels.",
+  "version": "1.0.0",
+  "provider": "Microsoft",
+  "docs_url": "https://learn.microsoft.com/en-us/microsoft-agent-365/mcp-server-reference/teams",
+  "required_config_fields": [
+    {
+      "name": "model_route",
+      "label": "Mode (Local/Cloud)",
+      "type": "select",
+      "required": true,
+      "default": "local",
+      "options": ["local", "cloud"],
+      "help_text": "Controls which model route is used for replies."
+    },
+    {
+      "name": "provider",
+      "label": "LLM Provider",
+      "type": "text",
+      "required": true,
+      "placeholder": "ollama / openai / anthropic",
+      "help_text": "Provider id used by OctopusOS for reply generation."
+    },
+    {
+      "name": "model",
+      "label": "LLM Model",
+      "type": "text",
+      "required": true,
+      "placeholder": "llama3 / gpt-4o-mini",
+      "help_text": "Model name used by the selected provider."
+    },
+    {
+      "name": "tenant_id",
+      "label": "Microsoft Tenant ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "help_text": "Microsoft Entra tenant ID for the Teams app registration."
+    },
+    {
+      "name": "client_id",
+      "label": "Client ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "help_text": "Application (client) ID for your Teams bot app."
+    },
+    {
+      "name": "client_secret",
+      "label": "Client Secret",
+      "type": "password",
+      "required": true,
+      "placeholder": "********",
+      "help_text": "Client secret for your Teams bot app (stored encrypted locally).",
+      "secret": true
+    },
+    {
+      "name": "bot_app_id",
+      "label": "Bot App ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "help_text": "Bot App ID used for proactive and conversational messaging."
+    }
+  ],
+  "webhook_paths": [
+    "/api/channels/teams/webhook"
+  ],
+  "session_scope": "user_conversation",
+  "capabilities": [
+    "inbound_text",
+    "outbound_text",
+    "threaded_conversations",
+    "mentions",
+    "rich_formatting"
+  ],
+  "security_defaults": {
+    "mode": "chat_only",
+    "allow_execute": false,
+    "allowed_commands": ["/session", "/help"],
+    "rate_limit_per_minute": 30,
+    "retention_days": 7,
+    "require_signature": true
+  },
+  "setup_steps": [
+    {
+      "title": "Register Teams App",
+      "description": "Create or configure a Microsoft Teams app with bot capability in Microsoft 365.",
+      "instruction": "Create a Teams app registration in your tenant and enable bot messaging capability for personal, group, and channel contexts.",
+      "checklist": [
+        "Teams app created",
+        "Bot capability enabled",
+        "App install scopes configured"
+      ],
+      "auto_check": false
+    },
+    {
+      "title": "Configure Credentials",
+      "description": "Copy tenant, client, and bot credentials to OctopusOS Teams channel config.",
+      "instruction": "Fill Tenant ID, Client ID, Client Secret, and Bot App ID in the Teams channel setup dialog, then save.",
+      "checklist": [
+        "Tenant ID entered",
+        "Client ID entered",
+        "Client Secret entered",
+        "Bot App ID entered"
+      ],
+      "auto_check": false
+    },
+    {
+      "title": "Set Webhook Endpoint",
+      "description": "Set Teams bot messaging endpoint to OctopusOS Teams webhook path.",
+      "instruction": "Configure the bot messaging endpoint to /api/channels/teams/webhook on your public OctopusOS host.",
+      "checklist": [
+        "Webhook endpoint configured",
+        "Endpoint reachable from Microsoft 365"
+      ],
+      "auto_check": false
+    }
+  ],
+  "privacy_badges": [
+    "Enterprise",
+    "Chat-only by Default",
+    "Local Storage",
+    "Secrets Encrypted"
+  ],
+  "metadata": {
+    "category": "messaging",
+    "official": false,
+    "verified": false,
+    "cost": "paid",
+    "setup_difficulty": "medium"
+  }
+}

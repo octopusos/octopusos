@@ -1,6 +1,18 @@
 {
   "versions": [
     {
+      "key": "2026-02-19",
+      "title": "2026-02-19: v3.6.0 Delivery Release (One-Step UX, Policy/Billing/DB, and Commercial Publish Hardening)",
+      "outline": [
+        "One-step delivery and Chat/Task UX hardening landed with expanded i18n and supervision evidence paths",
+        "Policy center versioned audit + diff visualization and phase-5 execution evidence closure",
+        "DB operator surface expanded: DB Module UI/API and chat NLQ db.query skill pipeline",
+        "KB governed cognitive precheck/enrichment and billing end-to-end pipeline delivered with evidence bundles",
+        "Communication/providers/wiki expansion plus tenant-resilient enterprise publish modes and OSS boundary hardening"
+      ],
+      "md_path": "docs/changelog/lang/en/2026-02-19.md"
+    },
+    {
       "key": "2026-02-16",
       "title": "2026-02-16: WebUI Product Surface Refresh, Context Optimizer v2, and LLM Usage/Price Observability",
       "outline": [

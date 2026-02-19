@@ -1,6 +1,16 @@
 {
   "versions": [
     {
+      "key": "2026-02-19",
+      "title": "2026-02-19: v3.6.0 Delivery Release",
+      "outline": [
+        "One-step delivery UX hardening and policy/DB/KB/billing integration wave",
+        "Communication/providers/wiki expansion and enterprise publish-mode hardening",
+        "See language-specific detailed notes under docs/changelog/lang/*"
+      ],
+      "md_path": "docs/changelog/2026-02-19.md"
+    },
+    {
       "key": "2026-02-16",
       "title": "2026-02-16: WebUI Product Surface Refresh, Context Optimizer v2, and LLM Usage/Price Observability",
       "outline": [
