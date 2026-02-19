@@ -1,0 +1,96 @@
+{
+  "id": "whatsapp_web",
+  "name": "WhatsApp (Local QR Login)",
+  "icon": "whatsapp",
+  "description": "Local WhatsApp Web QR login (scan to connect). Best for on-device testing and private workflows.",
+  "long_description": "This channel uses WhatsApp Web login locally. OctopusOS runs a local Node bridge (whatsapp-web.js) to generate a QR code, persist the session on disk, and send/receive messages without routing content through a third-party gateway.",
+  "version": "1.0.0",
+  "provider": "WhatsApp Web",
+  "docs_url": "https://github.com/pedroslopez/whatsapp-web.js",
+  "required_config_fields": [
+    {
+      "name": "model_route",
+      "label": "Mode (Local/Cloud)",
+      "type": "select",
+      "required": true,
+      "default": "local",
+      "options": ["local", "cloud"],
+      "help_text": "Controls which model route is used for replies. You can switch later without reconnecting WhatsApp."
+    },
+    {
+      "name": "provider",
+      "label": "LLM Provider",
+      "type": "text",
+      "required": true,
+      "placeholder": "ollama / openai / anthropic",
+      "help_text": "Provider id used by OctopusOS (stored in session metadata as 'provider')."
+    },
+    {
+      "name": "model",
+      "label": "LLM Model",
+      "type": "text",
+      "required": true,
+      "placeholder": "llama3 / gpt-4o-mini",
+      "help_text": "Model name used by the selected provider (stored in session metadata as 'model')."
+    },
+    {
+      "name": "state_dir",
+      "label": "State Directory",
+      "type": "text",
+      "required": false,
+      "placeholder": "~/.octopusos/store/communicationos/whatsapp_web",
+      "help_text": "Local persistence directory for WhatsApp Web auth state. If empty, OctopusOS will choose a secure default."
+    },
+    {
+      "name": "chrome_path",
+      "label": "Chrome Executable Path",
+      "type": "text",
+      "required": false,
+      "placeholder": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "help_text": "Optional. If unset, OctopusOS will auto-detect Chrome. Some environments require setting this explicitly."
+    },
+    {
+      "name": "allow_from_me_inbound",
+      "label": "Allow Self-Sent Inbound",
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "help_text": "When enabled, messages sent from the same WhatsApp account can be processed as inbound (useful for single-account local testing)."
+    }
+  ],
+  "webhook_paths": [],
+  "session_scope": "user",
+  "capabilities": ["inbound_text", "outbound_text"],
+  "security_defaults": {
+    "mode": "chat_only",
+    "allow_execute": false,
+    "allowed_commands": ["/session", "/help"],
+    "rate_limit_per_minute": 60,
+    "retention_days": 7,
+    "require_signature": false
+  },
+  "setup_steps": [
+    {
+      "title": "Install Node Bridge",
+      "description": "Install the local bridge dependencies used to connect WhatsApp Web.",
+      "instruction": "Run: (cd octopusos/communicationos/channels/whatsapp_web/node && npm install)",
+      "checklist": ["Node 18+ installed", "Dependencies installed"],
+      "auto_check": false
+    },
+    {
+      "title": "Connect via QR",
+      "description": "Scan the QR code with your phone to bind WhatsApp Web session locally.",
+      "instruction": "In WebUI: Channels → WhatsApp (Local QR Login) → Connect → Scan QR in WhatsApp.",
+      "checklist": ["QR scanned", "Status shows Connected"],
+      "auto_check": false
+    }
+  ],
+  "privacy_badges": ["Local Only", "Chat-only by Default", "Local Storage", "Audited"],
+  "metadata": {
+    "category": "messaging",
+    "official": false,
+    "verified": false,
+    "mode": "local_only",
+    "requires_qr": true
+  }
+}

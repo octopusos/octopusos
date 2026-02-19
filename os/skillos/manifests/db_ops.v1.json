@@ -1,0 +1,84 @@
+{
+  "skill_id": "db_ops",
+  "version": "1.0.0",
+  "title": "Database Operations",
+  "owner": "OctopusOS",
+  "risk_model": "LOW|MEDIUM|HIGH|CRITICAL",
+  "engines": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "redis", "dynamodb"],
+  "actions": [
+    {
+      "action_id": "db.readonly.inspect",
+      "risk": "LOW",
+      "inputs": {
+        "engine": { "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "redis", "dynamodb"] },
+        "target": { "type": "string" }
+      },
+      "outputs": {
+        "schema": { "type": "object" },
+        "tables": { "type": "array" },
+        "indexes": { "type": "array" }
+      }
+    },
+    {
+      "action_id": "db.readonly.query_sample",
+      "risk": "LOW",
+      "inputs": {
+        "engine": { "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "redis", "dynamodb"] },
+        "target": { "type": "string" },
+        "resource": { "type": "string" },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 1000 }
+      },
+      "outputs": {
+        "sample": { "type": "array" },
+        "truncated": { "type": "boolean" }
+      }
+    },
+    {
+      "action_id": "db.safe.maintenance.refresh_stats",
+      "risk": "MEDIUM",
+      "requires_confirmation": true,
+      "inputs": {
+        "engine": { "enum": ["mysql", "postgres", "sqlserver", "sqlite"] },
+        "target": { "type": "string" },
+        "tables": { "type": "array", "items": { "type": "string" } }
+      },
+      "outputs": {
+        "status": { "type": "string" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    {
+      "action_id": "db.migration.apply",
+      "risk": "HIGH",
+      "requires_confirmation": true,
+      "inputs": {
+        "engine": { "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "dynamodb"] },
+        "target": { "type": "string" },
+        "migration_source": { "enum": ["folder", "artifact"] },
+        "path": { "type": "string" },
+        "dry_run": { "type": "boolean" }
+      },
+      "outputs": {
+        "applied": { "type": "array", "items": { "type": "string" } },
+        "diff_artifact": { "type": "string" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    {
+      "action_id": "db.data.mutation.high_risk.delete_with_predicate",
+      "risk": "HIGH",
+      "requires_confirmation": true,
+      "inputs": {
+        "engine": { "enum": ["mysql", "postgres", "sqlserver", "sqlite", "mongodb", "dynamodb"] },
+        "target": { "type": "string" },
+        "predicate": { "type": "object" },
+        "estimated_rows": { "type": "integer", "minimum": 0 }
+      },
+      "outputs": {
+        "affected_rows": { "type": "integer" },
+        "dry_run_diff": { "type": "string" },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  ]
+}

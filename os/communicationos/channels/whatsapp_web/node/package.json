@@ -1,0 +1,15 @@
+{
+  "name": "octopusos-whatsapp-web-bridge",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Local WhatsApp Web bridge for OctopusOS CommunicationOS (QR login, send/receive).",
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.31.0"
+  },
+  "scripts": {
+    "start": "node whatsapp_web_bridge.mjs"
+  }
+}
+

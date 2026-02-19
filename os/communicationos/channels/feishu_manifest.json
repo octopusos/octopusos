@@ -1,0 +1,104 @@
+{
+  "id": "feishu",
+  "name": "Feishu (Enterprise IM)",
+  "icon": "chat",
+  "description": "Connect Feishu/Lark official events for enterprise IM bridging. Focused on governance, audit, and policy-gated replies.",
+  "provider": "Feishu",
+  "capabilities": ["inbound_text", "outbound_text"],
+  "session_scope": "user_conversation",
+  "security_mode": "chat_only",
+  "privacy_badges": ["Enterprise", "Audited", "No Content Stored"],
+  "required_config_fields": [
+    {
+      "name": "app_id",
+      "label": "App ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "cli_aabbccddeeffgghh",
+      "help_text": "Feishu/Lark app_id."
+    },
+    {
+      "name": "app_secret",
+      "label": "App Secret",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "placeholder": "********",
+      "help_text": "Feishu/Lark app_secret (stored encrypted locally)."
+    },
+    {
+      "name": "verification_token",
+      "label": "Verification Token",
+      "type": "password",
+      "required": true,
+      "secret": true,
+      "placeholder": "********",
+      "help_text": "Event Subscription Verification Token (stored encrypted locally)."
+    },
+    {
+      "name": "encrypt_key",
+      "label": "Encrypt Key (AES Key)",
+      "type": "password",
+      "required": false,
+      "secret": true,
+      "placeholder": "********",
+      "help_text": "Event encryption key. Required if Feishu event encryption is enabled (stored encrypted locally)."
+    },
+    {
+      "name": "policy_mode",
+      "label": "Policy Gate Mode",
+      "type": "select",
+      "required": true,
+      "default": "silent_allow",
+      "options": ["silent_allow", "explain_confirm", "block"],
+      "help_text": "Policy gate decision for enterprise IM replies: silent_allow (default), explain_confirm, or block."
+    },
+    {
+      "name": "model_route",
+      "label": "Mode (Local/Cloud)",
+      "type": "select",
+      "required": true,
+      "default": "local",
+      "options": ["local", "cloud"],
+      "help_text": "Controls which model route is used for replies."
+    },
+    {
+      "name": "provider",
+      "label": "LLM Provider",
+      "type": "text",
+      "required": true,
+      "placeholder": "ollama / openai / ...",
+      "help_text": "LLM provider id for replies."
+    },
+    {
+      "name": "model",
+      "label": "LLM Model",
+      "type": "text",
+      "required": true,
+      "placeholder": "llama3 / gpt-4o-mini / ...",
+      "help_text": "LLM model name for replies."
+    }
+  ],
+  "setup_steps": [
+    {
+      "title": "Create Feishu App",
+      "description": "Create a Feishu/Lark app and enable Event Subscription.",
+      "checklist": [
+        "Create an app in Feishu/Lark developer console",
+        "Enable Event Subscription",
+        "Copy Verification Token and Encrypt Key (if enabled)"
+      ]
+    },
+    {
+      "title": "Set Event Request URL",
+      "description": "Point Feishu Event Subscription request URL to OctopusOS webhook endpoint.",
+      "instruction": "Use the webhook URL: https://<your-host>/api/enterprise-im/feishu/webhook\n\nFeishu will send a URL verification challenge. OctopusOS must reply with the challenge to complete verification.",
+      "checklist": [
+        "Set request URL to /api/enterprise-im/feishu/webhook",
+        "Complete URL verification challenge",
+        "Subscribe to message receive events (im.message.receive_v1)"
+      ]
+    }
+  ]
+}
+

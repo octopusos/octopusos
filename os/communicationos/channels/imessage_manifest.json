@@ -1,0 +1,169 @@
+{
+  "id": "imessage",
+  "name": "iMessage",
+  "icon": "chat",
+  "description": "Connect iMessage through a local/hosted bridge and route messages into OctopusOS sessions.",
+  "long_description": "This channel integrates iMessage via a bridge service that forwards inbound events to OctopusOS and accepts outbound send requests. After configuration, inbound iMessage messages are mapped into CommunicationOS sessions just like other channels.",
+  "version": "1.0.0",
+  "provider": "Apple iMessage",
+  "docs_url": "https://support.apple.com/guide/messages/welcome/mac",
+  "required_config_fields": [
+    {
+      "name": "model_route",
+      "label": "Mode (Local/Cloud)",
+      "type": "select",
+      "required": true,
+      "default": "local",
+      "options": ["local", "cloud"],
+      "help_text": "Controls which model route is used for replies."
+    },
+    {
+      "name": "provider",
+      "label": "LLM Provider",
+      "type": "text",
+      "required": true,
+      "default": "ollama",
+      "placeholder": "ollama / openai / anthropic",
+      "help_text": "Provider id used by OctopusOS for reply generation."
+    },
+    {
+      "name": "model",
+      "label": "LLM Model",
+      "type": "text",
+      "required": true,
+      "default": "llama3.2:3b",
+      "placeholder": "llama3 / gpt-4o-mini",
+      "help_text": "Model name used by the selected provider."
+    },
+    {
+      "name": "low_latency_mode",
+      "label": "Low Latency Mode",
+      "type": "select",
+      "required": false,
+      "default": "true",
+      "options": ["true", "false"],
+      "help_text": "When true, iMessage replies default to offline-only fast path. Use @web in message to explicitly unlock online tools for that turn."
+    },
+    {
+      "name": "bridge_profile_id",
+      "label": "Bridge Profile ID",
+      "type": "text",
+      "required": false,
+      "placeholder": "f8a6f8d1-....",
+      "help_text": "Optional BridgeOS profile id. If set, iMessage bridge settings are resolved from BridgeOS."
+    },
+    {
+      "name": "bridge_base_url",
+      "label": "Bridge Base URL",
+      "type": "text",
+      "required": false,
+      "placeholder": "http://127.0.0.1:17002",
+      "help_text": "Used when Bridge Profile ID is not set."
+    },
+    {
+      "name": "webhook_token",
+      "label": "Webhook Token",
+      "type": "password",
+      "required": false,
+      "placeholder": "optional-shared-secret",
+      "help_text": "Optional shared token for inbound webhook authentication.",
+      "secret": true
+    },
+    {
+      "name": "send_path",
+      "label": "Bridge Send Path",
+      "type": "text",
+      "required": false,
+      "default": "/api/imessage/send",
+      "placeholder": "/api/imessage/send",
+      "help_text": "HTTP path on the bridge for outbound send requests."
+    },
+    {
+      "name": "assistant_display_name",
+      "label": "Assistant Display Name",
+      "type": "text",
+      "required": false,
+      "default": "OctopusOS",
+      "placeholder": "OctopusOS",
+      "help_text": "Optional label prepended to outbound replies to simulate a separate contact in self-chat."
+    },
+    {
+      "name": "allow_from_me_inbound",
+      "label": "Accept Self-Sent Messages",
+      "type": "select",
+      "required": false,
+      "default": "false",
+      "options": ["true", "false"],
+      "help_text": "When true, messages sent by your own Apple account are treated as inbound (useful for self-chat via email/phone aliases)."
+    },
+    {
+      "name": "processing_status_enabled",
+      "label": "Show Processing Status",
+      "type": "select",
+      "required": false,
+      "default": "false",
+      "options": ["true", "false"],
+      "help_text": "When enabled, send a temporary status message before the assistant reply."
+    },
+    {
+      "name": "processing_status_text",
+      "label": "Processing Status Text",
+      "type": "text",
+      "required": false,
+      "default": "⏳ 正在处理中，请稍候…",
+      "placeholder": "⏳ 正在处理中，请稍候…",
+      "help_text": "Status text sent while waiting for model response."
+    }
+  ],
+  "webhook_paths": [
+    "/api/channels/imessage/webhook"
+  ],
+  "session_scope": "user_conversation",
+  "capabilities": [
+    "inbound_text",
+    "outbound_text",
+    "threaded_conversations"
+  ],
+  "security_defaults": {
+    "mode": "chat_only",
+    "allow_execute": false,
+    "allowed_commands": ["/session", "/help"],
+    "rate_limit_per_minute": 30,
+    "retention_days": 7,
+    "require_signature": true
+  },
+  "setup_steps": [
+    {
+      "title": "Deploy iMessage Bridge",
+      "description": "Prepare a bridge service that can read iMessage events and send messages.",
+      "instruction": "Run your iMessage bridge and ensure it can POST outbound requests at the configured send path.",
+      "checklist": [
+        "Bridge service running",
+        "Bridge base URL reachable"
+      ],
+      "auto_check": false
+    },
+    {
+      "title": "Configure Webhook",
+      "description": "Point the bridge inbound webhook to OctopusOS.",
+      "instruction": "Set bridge webhook target to /api/channels/imessage/webhook on your OctopusOS host. If you use webhook token, include it in X-iMessage-Token or Authorization Bearer.",
+      "checklist": [
+        "Webhook URL configured",
+        "Webhook token (optional) configured"
+      ],
+      "auto_check": false
+    }
+  ],
+  "privacy_badges": [
+    "Bridge-based",
+    "Chat-only by Default",
+    "Local Storage",
+    "Secrets Encrypted"
+  ],
+  "metadata": {
+    "category": "messaging",
+    "official": false,
+    "verified": false,
+    "setup_difficulty": "medium"
+  }
+}

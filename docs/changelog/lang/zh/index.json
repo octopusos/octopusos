@@ -1,6 +1,18 @@
 {
   "versions": [
     {
+      "key": "2026-02-19",
+      "title": "2026-02-19：v3.6.0 交付版（One-Step 体验、Policy/Billing/DB、商业发布加固）",
+      "outline": [
+        "One-step 交付与 Chat/Task 路径完成加固，并扩展中英文文案与监督证据链路",
+        "Policy Center 版本化审计 + diff 可视化完成落地，phase-5 执行证据闭环",
+        "数据库操作面升级：DB Module 页面/API 与 chat NLQ 的 db.query 技能链路",
+        "KB 治理预检/增强与 Billing 端到端管线交付，并附带证据包",
+        "Communication/Providers/Wiki 扩展，同时完成企业租户发布模式与 OSS 边界加固"
+      ],
+      "md_path": "docs/changelog/lang/zh/2026-02-19.md"
+    },
+    {
       "key": "2026-02-16",
       "title": "2026-02-16：WebUI 产品面刷新、Context Optimizer v2、LLM 用量与价格可观测性",
       "outline": [

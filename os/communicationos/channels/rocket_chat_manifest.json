@@ -1,0 +1,97 @@
+{
+  "id": "rocket_chat",
+  "name": "Rocket.Chat",
+  "icon": "chat",
+  "description": "Connect Rocket.Chat through a bridge service and route messages into OctopusOS sessions",
+  "long_description": "Rocket.Chat channel integration via BridgeOS. BridgeOS manages bridge endpoint/session parameters, while CommunicationOS handles routing and session binding.",
+  "version": "1.0.0",
+  "provider": "Rocket.Chat",
+  "docs_url": "https://developer.rocket.chat/apidocs",
+  "required_config_fields": [
+    {
+      "name": "model_route",
+      "label": "Mode (Local/Cloud)",
+      "type": "select",
+      "required": true,
+      "default": "local",
+      "options": ["local", "cloud"],
+      "help_text": "Controls which model route is used for replies."
+    },
+    {
+      "name": "provider",
+      "label": "LLM Provider",
+      "type": "text",
+      "required": true,
+      "placeholder": "ollama / openai / anthropic",
+      "help_text": "Provider id used by OctopusOS for reply generation."
+    },
+    {
+      "name": "model",
+      "label": "LLM Model",
+      "type": "text",
+      "required": true,
+      "placeholder": "llama3 / gpt-4o-mini",
+      "help_text": "Model name used by the selected provider."
+    },
+    {
+      "name": "bridge_profile_id",
+      "label": "Bridge Profile ID",
+      "type": "text",
+      "required": true,
+      "placeholder": "f8a6f8d1-....",
+      "help_text": "BridgeOS profile id used to resolve bridge endpoint and webhook token."
+    }
+  ],
+  "webhook_paths": [
+    "/api/channels/rocket_chat/webhook"
+  ],
+  "session_scope": "user_conversation",
+  "capabilities": [
+    "inbound_text",
+    "outbound_text",
+    "threaded_conversations"
+  ],
+  "security_defaults": {
+    "mode": "chat_only",
+    "allow_execute": false,
+    "allowed_commands": ["/session", "/help"],
+    "rate_limit_per_minute": 30,
+    "retention_days": 7,
+    "require_signature": true
+  },
+  "setup_steps": [
+    {
+      "title": "Prepare Bridge Profile",
+      "description": "Create a BridgeOS profile for Rocket.Chat.",
+      "instruction": "Open Channels > Bridge setup, create a profile, and copy its profile id.",
+      "checklist": [
+        "Bridge service running",
+        "Bridge profile created"
+      ],
+      "auto_check": false
+    },
+    {
+      "title": "Configure Webhook",
+      "description": "Point bridge inbound webhook to OctopusOS.",
+      "instruction": "Set webhook target to /api/channels/rocket_chat/webhook. If token is enabled, pass it in X-Bridge-Token or Authorization Bearer.",
+      "checklist": [
+        "Webhook URL configured",
+        "Webhook token configured (optional)"
+      ],
+      "auto_check": false
+    }
+  ],
+  "privacy_badges": [
+    "Bridge-based",
+    "Chat-only by Default",
+    "Local Storage",
+    "Secrets Encrypted"
+  ],
+  "metadata": {
+    "category": "messaging",
+    "official": false,
+    "verified": false,
+    "setup_difficulty": "medium",
+    "bridge_required": true
+  }
+}
